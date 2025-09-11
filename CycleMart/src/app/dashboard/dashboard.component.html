@@ -1,0 +1,47 @@
+<div class="flex min-h-screen bg-gray-100">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-[#213A57] text-white flex flex-col">
+    <div class="p-4 text-2xl font-bold border-b border-gray-700">
+      Dashboard
+    </div>
+
+    <nav class="flex-1 p-4 space-y-2">
+      <!-- Home -->
+      <button class="w-full flex items-center p-3 rounded-lg hover:bg-[#1a2f47] transition">
+        <span class="ml-2">Home</span>
+      </button>
+
+      <!-- Profile & Listing (with nested menu) -->
+      <div>
+        <button 
+          (click)="toggleMenu('profile')" 
+          class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-[#1a2f47] transition"
+        >
+          <span>Profile & Listing</span>
+          <span [ngClass]="{'rotate-90': openMenu === 'profile'}" class="transition-transform">▶</span>
+        </button>
+        <div *ngIf="openMenu === 'profile'" class="ml-6 mt-2 space-y-2 text-sm">
+          <a href="#" class="block p-2 rounded hover:bg-[#1a2f47]">View Profile</a>
+          <a href="#" class="block p-2 rounded hover:bg-[#1a2f47]">Edit Profile</a>
+          <a href="#" class="block p-2 rounded hover:bg-[#1a2f47]">My Listings</a>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <button class="w-full flex items-center p-3 rounded-lg hover:bg-[#1a2f47] transition">
+        <span class="ml-2">Messages</span>
+      </button>
+
+      <!-- Notifications -->
+      <button class="w-full flex items-center p-3 rounded-lg hover:bg-[#1a2f47] transition">
+        <span class="ml-2">Notifications</span>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-8">
+    <h1 class="text-2xl font-semibold text-gray-800">Welcome to Dashboard</h1>
+    <p class="mt-4 text-gray-600">Select a menu option from the sidebar.</p>
+  </main>
+</div>

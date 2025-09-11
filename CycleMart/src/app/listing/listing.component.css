@@ -1,0 +1,177 @@
+/* Custom styles for listing component */
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Drag and drop styles */
+.drag-over {
+  border-color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+}
+
+/* Smooth hover animations */
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Modal backdrop blur */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+}
+
+/* Lightbox styles */
+.lightbox-backdrop {
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.lightbox-image {
+  animation: zoomIn 0.3s ease-out;
+}
+
+.lightbox-nav-button {
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.lightbox-nav-button:hover {
+  transform: scale(1.1);
+}
+
+.lightbox-thumbnail {
+  transition: all 0.2s ease;
+}
+
+.lightbox-thumbnail:hover {
+  transform: scale(1.05);
+}
+
+/* Image carousel smooth transitions */
+.carousel-image {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Form input focus animations */
+input:focus, textarea:focus, select:focus {
+  transform: scale(1.02);
+}
+
+/* Button hover effects */
+.btn-gradient:hover {
+  background-size: 200% 200%;
+  animation: gradient-shift 0.3s ease-in-out;
+}
+
+/* Image hover effects */
+.image-hover-overlay {
+  transition: all 0.3s ease;
+}
+
+.group:hover .image-hover-overlay {
+  opacity: 1;
+}
+
+/* Zoom icon animation */
+.zoom-icon {
+  animation: pulse-zoom 2s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes pulse-zoom {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Custom scrollbar for modal */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Image upload area animations */
+.upload-area {
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #6366f1;
+  background-color: #f8fafc;
+}
+
+/* Status badge animations */
+.status-badge {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Keyboard shortcut styling */
+kbd {
+  font-family: 'SFMono-Regular', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}

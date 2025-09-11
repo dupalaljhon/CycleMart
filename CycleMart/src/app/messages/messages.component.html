@@ -1,0 +1,56 @@
+<div class="flex h-screen">
+  <!-- Sidenav (always visible) -->
+  <app-sidenav></app-sidenav>
+
+  <!-- Main Page Content -->
+  <div class="flex-1 flex">
+    <!-- Sidebar Messages List -->
+    <div class="w-1/3 bg-gray-100 border-r border-gray-300 p-4">
+      <h2 class="font-bold text-lg mb-4">Messages</h2>
+      <div *ngFor="let chat of messages; let i = index" 
+           class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 cursor-pointer"
+           (click)="selectChat(i)">
+        <div class="flex items-center gap-2">
+          <img src="https://i.pravatar.cc/200?img=12" class="w-10 h-10 rounded-full border" alt="avatar">
+          <div>
+            <p class="font-bold">{{ chat.name }}</p>
+            <p class="text-sm text-gray-600 truncate">{{ chat.lastMessage }}</p>
+          </div>
+        </div>
+        <button (click)="deleteChat(i); $event.stopPropagation()"
+                class="text-red-500 hover:text-red-700">
+          ✖
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="w-2/3 bg-gray-500 text-white flex flex-col">
+      <!-- Chat Header -->
+      <div class="flex items-center p-4 border-b border-gray-400">
+        <img src="https://i.pravatar.cc/200?img=12" class="w-12 h-12 rounded-full border mr-3" alt="avatar">
+        <h2 class="font-bold text-xl">{{ selectedChat?.name }}</h2>
+      </div>
+
+      <!-- Chat Messages -->
+      <div class="flex-1 p-4 overflow-y-auto">
+        <div *ngFor="let msg of selectedChat?.chat" class="mb-3">
+          <div [ngClass]="msg.sender === 'me' ? 'text-right' : 'text-left'">
+            <span class="inline-block bg-gray-200 text-black px-3 py-2 rounded-lg">
+              {{ msg.text }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Box -->
+      <div class="flex items-center p-3 border-t border-gray-400 bg-gray-600">
+        <input [(ngModel)]="newMessage"
+               type="text"
+               placeholder="Aa"
+               class="flex-1 rounded-lg px-3 py-2 text-black">
+        <button (click)="sendMessage()" class="ml-2 text-2xl">➤</button>
+      </div>
+    </div>
+  </div>
+</div>

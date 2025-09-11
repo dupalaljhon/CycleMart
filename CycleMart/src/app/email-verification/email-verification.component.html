@@ -1,0 +1,57 @@
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="py-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#213A57] mx-auto mb-4"></div>
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Verifying Your Email</h2>
+      <p class="text-gray-600">Please wait while we verify your email address...</p>
+    </div>
+
+    <!-- Success State -->
+    <div *ngIf="isSuccess" class="py-8">
+      <div class="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-semibold text-green-800 mb-4">Email Verified Successfully!</h2>
+      <p class="text-gray-600 mb-6">{{ message }}</p>
+      <div class="space-y-3">
+        <p class="text-sm text-gray-500">You will be redirected to login in a few seconds...</p>
+        <button 
+          (click)="goToLogin()"
+          class="w-full py-3 bg-[#213A57] text-white rounded-md font-medium hover:bg-[#1a2f47] transition"
+        >
+          Go to Login Now
+        </button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="isError" class="py-8">
+      <div class="mx-auto mb-4 h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-semibold text-red-800 mb-4">Verification Failed</h2>
+      <p class="text-gray-600 mb-6">{{ message }}</p>
+      <div class="space-y-3">
+        <button 
+          (click)="resendVerification()"
+          class="w-full py-3 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
+        >
+          Request New Verification Email
+        </button>
+        <button 
+          (click)="goToLogin()"
+          class="w-full py-3 bg-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-400 transition"
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
