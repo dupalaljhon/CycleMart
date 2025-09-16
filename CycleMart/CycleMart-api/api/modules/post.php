@@ -165,6 +165,62 @@ public function loginUser($data) {
     }
 }
 
+// Admin Login
+public function adminLogin($data) {
+    $username = $data->username ?? null;
+    $password = $data->password ?? null;
+
+    if (!$username || !$password) {
+        return $this->sendPayload(null, "error", "Username and password required", 400);
+    }
+
+    // Use the correct column names based on the actual table structure
+    $sql = "SELECT * FROM admins WHERE username = :username";
+    try {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['username' => $username]);
+        $admin = $stmt->fetch();
+
+        if ($admin && password_verify($password, $admin['password'])) {
+            $payload = [
+                'iss' => "http://example.org", 
+                'aud' => "http://example.com", 
+                'iat' => time(), 
+                'exp' => time() + 3600, 
+                'admin_id' => $admin['admin_id'], // Use admin_id instead of id
+                'role' => $admin['role'] ?? 'admin'
+            ];
+            $jwt = JWT::encode($payload, $this->key, 'HS256');
+
+            // Build user data with correct column names
+            $userData = [
+                'id' => $admin['admin_id'], // Map admin_id to id for frontend compatibility
+                'username' => $admin['username'],
+                'email' => $admin['email'] ?? '',
+                'role' => $admin['role'] ?? 'admin',
+                'full_name' => $admin['full_name'] ?? ''
+            ];
+
+            // Add optional fields if they exist
+            if (isset($admin['status'])) {
+                $userData['status'] = $admin['status'];
+            }
+            if (isset($admin['created_at'])) {
+                $userData['created_at'] = $admin['created_at'];
+            }
+
+            return $this->sendPayload([
+                'token' => $jwt,
+                'user' => $userData
+            ], "success", "Admin login successful", 200);
+        } else {
+            return $this->sendPayload(null, "error", "Invalid admin credentials", 401);
+        }
+    } catch (\PDOException $e) {
+        return $this->sendPayload(null, "error", $e->getMessage(), 400);
+    }
+}
+
 
 //profile update
 public function uploadProfile($data) {
@@ -436,8 +492,8 @@ public function addProduct($data) {
 
     $jsonImages = json_encode($savedPaths);
 
-    $sql = "INSERT INTO products (product_name, product_images, price, description, location, for_type, `condition`, category, quantity, uploader_id) 
-            VALUES (:product_name, :product_images, :price, :description, :location, :for_type, :condition, :category, :quantity, :uploader_id)";
+    $sql = "INSERT INTO products (product_name, product_images, price, description, location, for_type, `condition`, category, quantity, status, sale_status, uploader_id) 
+            VALUES (:product_name, :product_images, :price, :description, :location, :for_type, :condition, :category, :quantity, 'active', 'available', :uploader_id)";
 
     try {
         $stmt = $this->pdo->prepare($sql);
@@ -753,6 +809,58 @@ public function deleteProduct($data) {
         ];
     }
 
+    // Archive/Restore product function
+    public function archiveProduct($data) {
+        $product_id = $data->product_id ?? null;
+        $archived_by = $data->admin_id ?? null;
+        $role = $data->role ?? 'moderator';
+        $reason = $data->reason ?? null;
+        $action = $data->action ?? 'archived'; // 'archived' or 'restored'
+
+        if (!$product_id || !$archived_by) {
+            return $this->sendPayload(null, "error", "Missing required fields", 400);
+        }
+
+        // Determine new status based on action
+        $new_status = ($action === 'archived') ? 'archived' : 'active';
+
+        try {
+            // Begin transaction
+            $this->pdo->beginTransaction();
+
+            // Update product status
+            $sql = "UPDATE products SET status = :status WHERE product_id = :product_id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                'status' => $new_status,
+                'product_id' => $product_id
+            ]);
+
+            // Insert into archive history
+            $historySql = "INSERT INTO archive_history (product_id, archived_by, role, reason, action) 
+                          VALUES (:product_id, :archived_by, :role, :reason, :action)";
+            $historyStmt = $this->pdo->prepare($historySql);
+            $historyStmt->execute([
+                'product_id' => $product_id,
+                'archived_by' => $archived_by,
+                'role' => $role,
+                'reason' => $reason,
+                'action' => $action
+            ]);
+
+            $this->pdo->commit();
+
+            return $this->sendPayload([
+                'product_id' => $product_id,
+                'status' => $new_status,
+                'action' => $action
+            ], "success", "Product " . $action . " successfully", 200);
+
+        } catch (\PDOException $e) {
+            $this->pdo->rollBack();
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
 
 }
 ?>

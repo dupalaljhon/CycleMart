@@ -3,10 +3,10 @@
   <app-sidenav></app-sidenav>
 
   <!-- Page content -->
-  <div class="flex-1 p-6 bg-gray-100 overflow-y-auto">
+  <div class="flex-1 p-6 bg-[#f5f1eb] overflow-y-auto">
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">My Listings</h1>
+      <h1 class="text-3xl font-bold text-black">My Listings</h1>
       <p class="text-gray-600">Manage your bike parts and accessories</p>
     </div>
 
@@ -14,7 +14,7 @@
     <div class="mb-6">
       <button 
         (click)="addNewListing()"
-        class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        class="bg-[#6BA3BE] text-white px-8 py-4 rounded-xl hover:bg-[#5a92a5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
         <span class="flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -30,200 +30,12 @@
       <p class="mt-4 text-gray-600">Loading your listings...</p>
     </div>
 
-    <!-- Add New Product Form -->
-    <div *ngIf="showAddForm" class="mb-8 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-      <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
-        <h2 class="text-2xl font-bold text-white">Add New Product</h2>
-        <p class="text-blue-100 mt-1">Fill in the details below to create your listing</p>
-      </div>
-      
-      <form class="p-6 space-y-6">
-        <!-- Product Name -->
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2">Product Name *</label>
-          <input 
-            type="text" 
-            [(ngModel)]="newProduct.product_name"
-            name="product_name"
-            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-            placeholder="Enter product name">
-        </div>
-
-        <!-- Price and Location -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Price (₱) *</label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₱</span>
-              <input 
-                type="number" 
-                [(ngModel)]="newProduct.price"
-                name="price"
-                min="0"
-                step="0.01"
-                class="w-full pl-8 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="0.00">
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
-            <input 
-              type="text" 
-              [(ngModel)]="newProduct.location"
-              name="location"
-              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-              placeholder="City, Province">
-          </div>
-        </div>
-
-        <!-- Quantity -->
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
-          <div class="relative max-w-xs">
-            <input 
-              type="number" 
-              [(ngModel)]="newProduct.quantity"
-              name="quantity"
-              min="1"
-              max="999"
-              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-              placeholder="1">
-            <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-              items
-            </div>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">Number of items available for sale/trade</p>
-        </div>
-
-        <!-- Category, Condition, For Type -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-            <select 
-              [(ngModel)]="newProduct.category"
-              name="category"
-              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
-              <option *ngFor="let cat of categories" [value]="cat.value">{{cat.label}}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Condition *</label>
-            <select 
-              [(ngModel)]="newProduct.condition"
-              name="condition"
-              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
-              <option value="brand_new">Brand New</option>
-              <option value="second_hand">Second Hand</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">For *</label>
-            <select 
-              [(ngModel)]="newProduct.for_type"
-              name="for_type"
-              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
-              <option value="sale">Sale</option>
-              <option value="trade">Trade</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Description -->
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
-          <textarea 
-            [(ngModel)]="newProduct.description"
-            name="description"
-            rows="5"
-            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
-            placeholder="Describe your product in detail..."></textarea>
-        </div>
-
-        <!-- Images -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
-          
-          <!-- Drag and Drop Area -->
-          <div 
-            (dragover)="onDragOver($event)"
-            (dragleave)="onDragLeave($event)"
-            (drop)="onDrop($event, true)"
-            [class.border-blue-500]="isDragOver"
-            [class.bg-blue-50]="isDragOver"
-            class="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
-            
-            <input 
-              type="file" 
-              (change)="onImageSelect($event, true)"
-              multiple
-              accept="image/*"
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              id="imageUpload">
-            
-            <div class="space-y-2">
-              <div class="mx-auto w-12 h-12 text-gray-400">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-              </div>
-              <div class="text-gray-600">
-                <label for="imageUpload" class="font-medium text-blue-600 hover:text-blue-500 cursor-pointer">
-                  Click to upload
-                </label>
-                <span> or drag and drop</span>
-              </div>
-              <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
-            </div>
-          </div>
-          
-          <!-- Image Preview Grid -->
-          <div *ngIf="newProduct.product_images && newProduct.product_images.length > 0" 
-               class="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div *ngFor="let image of newProduct.product_images; let i = index" 
-                 class="relative group">
-              <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                <img [src]="image" 
-                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                     [alt]="'Product image ' + (i + 1)">
-              </div>
-              <button 
-                type="button"
-                (click)="removeImage(i)"
-                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm hover:bg-red-600 transition-colors shadow-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-              <div class="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                {{i + 1}}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="flex gap-4 pt-6 border-t border-gray-200">
-          <button 
-            type="button"
-            (click)="saveNewProduct()"
-            class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-            <span class="flex items-center justify-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
-              Save Product
-            </span>
-          </button>
-          <button 
-            type="button"
-            (click)="cancelAddForm()"
-            class="flex-1 bg-gray-500 text-white px-8 py-4 rounded-xl hover:bg-gray-600 transition-all duration-200 font-semibold">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+    <!-- Add New Product Modal -->
+    <app-listing-modal 
+      [showModal]="showAddModal"
+      (closeModal)="closeAddModal()"
+      (productAdded)="onProductAdded()">
+    </app-listing-modal>
 
     <!-- Listings Grid -->
     <div *ngIf="listings.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -300,29 +112,28 @@
             </div>
             
             <!-- Status Badge -->
-            <div class="mb-4">
-              <span *ngIf="listing.pendingApproval" 
-                    class="inline-flex items-center bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full font-medium">
+            <div class="mb-4 flex gap-2">
+              <span class="inline-flex items-center bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Pending Approval
+                {{listing.status | titlecase}}
               </span>
-              <span *ngIf="!listing.pendingApproval" 
-                    class="inline-flex items-center bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
-                Draft
+              <span class="inline-flex items-center text-xs px-3 py-1 rounded-full font-medium"
+                    [ngClass]="{
+                      'bg-blue-100 text-blue-800': listing.sale_status === 'available',
+                      'bg-gray-100 text-gray-800': listing.sale_status === 'sold'
+                    }">
+                {{listing.sale_status | titlecase}}
               </span>
             </div>
 
             <!-- Action buttons -->
-            <div class="space-y-2" *ngIf="!listing.pendingApproval">
+            <div class="space-y-2">
               <div class="flex gap-2">
                 <button 
                   (click)="editListing(listing)"
-                  class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
+                  class="flex-1 bg-[#6BA3BE] text-white py-2 px-4 rounded-lg hover:bg-[#5a92a5] transition-colors text-sm font-medium">
                   <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                   </svg>
@@ -337,24 +148,19 @@
                 </button>
               </div>
               <button 
-                (click)="submitForApproval(listing)"
-                class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium">
+                (click)="toggleSaleStatus(listing)"
+                [disabled]="listing.status === 'archived'"
+                class="w-full py-2 px-4 rounded-lg transition-all duration-200 text-sm font-medium"
+                [ngClass]="{
+                  'bg-green-500 text-white hover:bg-green-600': listing.sale_status === 'sold',
+                  'bg-yellow-500 text-white hover:bg-yellow-600': listing.sale_status === 'available',
+                  'bg-gray-300 text-gray-500 cursor-not-allowed': listing.status === 'archived'
+                }">
                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="listing.sale_status === 'sold'"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="listing.sale_status === 'available'"/>
                 </svg>
-                Submit for Approval
-              </button>
-            </div>
-
-            <div *ngIf="listing.pendingApproval" class="text-center">
-              <p class="text-sm text-gray-600 mb-3">Submitted for approval</p>
-              <button 
-                (click)="deleteListing(listing)"
-                class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-                Delete
+                {{getStatusButtonText(listing)}}
               </button>
             </div>
           </div>
@@ -412,7 +218,7 @@
                 class="p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <option value="sale">Sale</option>
                 <option value="trade">Trade</option>
-                <option value="both">Both</option>
+                <option value="both">Both Sale and Trade</option>
               </select>
             </div>
 
@@ -450,160 +256,6 @@
         class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
         Create First Listing
       </button>
-    </div>
-  </div>
-
-  <!-- Approval Modal -->
-  <div *ngIf="showApprovalModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200">
-        <h2 class="text-2xl font-bold text-gray-800">Submit for Approval</h2>
-        <button 
-          (click)="closeApprovalModal()"
-          class="text-gray-400 hover:text-gray-600 transition-colors">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Modal Content -->
-      <div *ngIf="selectedProduct" class="p-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          <!-- Product Images Carousel -->
-          <div class="space-y-4">
-            <div class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-              <!-- Main Image Display -->
-              <div *ngIf="selectedProduct.product_images && selectedProduct.product_images.length > 0; else noImageLarge">
-                <img 
-                  [src]="getImageUrl(selectedProduct.product_images[currentImageIndex])" 
-                  [alt]="selectedProduct.product_name"
-                  class="w-full h-full object-cover">
-                
-                <!-- Navigation Arrows -->
-                <button 
-                  *ngIf="selectedProduct.product_images.length > 1"
-                  (click)="prevImage()"
-                  class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                  </svg>
-                </button>
-                
-                <button 
-                  *ngIf="selectedProduct.product_images.length > 1"
-                  (click)="nextImage()"
-                  class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                  </svg>
-                </button>
-
-                <!-- Image Counter -->
-                <div class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-                  {{currentImageIndex + 1}} / {{selectedProduct.product_images.length}}
-                </div>
-              </div>
-              
-              <ng-template #noImageLarge>
-                <div class="w-full h-full flex items-center justify-center text-gray-500">
-                  <div class="text-center">
-                    <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <p>No Images</p>
-                  </div>
-                </div>
-              </ng-template>
-            </div>
-
-            <!-- Thumbnail Strip -->
-            <div *ngIf="selectedProduct.product_images && selectedProduct.product_images.length > 1" 
-                 class="flex gap-2 overflow-x-auto pb-2">
-              <button 
-                *ngFor="let image of selectedProduct.product_images; let i = index"
-                (click)="goToImage(i)"
-                [class.ring-2]="currentImageIndex === i"
-                [class.ring-blue-500]="currentImageIndex === i"
-                class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-gray-300 transition-colors">
-                <img [src]="getImageUrl(image)" class="w-full h-full object-cover">
-              </button>
-            </div>
-          </div>
-
-          <!-- Product Details -->
-          <div class="space-y-6">
-            <div>
-              <h3 class="text-2xl font-bold text-gray-800 mb-2">{{selectedProduct.product_name}}</h3>
-              <div class="flex items-center justify-between mb-4">
-                <p class="text-3xl font-bold text-green-600">₱{{selectedProduct.price | number:'1.2-2'}}</p>
-                <div class="flex items-center text-gray-600">
-                  <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                  </svg>
-                  <span class="text-lg font-medium">{{selectedProduct.quantity}} {{selectedProduct.quantity === 1 ? 'item' : 'items'}}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-sm text-gray-600">Category</p>
-                <p class="font-semibold text-gray-800">{{selectedProduct.category | titlecase}}</p>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-sm text-gray-600">Condition</p>
-                <p class="font-semibold text-gray-800">{{selectedProduct.condition | titlecase}}</p>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-sm text-gray-600">For</p>
-                <p class="font-semibold text-gray-800">{{selectedProduct.for_type | titlecase}}</p>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-sm text-gray-600">Location</p>
-                <p class="font-semibold text-gray-800">📍 {{selectedProduct.location}}</p>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-sm text-gray-600 mb-2">Description</p>
-              <p class="text-gray-800">{{selectedProduct.description}}</p>
-            </div>
-
-            <!-- Approval Warning -->
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div class="flex items-start">
-                <svg class="w-5 h-5 text-amber-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-                <div>
-                  <h4 class="font-semibold text-amber-800">Important Notice</h4>
-                  <p class="text-sm text-amber-700 mt-1">
-                    Once submitted for approval, you won't be able to edit this product until it's reviewed. 
-                    Please make sure all information is correct.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Modal Actions -->
-        <div class="flex gap-4 pt-6 border-t border-gray-200 mt-8">
-          <button 
-            (click)="closeApprovalModal()"
-            class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 transition-colors font-medium">
-            Cancel
-          </button>
-          <button 
-            (click)="confirmSubmitForApproval()"
-            class="flex-1 bg-green-500 text-white py-3 px-6 rounded-lg hover:bg-green-600 transition-colors font-medium">
-            Submit for Approval
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 

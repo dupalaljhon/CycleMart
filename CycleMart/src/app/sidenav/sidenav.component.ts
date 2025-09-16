@@ -2,6 +2,7 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { NgIf, NgClass } from '@angular/common';
 import { AuthService } from '../api/auth.service';
+import { ThemeService } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -17,7 +18,11 @@ export class SidenavComponent implements OnInit {
   isMobile = false;      // detects screen size
   activeRoute = '';      // track current route
 
-  constructor(private authService: AuthService, private router: Router) {
+  constructor(
+    private authService: AuthService, 
+    private router: Router,
+    private themeService: ThemeService
+  ) {
     this.checkScreenSize();
     
     // Track route changes for active state
@@ -66,6 +71,10 @@ export class SidenavComponent implements OnInit {
         document.body.style.overflow = 'auto';
       }
     }
+  }
+
+  toggleTheme() {
+    // Theme toggle disabled - always light mode
   }
 
   // Close sidebar when navigating on mobile

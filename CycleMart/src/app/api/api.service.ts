@@ -44,6 +44,16 @@ getProductsByUser(userId: number): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}products?uploader_id=${userId}`);
 }
 
+// Get all active products for home page
+getAllActiveProducts(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}all-products`);
+}
+
+// Get all products for admin monitoring
+getAllProductsForAdmin(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}admin-products`);
+}
+
 // Add product
 addProduct(data: any): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}addProduct`, data);
@@ -62,6 +72,11 @@ submitForApproval(data: any): Observable<any> {
 // Delete product
 deleteProduct(product_id: number, uploader_id: number): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}deleteProduct`, { product_id, uploader_id });
+}
+
+// Archive/Restore product (admin only)
+archiveProduct(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}archiveProduct`, data);
 }
 
 // 🔹 Email verification

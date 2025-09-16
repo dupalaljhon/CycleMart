@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidenavComponent } from '../sidenav/sidenav.component';
+import { ListingModalComponent } from './listing-modal/listing-modal.component';
 import { ApiService } from '../api/api.service';
 import { FormsModule } from '@angular/forms';
 
@@ -15,16 +16,17 @@ interface Product {
   condition: 'brand_new' | 'second_hand';
   category: 'whole_bike' | 'frame' | 'wheelset' | 'groupset' | 'drivetrain' | 'brakes' | 'saddle' | 'handlebar' | 'accessories' | 'others';
   quantity: number;
+  status: 'active' | 'archived';
+  sale_status: 'available' | 'sold';
   created_at: string;
   uploader_id: number;
   isEditing?: boolean;
-  pendingApproval?: boolean;
 }
 
 @Component({
   selector: 'app-listing',
   standalone: true,
-  imports: [CommonModule, SidenavComponent, FormsModule],
+  imports: [CommonModule, SidenavComponent, ListingModalComponent, FormsModule],
   templateUrl: './listing.component.html',
   styleUrl: './listing.component.css'
 })
@@ -32,9 +34,7 @@ export class ListingComponent implements OnInit, OnDestroy {
   listings: Product[] = [];
   isLoading = false;
   userId: number = 0;
-  showAddForm = false;
-  showApprovalModal = false;
-  selectedProduct: Product | null = null;
+  showAddModal = false;
   currentImageIndex = 0;
   isDragOver = false;
   
@@ -43,19 +43,6 @@ export class ListingComponent implements OnInit, OnDestroy {
   lightboxImages: string[] = [];
   lightboxCurrentIndex = 0;
   lightboxProduct: Product | null = null;
-  
-  // New product form
-  newProduct: Partial<Product> = {
-    product_name: '',
-    price: 0,
-    description: '',
-    location: '',
-    for_type: 'sale',
-    condition: 'second_hand',
-    category: 'others',
-    quantity: 1,
-    product_images: []
-  };
 
   // Categories for dropdown
   categories = [
@@ -123,56 +110,20 @@ export class ListingComponent implements OnInit, OnDestroy {
   }
 
   addNewListing() {
-    this.showAddForm = true;
-    this.resetNewProductForm();
+    this.showAddModal = true;
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
   }
 
-  resetNewProductForm() {
-    this.newProduct = {
-      product_name: '',
-      price: 0,
-      description: '',
-      location: '',
-      for_type: 'sale',
-      condition: 'second_hand',
-      category: 'others',
-      quantity: 1,
-      product_images: []
-    };
+  closeAddModal() {
+    this.showAddModal = false;
+    // Restore body scroll
+    document.body.style.overflow = 'auto';
   }
 
-  cancelAddForm() {
-    this.showAddForm = false;
-    this.resetNewProductForm();
-  }
-
-  saveNewProduct() {
-    if (!this.validateProduct(this.newProduct)) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const productData = {
-      ...this.newProduct,
-      uploader_id: this.userId,
-      product_images: JSON.stringify(this.newProduct.product_images || [])
-    };
-
-    this.apiService.addProduct(productData).subscribe({
-      next: (response) => {
-        if (response.status === 'success') {
-          alert('Product added successfully!');
-          this.showAddForm = false;
-          this.loadUserProducts(); // Reload the list
-        } else {
-          alert('Failed to add product: ' + response.message);
-        }
-      },
-      error: (error) => {
-        console.error('Error adding product:', error);
-        alert('Failed to add product. Please try again.');
-      }
-    });
+  onProductAdded() {
+    // Reload products when a new product is added
+    this.loadUserProducts();
   }
 
   editListing(product: Product) {
@@ -241,64 +192,109 @@ export class ListingComponent implements OnInit, OnDestroy {
     }
   }
 
-  submitForApproval(product: Product) {
-    this.selectedProduct = product;
-    this.currentImageIndex = 0;
-    this.showApprovalModal = true;
-  }
+  // Mark product as sold/available
+  toggleSaleStatus(product: Product) {
+    const statusText = this.getStatusButtonText(product);
+    const actionText = product.sale_status === 'available' 
+      ? this.getAvailableToSoldText(product)
+      : this.getSoldToAvailableText(product);
+    
+    if (confirm(`${actionText}?`)) {
+      const newStatus = product.sale_status === 'available' ? 'sold' : 'available';
+      
+      const updateData = {
+        product_id: product.product_id,
+        sale_status: newStatus,
+        uploader_id: this.userId
+      };
 
-  confirmSubmitForApproval() {
-    if (!this.selectedProduct) return;
-
-    const submissionData = {
-      product_id: this.selectedProduct.product_id,
-      uploader_id: this.userId
-    };
-
-    this.apiService.submitForApproval(submissionData).subscribe({
-      next: (response) => {
-        if (response.status === 'success') {
-          if (this.selectedProduct) {
-            this.selectedProduct.pendingApproval = true;
+      // You'll need to create an updateSaleStatus method in your API
+      this.apiService.updateProduct({
+        ...updateData,
+        product_name: product.product_name,
+        price: product.price,
+        description: product.description,
+        location: product.location,
+        for_type: product.for_type,
+        condition: product.condition,
+        category: product.category,
+        quantity: product.quantity,
+        product_images: JSON.stringify(product.product_images)
+      }).subscribe({
+        next: (response) => {
+          if (response.status === 'success') {
+            product.sale_status = newStatus;
+            const successText = newStatus === 'sold' 
+              ? this.getSuccessSoldText(product) 
+              : this.getSuccessAvailableText(product);
+            alert(successText);
+          } else {
+            alert('Failed to update product status: ' + response.message);
           }
-          alert('Product submitted for approval successfully!');
-          this.closeApprovalModal();
-        } else {
-          alert('Failed to submit product: ' + response.message);
+        },
+        error: (error) => {
+          console.error('Error updating product status:', error);
+          alert('Failed to update product status. Please try again.');
         }
-      },
-      error: (error) => {
-        console.error('Error submitting product:', error);
-        alert('Failed to submit product for approval. Please try again.');
+      });
+    }
+  }
+
+  // Get appropriate button text based on listing type and status
+  getStatusButtonText(product: Product): string {
+    if (product.sale_status === 'available') {
+      switch (product.for_type) {
+        case 'sale':
+          return 'Mark as Sold';
+        case 'trade':
+          return 'Mark as Traded';
+        case 'both':
+          return 'Mark as Sold/Traded';
+        default:
+          return 'Mark as Sold';
       }
-    });
-  }
-
-  closeApprovalModal() {
-    this.showApprovalModal = false;
-    this.selectedProduct = null;
-    this.currentImageIndex = 0;
-  }
-
-  nextImage() {
-    if (this.selectedProduct && this.selectedProduct.product_images) {
-      this.currentImageIndex = (this.currentImageIndex + 1) % this.selectedProduct.product_images.length;
+    } else {
+      return 'Mark as Available';
     }
   }
 
-  prevImage() {
-    if (this.selectedProduct && this.selectedProduct.product_images) {
-      this.currentImageIndex = this.currentImageIndex === 0 
-        ? this.selectedProduct.product_images.length - 1 
-        : this.currentImageIndex - 1;
+  // Get confirmation text when marking as sold/traded
+  getAvailableToSoldText(product: Product): string {
+    switch (product.for_type) {
+      case 'sale':
+        return 'Mark this product as sold';
+      case 'trade':
+        return 'Mark this product as traded';
+      case 'both':
+        return 'Mark this product as sold/traded';
+      default:
+        return 'Mark this product as sold';
     }
   }
 
-  goToImage(index: number) {
-    this.currentImageIndex = index;
+  // Get confirmation text when marking as available
+  getSoldToAvailableText(product: Product): string {
+    return 'Mark this product as available again';
   }
 
-  // Lightbox methods
+  // Get success message when marked as sold/traded
+  getSuccessSoldText(product: Product): string {
+    switch (product.for_type) {
+      case 'sale':
+        return 'Product marked as sold!';
+      case 'trade':
+        return 'Product marked as traded!';
+      case 'both':
+        return 'Product marked as sold/traded!';
+      default:
+        return 'Product marked as sold!';
+    }
+  }
+
+  // Get success message when marked as available
+  getSuccessAvailableText(product: Product): string {
+    return 'Product marked as available!';
+  }  // Lightbox methods
   openLightbox(product: Product, imageIndex: number = 0) {
     this.lightboxProduct = product;
     this.lightboxImages = product.product_images || [];
@@ -357,52 +353,15 @@ export class ListingComponent implements OnInit, OnDestroy {
     }
   }
 
-  onImageSelect(event: any, isNewProduct: boolean = false) {
-    const files = event.target.files;
-    this.handleImageFiles(files, isNewProduct);
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = true;
-  }
-
-  onDragLeave(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = false;
-  }
-
-  onDrop(event: DragEvent, isNewProduct: boolean = false) {
-    event.preventDefault();
-    this.isDragOver = false;
-    const files = event.dataTransfer?.files || null;
-    this.handleImageFiles(files, isNewProduct);
-  }
-
-  private handleImageFiles(files: FileList | null, isNewProduct: boolean = false) {
-    if (files) {
-      for (let file of files) {
-        if (file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onload = (e: any) => {
-            const imageData = e.target.result;
-            if (isNewProduct) {
-              this.newProduct.product_images = this.newProduct.product_images || [];
-              this.newProduct.product_images.push(imageData);
-            }
-          };
-          reader.readAsDataURL(file);
-        }
-      }
+  getImageUrl(imagePath: string): string {
+    if (imagePath.startsWith('data:')) {
+      return imagePath; // Base64 image
     }
+    return `${this.apiService.baseUrl}${imagePath}`;
   }
 
-  removeImage(index: number, product?: Product) {
-    if (product) {
-      product.product_images.splice(index, 1);
-    } else {
-      this.newProduct.product_images?.splice(index, 1);
-    }
+  removeImage(index: number, product: Product) {
+    product.product_images.splice(index, 1);
   }
 
   private validateProduct(product: Partial<Product>): boolean {
@@ -416,12 +375,5 @@ export class ListingComponent implements OnInit, OnDestroy {
       product.category &&
       product.quantity && product.quantity > 0
     );
-  }
-
-  getImageUrl(imagePath: string): string {
-    if (imagePath.startsWith('data:')) {
-      return imagePath; // Base64 image
-    }
-    return `${this.apiService.baseUrl}${imagePath}`;
   }
 }

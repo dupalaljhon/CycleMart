@@ -62,6 +62,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
             break;
 
+        case 'all-products':
+            echo json_encode($get->getAllActiveProducts());
+            break;
+
+        case 'admin-products':
+            echo json_encode($get->getAllProductsForAdmin());
+            break;
+
         default:
             http_response_code(403);
             echo json_encode(["status" => "error", "message" => "Forbidden"]);
@@ -88,6 +96,15 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->loginUser($data));
                 break;
 
+            case 'admin':
+                if (isset($request[1]) && $request[1] === 'login') {
+                    echo json_encode($post->adminLogin($data));
+                } else {
+                    echo json_encode(["status" => "error", "message" => "Invalid admin endpoint"]);
+                    http_response_code(400);
+                }
+                break;
+
             case 'upload':
                 echo json_encode($post->uploadProfile($data));
                 break;
@@ -110,6 +127,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
             case 'deleteProduct':
                 echo json_encode($post->deleteProduct($data));
+                break;
+
+            case 'archiveProduct':
+                echo json_encode($post->archiveProduct($data));
                 break;
 
             case 'verify-email':

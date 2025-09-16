@@ -12,31 +12,30 @@ import { ListingComponent } from './listing/listing.component';
 import { EmailVerificationComponent } from './email-verification/email-verification.component';
 import { MarketProductsComponent } from './listing/market-products/market-products.component';
 import { SoldItemsComponent } from './listing/sold-items/sold-items.component';
-
-// Admin components
-import { LoginComponent as AdminLoginComponent } from './admin/login/login.component';
-import { DashboardComponent as AdminDashboardComponent } from './admin/dashboard/dashboard.component';
-import { PostApprovalComponent } from './admin/post-approval/post-approval.component';
+import { AdminLoginComponent } from './admin/admin-login/admin-login.component';
+import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.component';
+import { AdminDashboardComponent } from './admin/admin-dashboard/admin-dashboard.component';
+import { UserListComponent } from './admin/user-list/user-list.component';
+import { ListingMonitoringComponent } from './admin/listing-monitoring/listing-monitoring.component';
 
 export const routes: Routes = [
     {path: '', component: LoginComponent},
     {path: 'dashboard', component: DashboardComponent},
     {path: 'sidenav', component: SidenavComponent},
+    {path: 'admin-sidenav', component: AdminSidenavComponent},
+    {path: 'admin-dashboard', component: AdminDashboardComponent},
+    {path: 'listing-monitoring', component: ListingMonitoringComponent},
+    {path: 'user-list', component: UserListComponent},
     {path: 'home', component: HomeComponent},
     {path: 'profile', component: ProfileComponent},
     {path: 'messages', component: MessagesComponent},
     {path: 'notification', component: NotificationComponent},
     {path: 'login', component: LoginComponent},
+    {path: 'admin-login', component: AdminLoginComponent},
     {path: 'listing', component: ListingComponent},
     {path: 'verify-email', component: EmailVerificationComponent},
     {path: 'market-products', component: MarketProductsComponent},
     {path: 'sold-items', component: SoldItemsComponent},
-    
-    // Admin routes
-    {path: 'admin/login', component: AdminLoginComponent},
-    {path: 'admin/dashboard', component: AdminDashboardComponent},
-    {path: 'admin/post-approval', component: PostApprovalComponent},
-    
     // { path: '', redirectTo: '/home', pathMatch: 'full' }
 
 ];

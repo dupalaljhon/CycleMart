@@ -1,0 +1,148 @@
+/* Custom scrollbar for sidebar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Navigation button animations */
+.nav-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.nav-button:hover::before {
+  left: 100%;
+}
+
+/* Active button glow effect */
+.active-nav {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+/* Logout button hover effect */
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Card hover effects */
+.stat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Sidebar shadow */
+.sidebar {
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Notification badge pulse */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.notification-badge {
+  animation: pulse 2s infinite;
+}
+
+/* Welcome message fade in */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-content {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Button focus states */
+button:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed !important;
+    z-index: 50 !important;
+    height: 100vh !important;
+    width: 256px !important;
+    left: 0 !important;
+    top: 0 !important;
+    transition: transform 0.3s ease !important;
+  }
+  
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+  
+  .sidebar.mobile-closed {
+    transform: translateX(-100%) !important;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+}
+
+/* Icon animations */
+.nav-icon {
+  transition: transform 0.2s ease;
+}
+
+button:hover .nav-icon {
+  transform: scale(1.1);
+}
+
+/* Admin avatar glow */
+.admin-avatar {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  transition: box-shadow 0.3s ease;
+}
+
+.admin-avatar:hover {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+}

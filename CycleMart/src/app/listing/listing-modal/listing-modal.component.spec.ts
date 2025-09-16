@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PostApprovalComponent } from './post-approval.component';
+import { ListingModalComponent } from './listing-modal.component';
 
-describe('PostApprovalComponent', () => {
-  let component: PostApprovalComponent;
-  let fixture: ComponentFixture<PostApprovalComponent>;
+describe('ListingModalComponent', () => {
+  let component: ListingModalComponent;
+  let fixture: ComponentFixture<ListingModalComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PostApprovalComponent]
+      imports: [ListingModalComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(PostApprovalComponent);
+    fixture = TestBed.createComponent(ListingModalComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

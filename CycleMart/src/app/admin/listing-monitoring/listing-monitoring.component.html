@@ -1,0 +1,235 @@
+<div class="flex h-screen bg-theme-background">
+  <!-- Admin Sidenav -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <!-- Main Content -->
+  <div class="flex-1 p-6 overflow-y-auto bg-theme-background">
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-theme-text">Listing Monitoring</h1>
+      <p class="text-theme-secondary">Monitor and manage all product listings</p>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6BA3BE] mx-auto"></div>
+      <p class="mt-4 text-theme-secondary">Loading products...</p>
+    </div>
+
+    <!-- Products Table -->
+    <div *ngIf="!isLoading" class="bg-theme-card rounded-lg shadow-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table mat-table [dataSource]="products" class="w-full">
+          
+          <!-- Product Name Column -->
+          <ng-container matColumnDef="product_name">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Product Name</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <div class="flex items-center gap-3">
+                <img 
+                  *ngIf="product.product_images && product.product_images.length > 0"
+                  [src]="getImageUrl(product.product_images[0])" 
+                  class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                  (click)="viewImages(product)"
+                  alt="Product image">
+                <div 
+                  *ngIf="!product.product_images || product.product_images.length === 0"
+                  class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-medium text-theme-text">{{ product.product_name }}</div>
+                  <div class="text-sm text-theme-secondary">{{ product.quantity }} available</div>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Seller Column -->
+          <ng-container matColumnDef="seller">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Seller</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <div>
+                <div class="font-medium text-theme-text">{{ product.seller_name || 'Unknown' }}</div>
+                <div class="text-sm text-theme-secondary">{{ product.seller_email || 'No email' }}</div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Price Column -->
+          <ng-container matColumnDef="price">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Price</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <div class="font-semibold text-theme-text">{{ formatPrice(product.price) }}</div>
+            </td>
+          </ng-container>
+
+          <!-- Category Column -->
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Category</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <mat-chip class="bg-theme-tertiary text-theme-text">{{ product.category }}</mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Condition Column -->
+          <ng-container matColumnDef="condition">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Condition</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <mat-chip 
+                [class]="product.condition === 'brand_new' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'">
+                {{ product.condition === 'brand_new' ? 'Brand New' : 'Second Hand' }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- For Type Column -->
+          <ng-container matColumnDef="for_type">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Type</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <mat-chip class="bg-blue-100 text-blue-800">{{ product.for_type }}</mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Status</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <mat-chip 
+                [class]="product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                {{ product.status }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Sale Status Column -->
+          <ng-container matColumnDef="sale_status">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Sale Status</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <mat-chip 
+                [class]="product.sale_status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
+                {{ product.sale_status }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Created At Column -->
+          <ng-container matColumnDef="created_at">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Created</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <div class="text-sm text-theme-secondary">{{ formatDate(product.created_at) }}</div>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">Actions</th>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+              <div class="flex gap-2">
+                <button 
+                  *ngIf="product.product_images && product.product_images.length > 0"
+                  mat-icon-button 
+                  (click)="viewImages(product)"
+                  class="text-[#6BA3BE] hover:bg-[#6BA3BE] hover:text-white"
+                  title="View Images">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                
+                <button 
+                  *ngIf="product.status === 'active'"
+                  mat-icon-button 
+                  (click)="archiveProduct(product)"
+                  class="text-red-500 hover:bg-red-500 hover:text-white"
+                  title="Archive Product">
+                  <mat-icon>archive</mat-icon>
+                </button>
+                
+                <button 
+                  *ngIf="product.status === 'archived'"
+                  mat-icon-button 
+                  (click)="restoreProduct(product)"
+                  class="text-green-500 hover:bg-green-500 hover:text-white"
+                  title="Restore Product">
+                  <mat-icon>unarchive</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover:bg-theme-tertiary"></tr>
+        </table>
+      </div>
+
+      <!-- No Data State -->
+      <div *ngIf="products.length === 0" class="text-center py-12 text-theme-secondary">
+        <mat-icon class="text-6xl text-theme-tertiary mb-4">inventory_2</mat-icon>
+        <p class="text-lg">No products found</p>
+        <p>No products have been posted yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div *ngIf="showImagePreview" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" 
+       (click)="closeImagePreview()">
+    <div class="relative w-full h-full flex items-center justify-center p-4">
+      
+      <!-- Close Button -->
+      <button 
+        (click)="closeImagePreview()"
+        class="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <!-- Product Info Header -->
+      <div *ngIf="selectedProduct" class="absolute top-4 left-4 z-10 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg">
+        <h3 class="font-semibold">{{ selectedProduct.product_name }}</h3>
+        <p class="text-sm opacity-75">{{ currentImageIndex + 1 }} of {{ previewImages.length }}</p>
+      </div>
+
+      <!-- Main Image Container -->
+      <div class="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center"
+           (click)="$event.stopPropagation()">
+        
+        <!-- Main Image -->
+        <img 
+          *ngIf="previewImages.length > 0"
+          [src]="getImageUrl(previewImages[currentImageIndex])"
+          class="max-w-full max-h-full object-contain"
+          alt="Product image">
+
+        <!-- Previous Button -->
+        <button 
+          *ngIf="previewImages.length > 1"
+          (click)="prevImage()"
+          class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+
+        <!-- Next Button -->
+        <button 
+          *ngIf="previewImages.length > 1"
+          (click)="nextImage()"
+          class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+
+      <!-- Image Thumbnails -->
+      <div *ngIf="previewImages.length > 1" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-black bg-opacity-50 p-2 rounded-lg">
+        <img 
+          *ngFor="let image of previewImages; let i = index"
+          [src]="getImageUrl(image)"
+          (click)="currentImageIndex = i"
+          class="w-16 h-16 object-cover rounded cursor-pointer transition-opacity"
+          [class.opacity-50]="i !== currentImageIndex"
+          [class.opacity-100]="i === currentImageIndex"
+          alt="Thumbnail">
+      </div>
+    </div>
+  </div>
+</div>
+

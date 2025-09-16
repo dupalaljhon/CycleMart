@@ -3,14 +3,14 @@
   <app-sidenav></app-sidenav>
 
   <!-- Page content -->
-  <div class="flex-1 bg-gray-100 overflow-y-auto">
-    <div class="min-h-screen bg-gray-100 text-gray-800">
+  <div class="flex-1 bg-theme-background overflow-y-auto">
+    <div class="min-h-screen bg-theme-background text-theme-text">
       <!-- Profile Header -->
       <div class="mx-auto max-w-4xl px-4 pt-10">
-        <div class="flex flex-col items-center rounded-2xl bg-white p-8 shadow-xl border border-gray-200">
+        <div class="flex flex-col items-center rounded-2xl card-theme p-8 shadow-xl border border-theme-border">
           <!-- Avatar + Name -->
           <div class="flex flex-col items-center">
-            <div class="h-28 w-28 overflow-hidden rounded-full ring-4 ring-indigo-300 shadow-lg bg-gray-100 relative">
+            <div class="h-28 w-28 overflow-hidden rounded-full ring-4 ring-theme-primary shadow-lg bg-theme-background relative">
               <img
                 [src]="imagePreview || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(full_name)"
                 class="h-full w-full object-cover"
@@ -18,7 +18,7 @@
               />
               <!-- Upload button overlay -->
               <button
-                class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity rounded-full"
+                class="absolute inset-0 bg-theme-overlay flex items-center justify-center text-theme-text-inverse opacity-0 hover:opacity-100 transition-opacity rounded-full"
                 (click)="triggerFileInput()"
                 title="Change profile picture"
               >
@@ -38,15 +38,15 @@
             />
             
             <!-- Full Name -->
-            <h2 class="mt-4 text-3xl font-bold text-gray-800 tracking-tight">
+            <h2 class="mt-4 text-3xl font-bold text-theme-text tracking-tight">
               {{ full_name || 'No Name Set' }}
             </h2>
             
             <!-- Email -->
-            <p class="text-lg text-gray-600 mt-1">{{ email }}</p>
+            <p class="text-lg text-theme-text-secondary mt-1">{{ email }}</p>
             
             <!-- Phone -->
-            <p class="text-base text-gray-500 mt-1" *ngIf="phone">📞 {{ phone }}</p>
+            <p class="text-base text-theme-text-secondary mt-1" *ngIf="phone">📞 {{ phone }}</p>
             
             <!-- Address -->
             <p class="text-base text-gray-500 mt-1 italic" *ngIf="address">📍 {{ address }}</p>
@@ -70,7 +70,7 @@
             <div class="mt-6 flex gap-3">
               <!-- Edit Profile Button -->
               <button
-                class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-base text-white font-medium shadow hover:bg-blue-700 transition"
+                class="inline-flex items-center gap-2 rounded-full bg-[#6BA3BE] px-6 py-3 text-base text-white font-medium shadow hover:bg-[#5a92a5] transition"
                 (click)="onEditProfile()"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -82,7 +82,7 @@
               
               <!-- Upload Picture Button -->
               <button
-                class="inline-flex items-center gap-2 rounded-full bg-green-600 px-6 py-3 text-base text-white font-medium shadow hover:bg-green-700 transition"
+                class="inline-flex items-center gap-2 rounded-full bg-[#6BA3BE] px-6 py-3 text-base text-white font-medium shadow hover:bg-[#5a92a5] transition"
                 (click)="triggerFileInput()"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,7 +200,7 @@
       <div class="flex gap-3 pt-4">
         <button
           type="submit"
-          class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium"
+          class="flex-1 bg-[#6BA3BE] text-white py-3 px-4 rounded-lg hover:bg-[#5a92a5] transition font-medium"
         >
           Save Changes
         </button>

@@ -83,6 +83,35 @@ login(email: string, password: string): Observable<any> {
     );
 }
 
+// Admin Login
+adminLogin(username: string, password: string): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}/admin/login`, { username, password })
+    .pipe(
+      map(response => {
+        if (response.status === 'success') {
+          return { 
+            success: true, 
+            token: response.data?.token,
+            user: response.data?.user,
+            message: response.message 
+          };
+        } else {
+          return { 
+            success: false, 
+            message: response.message || 'Invalid admin credentials' 
+          };
+        }
+      }),
+      catchError(error => {
+        console.error('Admin login error:', error);
+        return of({ 
+          success: false, 
+          message: error.message || 'Admin login failed' 
+        });
+      })
+    );
+}
+
 
 
 

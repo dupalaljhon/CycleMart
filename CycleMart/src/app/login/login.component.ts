@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../api/auth.service';
 import { ApiService } from '../api/api.service';
+import { ThemeService } from '../services/theme.service';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +32,12 @@ export class LoginComponent {
   passwordErrors: string[] = [];
   showPasswordRequirements: boolean = false;
 
-  constructor(private authService: AuthService, private apiService: ApiService, private router: Router) {}
+  constructor(
+    private authService: AuthService, 
+    private apiService: ApiService, 
+    private router: Router,
+    private themeService: ThemeService
+  ) {}
 
   onSubmit() {
     if (this.isLoading) return;
@@ -231,5 +237,10 @@ export class LoginComponent {
       case 'Strong': return 'w-full';
       default: return 'w-0';
     }
+  }
+
+  // Navigation method for admin login
+  navigateToAdminLogin() {
+    this.router.navigate(['/admin-login']);
   }
 }

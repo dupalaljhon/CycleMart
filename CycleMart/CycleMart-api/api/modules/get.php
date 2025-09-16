@@ -64,10 +64,28 @@ class Get extends GlobalMethods {
 
 
     //get all products
-        public function getProductsByUser($uploader_id) {
+    public function getProductsByUser($uploader_id) {
         $sql = "SELECT * FROM products WHERE uploader_id = :uploader_id ORDER BY created_at DESC";
         return $this->executeQuery($sql, [':uploader_id' => $uploader_id]);
-        
+    }
+
+    // Get all active products for home page
+    public function getAllActiveProducts() {
+        $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email 
+                FROM products p 
+                LEFT JOIN users u ON p.uploader_id = u.id 
+                WHERE p.status = 'active' AND p.sale_status = 'available' 
+                ORDER BY p.created_at DESC";
+        return $this->executeQuery($sql);
+    }
+
+    // Get all products for admin monitoring
+    public function getAllProductsForAdmin() {
+        $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email 
+                FROM products p 
+                LEFT JOIN users u ON p.uploader_id = u.id 
+                ORDER BY p.created_at DESC";
+        return $this->executeQuery($sql);
     }
  
 
