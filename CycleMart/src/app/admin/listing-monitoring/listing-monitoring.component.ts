@@ -1,11 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatTableModule } from '@angular/material/table';
+import { FormsModule } from '@angular/forms';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { AdminSidenavComponent } from "../admin-sidenav/admin-sidenav.component";
 import { ApiService } from '../../api/api.service';
 
@@ -33,18 +39,32 @@ interface Product {
   imports: [
     AdminSidenavComponent,
     CommonModule,
+    FormsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
     MatChipsModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSortModule,
+    MatPaginatorModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule
   ],
   templateUrl: './listing-monitoring.component.html',
   styleUrl: './listing-monitoring.component.css'
 })
-export class ListingMonitoringComponent implements OnInit {
+export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   products: Product[] = [];
+  dataSource = new MatTableDataSource<Product>([]);
   isLoading = false;
+  
+  searchTerm = '';
+  statusFilter = 'all';
+  saleStatusFilter = 'all';
+
+  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
   
   displayedColumns: string[] = [
     'product_name',
@@ -72,6 +92,25 @@ export class ListingMonitoringComponent implements OnInit {
 
   ngOnInit() {
     this.loadAllProducts();
+    
+    // Set up custom filter predicate
+    this.dataSource.filterPredicate = (data: Product, filter: string) => {
+      const searchTermLower = filter.toLowerCase();
+      return data.product_name.toLowerCase().includes(searchTermLower) ||
+             data.category.toLowerCase().includes(searchTermLower) ||
+             (data.seller_name?.toLowerCase().includes(searchTermLower) ?? false) ||
+             data.description.toLowerCase().includes(searchTermLower);
+    };
+    
+    // Auto-refresh every 30 seconds to catch real-time updates
+    setInterval(() => {
+      this.loadAllProducts();
+    }, 30000);
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
   }
 
   loadAllProducts() {
@@ -86,6 +125,7 @@ export class ListingMonitoringComponent implements OnInit {
               ? JSON.parse(product.product_images) 
               : product.product_images || []
           }));
+          this.dataSource.data = this.products;
         } else {
           console.error('Failed to load products:', response.message);
         }
@@ -220,6 +260,62 @@ export class ListingMonitoringComponent implements OnInit {
       case 'sold': return 'accent';
       default: return 'warn';
     }
+  }
+
+  getSaleStatusText(product: Product): string {
+    if (product.sale_status === 'available') {
+      return 'Available';
+    } else {
+      // Show contextual text based on listing type
+      switch (product.for_type) {
+        case 'sale':
+          return 'Sold';
+        case 'trade':
+          return 'Traded';
+        case 'both':
+          return 'Sold/Traded';
+        default:
+          return 'Sold';
+      }
+    }
+  }
+
+  getForTypeText(forType: string): string {
+    switch (forType) {
+      case 'sale': return 'For Sale';
+      case 'trade': return 'For Trade';
+      case 'both': return 'Sale & Trade';
+      default: return forType;
+    }
+  }
+
+  refreshProducts() {
+    this.loadAllProducts();
+  }
+
+  applyGlobalFilter() {
+    this.dataSource.filter = this.searchTerm.trim().toLowerCase();
+  }
+
+  applyFilters() {
+    this.dataSource.data = this.products.filter(product => {
+      const statusMatch = this.statusFilter === 'all' || product.status === this.statusFilter;
+      const saleStatusMatch = this.saleStatusFilter === 'all' || product.sale_status === this.saleStatusFilter;
+      return statusMatch && saleStatusMatch;
+    });
+    
+    // Apply search filter if exists
+    if (this.searchTerm) {
+      this.dataSource.filter = this.searchTerm.trim().toLowerCase();
+    }
+  }
+
+  onStatusFilterChange() {
+    this.applyFilters();
+  }
+
+  onSaleStatusFilterChange() {
+    this.applyFilters();
   }
 
   formatDate(dateString: string): string {

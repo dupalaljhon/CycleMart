@@ -41,8 +41,8 @@ export class AdminLoginComponent {
             localStorage.setItem('admin_token', response.token);
             localStorage.setItem('admin_user', JSON.stringify(response.user));
 
-            // Navigate to admin sidenav
-            this.router.navigate(['/admin-sidenav']);
+            // Navigate to admin dashboard
+            this.router.navigate(['/admin-dashboard']);
           } else {
             this.error = response.message || 'Invalid admin credentials';
           }

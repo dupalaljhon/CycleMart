@@ -48,6 +48,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
             break;
 
+        case 'all-users':
+            echo json_encode($get->getAllUsers());
+            break;
+
         case 'products':
             if (isset($_GET['uploader_id'])) {
                 echo json_encode($get->getProductsByUser((int)$_GET['uploader_id']));
@@ -68,6 +72,26 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
         case 'admin-products':
             echo json_encode($get->getAllProductsForAdmin());
+            break;
+
+        case 'admin-notifications':
+            if (isset($_GET['admin_id'])) {
+                echo json_encode($post->getAdminNotifications((int) $_GET['admin_id']));
+            } else {
+                echo json_encode(["status" => "error", "message" => "Admin ID required"]);
+            }
+            break;
+
+        case 'notification-counts':
+            if (isset($_GET['admin_id'])) {
+                echo json_encode($post->getNotificationCounts((int) $_GET['admin_id']));
+            } else {
+                echo json_encode(["status" => "error", "message" => "Admin ID required"]);
+            }
+            break;
+
+        case 'dashboard-stats':
+            echo json_encode($post->getDashboardStats());
             break;
 
         default:
@@ -129,6 +153,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->deleteProduct($data));
                 break;
 
+            case 'updateSaleStatus':
+                echo json_encode($post->updateSaleStatus($data));
+                break;
+
             case 'archiveProduct':
                 echo json_encode($post->archiveProduct($data));
                 break;
@@ -143,6 +171,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
             case 'resend-verification':
                 echo json_encode($post->generateVerificationToken($data));
+                break;
+
+            case 'markNotificationAsRead':
+                echo json_encode($post->markNotificationAsRead($data->notification_id, $data->admin_id));
                 break;
 
             default:

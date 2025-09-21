@@ -116,13 +116,10 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
           <span class="truncate flex-1" *ngIf="isMobile || !isCollapsed">Listing Monitoring</span>
-          <span class="notification-badge bg-red-500 text-white text-xs px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full ml-1 lg:ml-2 flex-shrink-0" *ngIf="isMobile || !isCollapsed">3</span>
-          <!-- Notification dot for collapsed state -->
-          <div *ngIf="!isMobile && isCollapsed" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
           <!-- Tooltip for collapsed state -->
           <div *ngIf="!isMobile && isCollapsed"
                class="absolute left-full ml-2 px-2 py-1 bg-slate-900 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-xl border border-slate-700 z-50">
-            Listing Monitoring (3)
+            Listing Monitoring
           </div>
         </button>
 

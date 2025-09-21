@@ -27,12 +27,12 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <div class="stat-card bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-blue-100 text-sm">Total Users</p>
-            <p class="text-3xl font-bold">1,234</p>
+            <p class="text-3xl font-bold">{{ dashboardStats.total_users | number }}</p>
           </div>
           <svg class="w-8 h-8 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
@@ -43,23 +43,11 @@
       <div class="stat-card bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-green-100 text-sm">Active Listings</p>
-            <p class="text-3xl font-bold">567</p>
+            <p class="text-green-100 text-sm">Total Listings</p>
+            <p class="text-3xl font-bold">{{ dashboardStats.total_listings | number }}</p>
           </div>
           <svg class="w-8 h-8 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-          </svg>
-        </div>
-      </div>
-      
-      <div class="stat-card bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-orange-100 text-sm">Pending Approvals</p>
-            <p class="text-3xl font-bold">23</p>
-          </div>
-          <svg class="w-8 h-8 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
       </div>
@@ -67,40 +55,64 @@
 
     <!-- Recent Activity Section -->
     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
-      <div class="space-y-4">
-        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
-          <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-            U
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-800">Recent Activity</h2>
+        <div class="text-sm text-gray-500">
+          {{ recentNotifications.length }} notification{{ recentNotifications.length !== 1 ? 's' : '' }}
+        </div>
+      </div>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+        <p class="mt-2 text-gray-600">Loading recent activity...</p>
+      </div>
+      
+      <!-- Notifications with Scrollable Area -->
+      <div *ngIf="!isLoading && recentNotifications.length > 0" 
+           class="notifications-scroll border border-gray-200 rounded-lg">
+        
+        <!-- Scrollable Notification List -->
+        <div class="space-y-0">
+          <div *ngFor="let notification of recentNotifications; let i = index" 
+               class="notification-item flex items-center p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
+            <div [ngClass]="getNotificationColor(notification.type)" 
+                 class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+              {{ getNotificationIcon(notification.type) }}
+            </div>
+            <div class="ml-4 flex-1 min-w-0">
+              <p class="font-semibold text-gray-800 truncate">{{ notification.title }}</p>
+              <p class="text-sm text-gray-600 line-clamp-2">{{ notification.message }}</p>
+              <p *ngIf="notification.created_by_name" class="text-xs text-gray-500 mt-1">
+                by {{ notification.created_by_name }}
+              </p>
+            </div>
+            <div class="ml-4 text-right flex-shrink-0">
+              <span class="text-xs text-gray-500 block">{{ getTimeAgo(notification.created_at) }}</span>
+              <div *ngIf="!notification.is_read" class="unread-indicator w-2 h-2 bg-blue-500 rounded-full mt-1 ml-auto"></div>
+            </div>
           </div>
-          <div class="ml-4 flex-1">
-            <p class="font-semibold">New user registered</p>
-            <p class="text-sm text-gray-600">John Doe joined 5 minutes ago</p>
-          </div>
-          <span class="text-xs text-gray-500">5m ago</span>
         </div>
         
-        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
-          <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
-            L
+        <!-- Scroll Indicator -->
+        <div *ngIf="recentNotifications.length > 5" 
+             class="text-center py-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
+          <div class="flex items-center justify-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+            Scroll to see more notifications
           </div>
-          <div class="ml-4 flex-1">
-            <p class="font-semibold">New listing submitted</p>
-            <p class="text-sm text-gray-600">Mountain bike for sale awaiting approval</p>
-          </div>
-          <span class="text-xs text-gray-500">15m ago</span>
         </div>
-        
-        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
-          <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-            S
-          </div>
-          <div class="ml-4 flex-1">
-            <p class="font-semibold">Sale completed</p>
-            <p class="text-sm text-gray-600">Bike helmet sold for PHP 1,500</p>
-          </div>
-          <span class="text-xs text-gray-500">1h ago</span>
-        </div>
+      </div>
+      
+      <!-- No Activity State -->
+      <div *ngIf="!isLoading && recentNotifications.length === 0" class="text-center py-8 text-gray-500">
+        <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 111 0z"/>
+        </svg>
+        <p class="text-lg">No recent activity</p>
+        <p class="text-sm">New notifications will appear here</p>
       </div>
     </div>
 

@@ -96,6 +96,24 @@ class Post extends GlobalMethods {
                 'token_expires_at' => $token_expires_at
             ]);
 
+            $lastUserId = $this->pdo->lastInsertId();
+
+            // Create notification for new user registration
+            $notificationTitle = "New user registered";
+            $notificationMessage = sprintf(
+                "A new user '%s' has registered with email: %s",
+                $full_name,
+                $email
+            );
+            
+            $this->createNotification(
+                'new_user',
+                $notificationTitle,
+                $notificationMessage,
+                $lastUserId, // reference_id points to user_id
+                $lastUserId // created_by (the new user)
+            );
+
             // Send verification email
             require_once __DIR__ . '/../config/email.php';
             $emailService = new EmailService();
@@ -512,6 +530,26 @@ public function addProduct($data) {
 
         $lastId = $this->pdo->lastInsertId();
 
+        // Create notification for new listing
+        $userName = $this->getUserNameById($uploader_id);
+        $notificationTitle = "New listing uploaded";
+        $notificationMessage = sprintf(
+            "%s uploaded a new %s: '%s' for ₱%s in %s",
+            $userName,
+            $this->getForTypeText($for_type),
+            $product_name,
+            number_format($price),
+            $location
+        );
+        
+        $this->createNotification(
+            'new_listing',
+            $notificationTitle,
+            $notificationMessage,
+            $lastId, // reference_id points to product_id
+            $uploader_id // created_by
+        );
+
         return $this->sendPayload([
             "product_id"   => $lastId,
             "product_name" => $product_name,
@@ -667,6 +705,99 @@ public function deleteProduct($data) {
 
         if ($stmt->rowCount() > 0) {
             return $this->sendPayload(null, "success", "Product deleted successfully", 200);
+        } else {
+            return $this->sendPayload(null, "error", "Product not found or unauthorized", 404);
+        }
+    } catch (\PDOException $e) {
+        return $this->sendPayload(null, "error", $e->getMessage(), 400);
+    }
+}
+
+// Update sale status for listings
+public function updateSaleStatus($data) {
+    $product_id = $data->product_id ?? null;
+    $uploader_id = $data->uploader_id ?? null;
+    $sale_status = $data->sale_status ?? null;
+    $for_type = $data->for_type ?? null;
+
+    if (!$product_id || !$uploader_id || !$sale_status) {
+        return $this->sendPayload(null, "error", "Missing required fields", 400);
+    }
+
+    // Validate sale_status values
+    if (!in_array($sale_status, ['available', 'sold'])) {
+        return $this->sendPayload(null, "error", "Invalid sale status", 400);
+    }
+
+    // Get current product info for logging
+    $getCurrentSql = "SELECT sale_status, product_name FROM products WHERE product_id = :product_id";
+    $getCurrentStmt = $this->pdo->prepare($getCurrentSql);
+    $getCurrentStmt->execute([':product_id' => $product_id]);
+    $currentProduct = $getCurrentStmt->fetch(\PDO::FETCH_ASSOC);
+
+    if (!$currentProduct) {
+        return $this->sendPayload(null, "error", "Product not found", 404);
+    }
+
+    // Get current timestamp for logging
+    $updated_at = date('Y-m-d H:i:s');
+
+    $sql = "UPDATE products SET 
+                sale_status = :sale_status 
+            WHERE product_id = :product_id AND uploader_id = :uploader_id";
+
+    try {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':sale_status' => $sale_status,
+            ':product_id' => $product_id,
+            ':uploader_id' => $uploader_id
+        ]);
+
+        if ($stmt->rowCount() > 0) {
+            // Log the status change for admin monitoring
+            $logSql = "INSERT INTO product_status_log (product_id, previous_status, new_status, for_type, changed_by, changed_at, product_name) 
+                       VALUES (:product_id, :previous_status, :new_status, :for_type, :changed_by, :changed_at, :product_name)";
+            
+            try {
+                $logStmt = $this->pdo->prepare($logSql);
+                $logStmt->execute([
+                    ':product_id' => $product_id,
+                    ':previous_status' => $currentProduct['sale_status'],
+                    ':new_status' => $sale_status,
+                    ':for_type' => $for_type,
+                    ':changed_by' => $uploader_id,
+                    ':changed_at' => $updated_at,
+                    ':product_name' => $currentProduct['product_name']
+                ]);
+            } catch (\PDOException $logError) {
+                // Log error but don't fail the main operation
+                error_log("Failed to log status change: " . $logError->getMessage());
+            }
+
+            // Create notification for admin about the sale status change
+            $notificationData = $this->createSaleStatusNotification(
+                $product_id, 
+                $currentProduct['product_name'], 
+                $currentProduct['sale_status'], 
+                $sale_status, 
+                $for_type, 
+                $uploader_id
+            );
+
+            // Get the updated product info for response
+            $getProduct = $this->pdo->prepare("SELECT * FROM products WHERE product_id = :product_id");
+            $getProduct->execute([':product_id' => $product_id]);
+            $product = $getProduct->fetch(\PDO::FETCH_ASSOC);
+
+            return $this->sendPayload([
+                "product_id" => $product_id,
+                "sale_status" => $sale_status,
+                "for_type" => $for_type,
+                "previous_status" => $currentProduct['sale_status'],
+                "updated_at" => $updated_at,
+                "product" => $product
+            ], "success", "Sale status updated successfully", 200);
         } else {
             return $this->sendPayload(null, "error", "Product not found or unauthorized", 404);
         }
@@ -859,6 +990,220 @@ public function deleteProduct($data) {
         } catch (\PDOException $e) {
             $this->pdo->rollBack();
             return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    // ✅ Notification System Functions
+    
+    // Create a new notification
+    public function createNotification($type, $title, $message, $reference_id = null, $created_by = null) {
+        try {
+            // Insert into notifications table
+            $sql = "INSERT INTO notifications (type, title, message, reference_id, created_by) 
+                    VALUES (:type, :title, :message, :reference_id, :created_by)";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'reference_id' => $reference_id,
+                'created_by' => $created_by
+            ]);
+            
+            $notification_id = $this->pdo->lastInsertId();
+            
+            // Get all admin IDs and create admin_notifications entries
+            $adminSql = "SELECT admin_id FROM admins WHERE status = 'active'";
+            $adminStmt = $this->pdo->prepare($adminSql);
+            $adminStmt->execute();
+            $admins = $adminStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Insert notification for each admin
+            foreach ($admins as $admin) {
+                $adminNotifSql = "INSERT INTO admin_notifications (notification_id, admin_id) VALUES (:notification_id, :admin_id)";
+                $adminNotifStmt = $this->pdo->prepare($adminNotifSql);
+                $adminNotifStmt->execute([
+                    'notification_id' => $notification_id,
+                    'admin_id' => $admin['admin_id']
+                ]);
+            }
+            
+            return $notification_id;
+            
+        } catch (\PDOException $e) {
+            error_log("Notification creation failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Get admin notifications
+    public function getAdminNotifications($admin_id) {
+        try {
+            $sql = "SELECT n.notification_id, n.type, n.title, n.message, n.reference_id, n.created_at, n.created_by, 
+                           an.is_read, an.read_at, u.full_name as created_by_name
+                    FROM notifications n
+                    INNER JOIN admin_notifications an ON n.notification_id = an.notification_id
+                    LEFT JOIN users u ON n.created_by = u.id
+                    WHERE an.admin_id = :admin_id
+                    ORDER BY n.created_at DESC
+                    LIMIT 50";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['admin_id' => $admin_id]);
+            
+            return $this->sendPayload($stmt->fetchAll(PDO::FETCH_ASSOC), "success", "Notifications retrieved successfully", 200);
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    // Mark notification as read
+    public function markNotificationAsRead($notification_id, $admin_id) {
+        try {
+            $sql = "UPDATE admin_notifications 
+                    SET is_read = 1, read_at = CURRENT_TIMESTAMP 
+                    WHERE notification_id = :notification_id AND admin_id = :admin_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                'notification_id' => $notification_id,
+                'admin_id' => $admin_id
+            ]);
+
+            return $this->sendPayload(['notification_id' => $notification_id], "success", "Notification marked as read", 200);
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    // Get notification counts for admin
+    public function getNotificationCounts($admin_id) {
+        try {
+            $sql = "SELECT 
+                        COUNT(*) as total_count,
+                        SUM(CASE WHEN an.is_read = 0 THEN 1 ELSE 0 END) as unread_count
+                    FROM admin_notifications an
+                    INNER JOIN notifications n ON an.notification_id = n.notification_id
+                    WHERE an.admin_id = :admin_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['admin_id' => $admin_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $this->sendPayload([
+                'total_count' => (int)$result['total_count'],
+                'unread_count' => (int)$result['unread_count']
+            ], "success", "Notification counts retrieved", 200);
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    // Get dashboard statistics
+    public function getDashboardStats() {
+        try {
+            // Get total user count
+            $userSql = "SELECT COUNT(*) as total_users FROM users";
+            $userStmt = $this->pdo->prepare($userSql);
+            $userStmt->execute();
+            $totalUsers = $userStmt->fetch(PDO::FETCH_ASSOC)['total_users'];
+            
+            // Get total listings count (all products regardless of status)
+            $listingSql = "SELECT COUNT(*) as total_listings FROM products";
+            $listingStmt = $this->pdo->prepare($listingSql);
+            $listingStmt->execute();
+            $totalListings = $listingStmt->fetch(PDO::FETCH_ASSOC)['total_listings'];
+            
+            return $this->sendPayload([
+                'total_users' => (int)$totalUsers,
+                'total_listings' => (int)$totalListings
+            ], "success", "Dashboard stats retrieved", 200);
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    // Helper function to get user name by ID
+    public function getUserNameById($user_id) {
+        try {
+            $sql = "SELECT full_name FROM users WHERE id = :user_id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['user_id' => $user_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['full_name'] : 'Unknown User';
+        } catch (\PDOException $e) {
+            return 'Unknown User';
+        }
+    }
+
+    // Helper function to get readable text for for_type
+    public function getForTypeText($for_type) {
+        switch ($for_type) {
+            case 'sale': return 'item for sale';
+            case 'trade': return 'item for trade';
+            case 'both': return 'item for sale/trade';
+            default: return 'item';
+        }
+    }
+
+    // Create sale status notification for admin
+    public function createSaleStatusNotification($product_id, $product_name, $previous_status, $new_status, $for_type, $user_id) {
+        try {
+            // Get user name for the notification
+            $userName = $this->getUserNameById($user_id);
+            
+            // Determine the action type and message
+            $actionText = '';
+            $notificationType = 'system'; // Use 'system' as it's one of the allowed enum values
+            
+            if ($previous_status === 'available' && $new_status === 'sold') {
+                switch ($for_type) {
+                    case 'sale':
+                        $actionText = 'marked as sold';
+                        break;
+                    case 'trade':
+                        $actionText = 'marked as traded';
+                        break;
+                    case 'both':
+                        $actionText = 'marked as sold/traded';
+                        break;
+                    default:
+                        $actionText = 'marked as sold';
+                }
+            } elseif ($previous_status === 'sold' && $new_status === 'available') {
+                $actionText = 'marked as available again';
+            } else {
+                $actionText = "status changed from {$previous_status} to {$new_status}";
+            }
+            
+            $title = "Listing Status Update";
+            $message = "{$userName} has {$actionText} their listing '{$product_name}'";
+            
+            // Create the notification
+            $notification_id = $this->createNotification(
+                $notificationType,
+                $title,
+                $message,
+                $product_id,
+                $user_id
+            );
+            
+            return [
+                'success' => true,
+                'notification_id' => $notification_id,
+                'message' => $message
+            ];
+            
+        } catch (\Exception $e) {
+            error_log("Sale status notification creation failed: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
         }
     }
 

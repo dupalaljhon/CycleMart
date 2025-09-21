@@ -62,6 +62,17 @@ class Get extends GlobalMethods {
         return $this->executeQuery($sql, [':id' => $id]);
     }
 
+    /**
+     * Get all users for admin management
+     */
+    public function getAllUsers() {
+        $sql = "SELECT id, email, full_name, phone, address, profile_image, terms_accepted, is_verified, created_at
+                FROM users 
+                ORDER BY created_at DESC";
+
+        return $this->executeQuery($sql);
+    }
+
 
     //get all products
     public function getProductsByUser($uploader_id) {
@@ -71,7 +82,7 @@ class Get extends GlobalMethods {
 
     // Get all active products for home page
     public function getAllActiveProducts() {
-        $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email 
+        $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email, u.profile_image as seller_profile_image 
                 FROM products p 
                 LEFT JOIN users u ON p.uploader_id = u.id 
                 WHERE p.status = 'active' AND p.sale_status = 'available' 
@@ -81,7 +92,7 @@ class Get extends GlobalMethods {
 
     // Get all products for admin monitoring
     public function getAllProductsForAdmin() {
-        $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email 
+        $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email, u.profile_image as seller_profile_image 
                 FROM products p 
                 LEFT JOIN users u ON p.uploader_id = u.id 
                 ORDER BY p.created_at DESC";

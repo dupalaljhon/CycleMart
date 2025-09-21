@@ -32,6 +32,11 @@ getUser(id: number): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}user&id=${id}`);
 }
 
+// 🔹 Fetch all users for admin
+getAllUsers(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}all-users`);
+}
+
 
 // 🔹 Edit profile
 editProfile(data: any): Observable<any> {
@@ -74,6 +79,11 @@ deleteProduct(product_id: number, uploader_id: number): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}deleteProduct`, { product_id, uploader_id });
 }
 
+// Update sale status (sold/traded/available)
+updateSaleStatus(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}updateSaleStatus`, data);
+}
+
 // Archive/Restore product (admin only)
 archiveProduct(data: any): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}archiveProduct`, data);
@@ -94,6 +104,24 @@ generateVerificationToken(email: string): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}generate-verification`, { email });
 }
 
+// 🔹 Notification methods
+getAdminNotifications(adminId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}admin-notifications?admin_id=${adminId}`);
+}
 
+markNotificationAsRead(notificationId: number, adminId: number): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}markNotificationAsRead`, {
+    notification_id: notificationId,
+    admin_id: adminId
+  });
+}
+
+getNotificationCounts(adminId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}notification-counts?admin_id=${adminId}`);
+}
+
+getDashboardStats(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}dashboard-stats`);
+}
 
 }

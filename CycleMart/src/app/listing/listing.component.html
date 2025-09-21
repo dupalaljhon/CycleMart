@@ -10,8 +10,8 @@
       <p class="text-gray-600">Manage your bike parts and accessories</p>
     </div>
 
-    <!-- Add New Listing Button -->
-    <div class="mb-6">
+    <!-- Action Buttons -->
+    <div class="mb-6 flex flex-wrap gap-4">
       <button 
         (click)="addNewListing()"
         class="bg-[#6BA3BE] text-white px-8 py-4 rounded-xl hover:bg-[#5a92a5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
@@ -20,6 +20,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
           Add New Listing
+        </span>
+      </button>
+      
+      <button 
+        (click)="openSoldItemsModal()"
+        class="bg-gray-600 text-white px-8 py-4 rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        <span class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          My Sold/Traded Items
         </span>
       </button>
     </div>
@@ -36,6 +47,39 @@
       (closeModal)="closeAddModal()"
       (productAdded)="onProductAdded()">
     </app-listing-modal>
+
+    <!-- Sold/Traded Items Modal -->
+    <div *ngIf="showSoldItemsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+         (click)="closeSoldItemsModal()">
+      <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-6xl max-h-[90vh] overflow-hidden" 
+           (click)="$event.stopPropagation()">
+        
+        <!-- Modal Header -->
+        <div class="bg-gray-600 text-white px-6 py-4 flex items-center justify-between">
+          <h2 class="text-xl font-bold flex items-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            My Sold/Traded Items
+          </h2>
+          <button 
+            (click)="closeSoldItemsModal()"
+            class="text-white hover:text-gray-300 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <app-sold-items 
+            [userId]="userId"
+            [isVisible]="showSoldItemsModal">
+          </app-sold-items>
+        </div>
+      </div>
+    </div>
 
     <!-- Listings Grid -->
     <div *ngIf="listings.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

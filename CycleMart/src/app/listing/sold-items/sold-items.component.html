@@ -1,1 +1,111 @@
-<app-listing></app-listing>
+<!-- Loading State -->
+<div *ngIf="isLoading" class="text-center py-12">
+  <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-500 mx-auto"></div>
+  <p class="mt-4 text-gray-600">Loading your sold/traded items...</p>
+</div>
+
+<!-- Sold Items Grid -->
+<div *ngIf="!isLoading && soldItems.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div *ngFor="let item of soldItems" class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200">
+    
+    <!-- Product Image -->
+    <div class="relative w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+      <img 
+        *ngIf="item.product_images && item.product_images.length > 0; else noImage"
+        [src]="getImageUrl(item.product_images[0])" 
+        [alt]="item.product_name"
+        class="w-full h-full object-cover">
+      <ng-template #noImage>
+        <div class="w-full h-full flex items-center justify-center text-gray-400">
+          <div class="text-center">
+            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-sm">No Image</p>
+          </div>
+        </div>
+      </ng-template>
+      
+      <!-- Image Count Badge -->
+      <div *ngIf="item.product_images && item.product_images.length > 1" 
+           class="absolute top-3 right-3 bg-black bg-opacity-70 text-white px-2 py-1 rounded-full text-xs font-medium">
+        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        {{item.product_images.length}}
+      </div>
+      
+      <!-- Sold/Traded Status Badge -->
+      <div class="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {{getSaleTypeText(item.for_type)}}
+      </div>
+    </div>
+    
+    <!-- Product Details -->
+    <div class="p-5">
+      <h3 class="font-bold text-lg mb-2 text-gray-800 line-clamp-2">{{item.product_name}}</h3>
+      
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-gray-500 font-bold text-xl line-through">₱{{item.price | number:'1.2-2'}}</p>
+        <div class="flex items-center text-gray-600 text-sm">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+          </svg>
+          {{item.quantity}} {{item.quantity === 1 ? 'item' : 'items'}}
+        </div>
+      </div>
+      
+      <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{item.description}}</p>
+      
+      <div class="space-y-2 mb-4">
+        <div class="flex items-center text-gray-500 text-xs">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          {{item.location}}
+        </div>
+        
+        <div class="flex items-center justify-between text-xs">
+          <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">{{item.category | titlecase}}</span>
+          <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full font-medium">{{item.condition | titlecase}}</span>
+        </div>
+        
+        <div class="text-xs text-gray-500">
+          <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full font-medium">For {{item.for_type | titlecase}}</span>
+        </div>
+        
+        <div class="text-xs text-gray-500">
+          <span class="text-gray-400">Sold on: {{item.created_at | date:'mediumDate'}}</span>
+        </div>
+      </div>
+      
+      <!-- Action Button -->
+      <div class="mt-4">
+        <button 
+          (click)="markAsAvailable(item)"
+          class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-medium">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Mark as Available Again
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Empty State -->
+<div *ngIf="!isLoading && soldItems.length === 0" class="text-center py-12">
+  <div class="mb-4">
+    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  </div>
+  <h3 class="text-xl font-medium text-gray-900 mb-2">No sold/traded items</h3>
+  <p class="text-gray-500 mb-4">You haven't sold or traded any items yet.</p>
+  <p class="text-sm text-gray-400">Items you mark as sold or traded will appear here.</p>
+</div>

@@ -20,6 +20,9 @@ export class HomeComponent implements OnInit {
   items: any[] = [];
   filteredItems: any[] = [];
   searchQuery: string = '';
+  
+  // Sorting state
+  currentSortOption: string = 'featured';
 
   // Modal state
   showModal: boolean = false;
@@ -70,17 +73,22 @@ export class HomeComponent implements OnInit {
               saleType: this.formatSaleType(product.for_type),
               category: this.formatCategory(product.category),
               seller: product.seller_name || 'Unknown Seller',
+              seller_profile_image: product.seller_profile_image || null, // Add profile image
+              uploader_id: product.uploader_id, // Add uploader ID for profile image path
               location: product.location,
               rating: 4.8, // Default rating
               description: product.description,
               condition: product.condition,
               quantity: product.quantity,
               sale_status: product.sale_status,
-              status: product.status
+              status: product.status,
+              created_at: product.created_at || new Date().toISOString(), // Add created date for sorting
+              featured_score: Math.random() * 100 // Random score for featured sorting
             };
           });
           console.log('Processed items:', this.items);
           this.filteredItems = [...this.items]; // Initialize filtered items
+          this.applySorting(); // Apply default sorting
         } else {
           this.error = 'No products found or invalid response format';
         }
@@ -98,6 +106,25 @@ export class HomeComponent implements OnInit {
     // Remove any extra path prefixes from the image name
     const cleanImageName = imageName.replace(/^uploads[\/\\]/, '');
     // Create the correct path to the uploads folder (which is inside the api directory)
+    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/${cleanImageName}`;
+  }
+
+  getProfileImageUrl(profileImage: string | null, username?: string): string {
+    if (!profileImage) {
+      // Generate a personalized avatar with the user's name or default
+      const displayName = username || 'User';
+      const encodedName = encodeURIComponent(displayName);
+      return `https://ui-avatars.com/api/?name=${encodedName}&background=6BA3BE&color=ffffff&size=128`;
+    }
+    
+    // Handle base64 images
+    if (profileImage.startsWith('data:')) {
+      return profileImage;
+    }
+    
+    // Remove any extra path prefixes from the image name
+    const cleanImageName = profileImage.replace(/^uploads[\/\\]/, '');
+    // Create the correct path to the uploads folder
     return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/${cleanImageName}`;
   }
 
@@ -133,28 +160,30 @@ export class HomeComponent implements OnInit {
   performSearch() {
     if (!this.searchQuery.trim()) {
       this.filteredItems = [...this.items];
-      return;
+    } else {
+      const query = this.searchQuery.toLowerCase().trim();
+      this.filteredItems = this.items.filter(item => {
+        return (
+          item.product_name.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query) ||
+          item.seller.toLowerCase().includes(query) ||
+          item.location.toLowerCase().includes(query) ||
+          item.description.toLowerCase().includes(query) ||
+          item.saleType.toLowerCase().includes(query) ||
+          item.condition.toLowerCase().includes(query)
+        );
+      });
     }
 
-    const query = this.searchQuery.toLowerCase().trim();
-    this.filteredItems = this.items.filter(item => {
-      return (
-        item.product_name.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query) ||
-        item.seller.toLowerCase().includes(query) ||
-        item.location.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query) ||
-        item.saleType.toLowerCase().includes(query) ||
-        item.condition.toLowerCase().includes(query)
-      );
-    });
-
-    console.log('Search results:', this.filteredItems.length, 'items found for query:', query);
+    // Apply current sorting after filtering
+    this.applySorting();
+    console.log('Search results:', this.filteredItems.length, 'items found for query:', this.searchQuery);
   }
 
   clearSearch() {
     this.searchQuery = '';
     this.filteredItems = [...this.items];
+    this.applySorting(); // Reapply sorting after clearing search
   }
 
   onSearchInputChange() {
@@ -167,10 +196,181 @@ export class HomeComponent implements OnInit {
     this.performSearch();
   }
 
+  // Sorting functionality
+  onSortChange(event: any) {
+    this.currentSortOption = event.target.value;
+    this.applySorting();
+    console.log('Sorting changed to:', this.currentSortOption);
+  }
+
+  applySorting() {
+    const startTime = performance.now();
+    
+    switch (this.currentSortOption) {
+      case 'featured':
+        this.sortByFeatured();
+        break;
+      case 'price-low-high':
+        this.sortByPriceLowToHigh();
+        break;
+      case 'price-high-low':
+        this.sortByPriceHighToLow();
+        break;
+      case 'newest':
+        this.sortByNewest();
+        break;
+      case 'oldest':
+        this.sortByOldest();
+        break;
+      case 'name-a-z':
+        this.sortByNameAToZ();
+        break;
+      case 'name-z-a':
+        this.sortByNameZToA();
+        break;
+      case 'rating':
+        this.sortByRating();
+        break;
+      default:
+        this.sortByFeatured();
+    }
+    
+    const endTime = performance.now();
+    console.log(`Sorting completed in ${(endTime - startTime).toFixed(2)}ms`);
+  }
+
+  getSortDisplayName(): string {
+    const sortOptions: { [key: string]: string } = {
+      'featured': 'Featured',
+      'price-low-high': 'Price: Low to High',
+      'price-high-low': 'Price: High to Low',
+      'newest': 'Newest First',
+      'oldest': 'Oldest First',
+      'name-a-z': 'Name: A to Z',
+      'name-z-a': 'Name: Z to A',
+      'rating': 'Highest Rated'
+    };
+    return sortOptions[this.currentSortOption] || 'Featured';
+  }
+
+  sortByFeatured() {
+    this.filteredItems.sort((a, b) => {
+      // Enhanced featured algorithm:
+      // 1. Prioritize available items over sold items
+      if (a.sale_status !== b.sale_status) {
+        if (a.sale_status === 'available' && b.sale_status === 'sold') return -1;
+        if (a.sale_status === 'sold' && b.sale_status === 'available') return 1;
+      }
+      
+      // 2. Sort by featured score (higher score first)
+      if (b.featured_score !== a.featured_score) {
+        return b.featured_score - a.featured_score;
+      }
+      
+      // 3. Then by rating (higher rating first)
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating;
+      }
+      
+      // 4. Finally by newest
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }
+
+  sortByPriceLowToHigh() {
+    this.filteredItems.sort((a, b) => {
+      if (a.price !== b.price) {
+        return a.price - b.price;
+      }
+      // Secondary sort by rating if prices are equal
+      return b.rating - a.rating;
+    });
+  }
+
+  sortByPriceHighToLow() {
+    this.filteredItems.sort((a, b) => {
+      if (b.price !== a.price) {
+        return b.price - a.price;
+      }
+      // Secondary sort by rating if prices are equal
+      return b.rating - a.rating;
+    });
+  }
+
+  sortByNewest() {
+    this.filteredItems.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      if (dateB !== dateA) {
+        return dateB - dateA;
+      }
+      // Secondary sort by rating if dates are equal
+      return b.rating - a.rating;
+    });
+  }
+
+  sortByOldest() {
+    this.filteredItems.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+      // Secondary sort by rating if dates are equal
+      return b.rating - a.rating;
+    });
+  }
+
+  sortByNameAToZ() {
+    this.filteredItems.sort((a, b) => {
+      const nameComparison = a.product_name.toLowerCase().localeCompare(b.product_name.toLowerCase());
+      if (nameComparison !== 0) {
+        return nameComparison;
+      }
+      // Secondary sort by price if names are equal
+      return a.price - b.price;
+    });
+  }
+
+  sortByNameZToA() {
+    this.filteredItems.sort((a, b) => {
+      const nameComparison = b.product_name.toLowerCase().localeCompare(a.product_name.toLowerCase());
+      if (nameComparison !== 0) {
+        return nameComparison;
+      }
+      // Secondary sort by price if names are equal
+      return a.price - b.price;
+    });
+  }
+
+  sortByRating() {
+    this.filteredItems.sort((a, b) => {
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating;
+      }
+      // Secondary sort by featured score if ratings are equal
+      if (b.featured_score !== a.featured_score) {
+        return b.featured_score - a.featured_score;
+      }
+      // Tertiary sort by newest if both rating and featured score are equal
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }
+
   // Debug function to test product selection
   testProductClick(product: any, event: any) {
     event.stopPropagation();
     console.log('TEST CLICK - Product clicked:', product.product_name, 'ID:', product.id);
+    this.openProductModal(product);
+  }
+
+  // Handle product card click (for when user clicks anywhere on the card)
+  onProductCardClick(product: any, event: any) {
+    // Prevent opening modal if user clicked on a button or interactive element
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      return;
+    }
     this.openProductModal(product);
   }
 

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidenavComponent } from '../sidenav/sidenav.component';
 import { ListingModalComponent } from './listing-modal/listing-modal.component';
+import { SoldItemsComponent } from './sold-items/sold-items.component';
 import { ApiService } from '../api/api.service';
 import { FormsModule } from '@angular/forms';
 
@@ -26,7 +27,7 @@ interface Product {
 @Component({
   selector: 'app-listing',
   standalone: true,
-  imports: [CommonModule, SidenavComponent, ListingModalComponent, FormsModule],
+  imports: [CommonModule, SidenavComponent, ListingModalComponent, SoldItemsComponent, FormsModule],
   templateUrl: './listing.component.html',
   styleUrl: './listing.component.css'
 })
@@ -35,6 +36,7 @@ export class ListingComponent implements OnInit, OnDestroy {
   isLoading = false;
   userId: number = 0;
   showAddModal = false;
+  showSoldItemsModal = false;
   currentImageIndex = 0;
   isDragOver = false;
   
@@ -75,7 +77,7 @@ export class ListingComponent implements OnInit, OnDestroy {
     // Clean up event listener
     document.removeEventListener('keydown', (event) => this.onLightboxKeydown(event));
     
-    // Restore body scroll if component is destroyed while lightbox is open
+    // Restore body scroll if component is destroyed while modals are open
     document.body.style.overflow = 'auto';
   }
 
@@ -90,7 +92,8 @@ export class ListingComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.isLoading = false;
         if (response.status === 'success') {
-          this.listings = response.data.map((product: any) => ({
+          // Filter out sold/traded items - only show available items
+          const allProducts = response.data.map((product: any) => ({
             ...product,
             product_images: typeof product.product_images === 'string' 
               ? JSON.parse(product.product_images) 
@@ -98,6 +101,11 @@ export class ListingComponent implements OnInit, OnDestroy {
             isEditing: false,
             pendingApproval: false
           }));
+          
+          // Only show products that are available (not sold/traded)
+          this.listings = allProducts.filter((product: Product) => 
+            product.sale_status === 'available'
+          );
         } else {
           console.error('Failed to load products:', response.message);
         }
@@ -117,6 +125,18 @@ export class ListingComponent implements OnInit, OnDestroy {
 
   closeAddModal() {
     this.showAddModal = false;
+    // Restore body scroll
+    document.body.style.overflow = 'auto';
+  }
+
+  openSoldItemsModal() {
+    this.showSoldItemsModal = true;
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeSoldItemsModal() {
+    this.showSoldItemsModal = false;
     // Restore body scroll
     document.body.style.overflow = 'auto';
   }
@@ -194,7 +214,6 @@ export class ListingComponent implements OnInit, OnDestroy {
 
   // Mark product as sold/available
   toggleSaleStatus(product: Product) {
-    const statusText = this.getStatusButtonText(product);
     const actionText = product.sale_status === 'available' 
       ? this.getAvailableToSoldText(product)
       : this.getSoldToAvailableText(product);
@@ -205,22 +224,12 @@ export class ListingComponent implements OnInit, OnDestroy {
       const updateData = {
         product_id: product.product_id,
         sale_status: newStatus,
-        uploader_id: this.userId
+        uploader_id: this.userId,
+        for_type: product.for_type // Include for_type for proper logging
       };
 
-      // You'll need to create an updateSaleStatus method in your API
-      this.apiService.updateProduct({
-        ...updateData,
-        product_name: product.product_name,
-        price: product.price,
-        description: product.description,
-        location: product.location,
-        for_type: product.for_type,
-        condition: product.condition,
-        category: product.category,
-        quantity: product.quantity,
-        product_images: JSON.stringify(product.product_images)
-      }).subscribe({
+      // Use the new dedicated sale status API
+      this.apiService.updateSaleStatus(updateData).subscribe({
         next: (response) => {
           if (response.status === 'success') {
             product.sale_status = newStatus;
@@ -228,6 +237,25 @@ export class ListingComponent implements OnInit, OnDestroy {
               ? this.getSuccessSoldText(product) 
               : this.getSuccessAvailableText(product);
             alert(successText);
+            
+            // If item is marked as sold, remove it from the listings array
+            if (newStatus === 'sold') {
+              const index = this.listings.findIndex(item => item.product_id === product.product_id);
+              if (index !== -1) {
+                this.listings.splice(index, 1);
+              }
+            }
+            
+            // Log the status change for admin monitoring
+            console.log('Sale status updated:', {
+              product_id: product.product_id,
+              product_name: product.product_name,
+              previous_status: product.sale_status === 'sold' ? 'available' : 'sold',
+              new_status: newStatus,
+              for_type: product.for_type,
+              timestamp: new Date().toISOString(),
+              user_id: this.userId
+            });
           } else {
             alert('Failed to update product status: ' + response.message);
           }
