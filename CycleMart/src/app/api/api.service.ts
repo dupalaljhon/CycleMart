@@ -21,6 +21,16 @@ export class ApiService {
     return this.http.post<any>(`${this.baseUrl}register`, data);
   }
 
+  // 🔹 Email verification methods
+  verifyEmail(token: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}verify-email`, { token });
+  }
+
+  // 🔹 Resend verification email
+  resendVerificationEmail(email: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}resend-verification`, { email });
+  }
+
   // 🔹 Upload or update profile
   updateProfile(data: any): Observable<any> {
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
@@ -47,6 +57,11 @@ editProfile(data: any): Observable<any> {
 //fetch all products
 getProductsByUser(userId: number): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}products?uploader_id=${userId}`);
+}
+
+// Get single product by ID
+getProductById(productId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}products?product_id=${productId}`);
 }
 
 // Get all active products for home page
@@ -89,21 +104,6 @@ archiveProduct(data: any): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}archiveProduct`, data);
 }
 
-// 🔹 Email verification
-verifyEmail(token: string): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}verify-email`, { token });
-}
-
-// 🔹 Resend verification email
-resendVerificationEmail(email: string): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}resend-verification`, { email });
-}
-
-// 🔹 Generate new verification token
-generateVerificationToken(email: string): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}generate-verification`, { email });
-}
-
 // 🔹 Notification methods
 getAdminNotifications(adminId: number): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}admin-notifications?admin_id=${adminId}`);
@@ -122,6 +122,112 @@ getNotificationCounts(adminId: number): Observable<any> {
 
 getDashboardStats(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}dashboard-stats`);
+}
+
+getChartData(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}chart-data`);
+}
+
+// 🔹 Admin Management Methods
+getAllAdmins(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}all-admins`);
+}
+
+getAdminById(adminId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}admin?id=${adminId}`);
+}
+
+createAdmin(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}admin/create`, data);
+}
+
+updateAdmin(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}admin/update`, data);
+}
+
+deleteAdmin(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}admin/delete`, data);
+}
+
+// 🔹 Messaging Methods
+getUserConversations(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}conversations?user_id=${userId}`);
+}
+
+getUserArchivedConversations(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}archived-conversations?user_id=${userId}`);
+}
+
+getConversationMessages(conversationId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}messages?conversation_id=${conversationId}`);
+}
+
+createConversation(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}create-conversation`, data);
+}
+
+sendMessage(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}send-message`, data);
+}
+
+markMessagesAsRead(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}mark-messages-read`, data);
+}
+
+// 🔹 Conversation Management Methods
+archiveConversation(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}archive-conversation`, data);
+}
+
+restoreConversation(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}restore-conversation`, data);
+}
+
+deleteConversation(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}delete-conversation`, data);
+}
+
+// 🔹 Report Methods
+submitReport(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}submit-report`, data);
+}
+
+getUserReports(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}user-reports?user_id=${userId}`);
+}
+
+getAllReports(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}all-reports`);
+}
+
+updateReportStatus(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}update-report-status`, data);
+}
+
+// 🔹 User Management Methods
+deleteUser(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}delete-user`, data);
+}
+
+// 🔹 Rating Methods
+submitRating(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}submit-rating`, data);
+}
+
+getUserRatings(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}user-ratings?user_id=${userId}`);
+}
+
+getConversationRating(conversationId: number, ratedBy: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}conversation-rating?conversation_id=${conversationId}&rated_by=${ratedBy}`);
+}
+
+getUserAverageRatings(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}user-average-ratings?user_id=${userId}`);
+}
+
+getAllSellersWithRatings(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}sellers-with-ratings`);
 }
 
 }

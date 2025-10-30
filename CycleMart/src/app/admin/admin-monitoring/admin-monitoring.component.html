@@ -1,0 +1,518 @@
+<div class="flex h-screen bg-gray-100">
+  <!-- Sidenav -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <!-- Main Content -->
+  <div class="flex-1 p-6 overflow-y-auto">
+    <!-- Header Section -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-300">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h1 class="text-4xl font-bold text-black mb-3">
+            Admin Monitoring
+          </h1>
+          <p class="text-gray-700 text-lg font-medium">Monitor and manage administrator accounts with ease</p>
+        </div>
+        
+        <!-- Add Admin Button -->
+        <div class="flex gap-4">
+          <!-- Temporary Role Fix Button (for debugging) -->
+          <button mat-stroked-button 
+                  color="warn"
+                  class="h-14 px-6 border-2 border-gray-500 text-gray-700 hover:bg-gray-100 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                  (click)="updateRoleToSuperAdmin()"
+                  *ngIf="currentUserRole !== 'super_admin'">
+            <mat-icon class="mr-2">admin_panel_settings</mat-icon>
+            Fix Role (Temp)
+          </button>
+          
+          <button mat-raised-button 
+                  color="primary" 
+                  class="h-14 px-8 bg-black hover:bg-gray-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  (click)="openAddAdminDialog()"
+                  [disabled]="isProcessing"
+                  *ngIf="canCreateAdmin()">
+            <mat-icon class="mr-2">person_add</mat-icon>
+            Add New Admin
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-black text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center mb-2">
+                <mat-icon class="text-white mr-3 text-2xl">admin_panel_settings</mat-icon>
+                <p class="text-gray-200 font-semibold text-sm">Super Admins</p>
+              </div>
+              <p class="text-3xl font-bold">{{ getSuperAdminCount() }}</p>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-full p-3">
+              <mat-icon class="text-white text-xl">shield</mat-icon>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-gray-800 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center mb-2">
+                <mat-icon class="text-white mr-3 text-2xl">shield</mat-icon>
+                <p class="text-gray-200 font-semibold text-sm">Moderators</p>
+              </div>
+              <p class="text-3xl font-bold">{{ getModeratorCount() }}</p>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-full p-3">
+              <mat-icon class="text-white text-xl">security</mat-icon>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center mb-2">
+                <mat-icon class="text-white mr-3 text-2xl">support_agent</mat-icon>
+                <p class="text-gray-200 font-semibold text-sm">Support Staff</p>
+              </div>
+              <p class="text-3xl font-bold">{{ getSupportCount() }}</p>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-full p-3">
+              <mat-icon class="text-white text-xl">headset_mic</mat-icon>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-400 text-black rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center mb-2">
+                <mat-icon class="text-black mr-3 text-2xl">verified</mat-icon>
+                <p class="text-gray-800 font-semibold text-sm">Active Admins</p>
+              </div>
+              <p class="text-3xl font-bold">{{ getActiveAdminCount() }}</p>
+            </div>
+            <div class="bg-black bg-opacity-20 rounded-full p-3">
+              <mat-icon class="text-black text-xl">check_circle</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Table -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden relative border border-gray-300">
+      <!-- Processing Overlay -->
+      <div *ngIf="isProcessing" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 backdrop-blur-sm">
+        <div class="text-center bg-white rounded-2xl shadow-lg p-8">
+          <div class="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent mx-auto mb-4"></div>
+          <p class="text-gray-700 text-lg font-medium">Processing admin action...</p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="text-center py-16">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-black border-t-transparent mx-auto mb-6"></div>
+        <p class="text-gray-600 text-xl font-medium">Loading administrators...</p>
+      </div>
+
+      <!-- Admin Table -->
+      <div *ngIf="!isLoading" class="overflow-x-auto">
+        <table mat-table [dataSource]="dataSource" class="w-full">
+          
+          <!-- Username Column -->
+          <ng-container matColumnDef="username">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-600 p-2 rounded-full">
+                  <mat-icon class="text-white text-lg">account_circle</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Username</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <div class="flex items-center space-x-4">
+                <div class="bg-black rounded-full w-12 h-12 flex items-center justify-center shadow-lg">
+                  <mat-icon class="text-white text-xl">
+                    {{ getRoleIcon(admin.role) }}
+                  </mat-icon>
+                </div>
+                <div class="font-bold text-gray-900 text-lg">{{ admin.username }}</div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Full Name Column -->
+          <ng-container matColumnDef="full_name">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-600 p-2 rounded-full">
+                  <mat-icon class="text-white text-lg">person</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Full Name</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <div class="font-semibold text-gray-900 text-base">{{ admin.full_name }}</div>
+            </td>
+          </ng-container>
+
+          <!-- Email Column -->
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-600 p-2 rounded-full">
+                  <mat-icon class="text-white text-lg">email</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Email</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <div class="flex items-center space-x-3">
+                <mat-icon class="text-gray-400 text-lg">alternate_email</mat-icon>
+                <span class="text-gray-900 font-medium">{{ admin.email }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Role Column -->
+          <ng-container matColumnDef="role">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-600 p-2 rounded-full">
+                  <mat-icon class="text-white text-lg">security</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Role</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <mat-chip-set>
+                <mat-chip [class]="getRoleColor(admin.role)" class="font-semibold text-sm px-4 py-2 rounded-full shadow-md">
+                  <mat-icon class="mr-2 text-sm">{{ getRoleIcon(admin.role) }}</mat-icon>
+                  {{ formatRole(admin.role) }}
+                </mat-chip>
+              </mat-chip-set>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-600 p-2 rounded-full">
+                  <mat-icon class="text-white text-lg">verified_user</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Status</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <mat-chip-set>
+                <mat-chip [class]="getStatusColor(admin.status)" class="font-semibold text-sm px-4 py-2 rounded-full shadow-md">
+                  <mat-icon class="mr-2 text-xs">
+                    {{ admin.status === 'active' ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                  {{ admin.status | titlecase }}
+                </mat-chip>
+              </mat-chip-set>
+            </td>
+          </ng-container>
+
+          <!-- Created Date Column -->
+          <ng-container matColumnDef="created_at">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-600 p-2 rounded-full">
+                  <mat-icon class="text-white text-lg">schedule</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Created</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <div class="flex flex-col space-y-1">
+                <span class="text-gray-900 font-semibold text-sm">{{ formatDate(admin.created_at) }}</span>
+                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{{ formatDate(admin.updated_at) }} (updated)</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300 text-center">
+              <div class="flex items-center justify-center space-x-3">
+                <div class="bg-white p-2 rounded-full">
+                  <mat-icon class="text-black text-lg">settings</mat-icon>
+                </div>
+                <span class="text-sm font-bold">Actions</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+              <div class="flex items-center justify-center space-x-2">
+                <!-- Edit Button -->
+                <button mat-mini-fab 
+                        class="bg-white hover:bg-gray-500 text-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                        matTooltip="Edit Administrator Account"
+                        [disabled]="isProcessing"
+                        (click)="editAdmin(admin)"
+                        *ngIf="canEditAdmin(admin)">
+                  <mat-icon class="text-black">edit</mat-icon>
+                </button>
+
+                <!-- Block/Unblock Access Button -->
+                <button mat-mini-fab 
+                        class="bg-white hover:bg-gray-500 text-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                        [matTooltip]="admin.status === 'active' ? 'Block Admin Access' : 'Unblock Admin Access'"
+                        [disabled]="isProcessing || admin.username === getCurrentUsername()"
+                        (click)="blockAdminAccess(admin)"
+                        *ngIf="canEditAdmin(admin) && admin.username !== getCurrentUsername()">
+                  <mat-icon class="text-black">{{ admin.status === 'active' ? 'block' : 'check_circle' }}</mat-icon>
+                </button>
+
+                <!-- Toggle Status Button -->
+                <button mat-mini-fab 
+                        class="bg-white hover:bg-gray-500 text-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                        [matTooltip]="admin.status === 'active' ? 'Deactivate Admin' : 'Activate Admin'"
+                        [disabled]="isProcessing"
+                        (click)="toggleAdminStatus(admin)"
+                        *ngIf="canEditAdmin(admin)">
+                  <mat-icon class="text-black">{{ admin.status === 'active' ? 'person_off' : 'person_add' }}</mat-icon>
+                </button>
+                
+                <!-- Delete Button -->
+                <button mat-mini-fab 
+                        class="bg-white hover:bg-gray-500 text-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                        matTooltip="Delete Administrator"
+                        [disabled]="isProcessing"
+                        (click)="deleteAdmin(admin)"
+                        *ngIf="canDeleteAdmin(admin) && admin.username !== getCurrentUsername()">
+                  <mat-icon class="text-black">delete</mat-icon>
+                </button>
+
+                <!-- No Actions Available Message -->
+                <div *ngIf="!canEditAdmin(admin) && !canDeleteAdmin(admin)" 
+                     class="text-gray-500 text-sm italic bg-gray-100 px-3 py-2 rounded-full">
+                  No actions available
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Table Header and Rows -->
+          <tr mat-header-row *matHeaderRowDef="displayedColumns" 
+              class="border-b-2 border-gray-300"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+              class="hover:bg-gray-100 transition-all duration-300 border-b border-gray-300 cursor-pointer"></tr>
+        </table>
+
+        <!-- No Data State -->
+        <div *ngIf="dataSource.data.length === 0 && !isLoading" class="text-center py-20">
+          <div class="flex flex-col items-center">
+            <div class="bg-gray-200 rounded-full p-8 mb-6 shadow-lg">
+              <mat-icon class="text-6xl text-black">admin_panel_settings</mat-icon>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-3">No administrators found</h3>
+            <p class="text-gray-600 mb-6 text-lg">Add your first administrator account to get started managing your system</p>
+            <button mat-raised-button 
+                    color="primary"
+                    class="px-8 py-3 bg-black hover:bg-gray-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    (click)="openAddAdminDialog()"
+                    *ngIf="canCreateAdmin()">
+              <mat-icon class="mr-2">person_add</mat-icon>
+              Add First Admin
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Overlay -->
+<div *ngIf="isModalOpen" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-screen overflow-y-auto border border-gray-300">
+    <!-- Modal Header -->
+    <div class="bg-black text-white p-6 rounded-t-2xl">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-2xl font-bold mb-1">
+            {{ isEditMode ? 'Edit Administrator' : 'Add New Administrator' }}
+          </h2>
+          <p class="text-gray-200 text-sm">
+            {{ isEditMode ? 'Update administrator details' : 'Create a new administrator account' }}
+          </p>
+        </div>
+        <button (click)="closeModal()" class="text-white hover:text-gray-300 transition-colors p-2 hover:bg-white hover:bg-opacity-10 rounded-full">
+          <mat-icon class="text-2xl">close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Form -->
+    <form [formGroup]="adminForm" (ngSubmit)="onModalSubmit()" class="p-8 space-y-6">
+      <!-- First Row: Username and Full Name -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Username Field -->
+        <div class="space-y-3">
+          <label class="flex items-center text-sm font-semibold text-black mb-2">
+            <div class="bg-gray-200 p-2 rounded-full mr-3">
+              <mat-icon class="text-black text-lg">account_circle</mat-icon>
+            </div>
+            Username
+          </label>
+          <mat-form-field appearance="fill" class="w-full custom-form-field">
+            <input matInput formControlName="username" placeholder="Enter username" class="bg-gray-50 text-gray-800">
+            <mat-error *ngIf="adminForm.get('username')?.hasError('required')">
+              Username is required
+            </mat-error>
+            <mat-error *ngIf="adminForm.get('username')?.hasError('minlength')">
+              Username must be at least 3 characters long
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Full Name Field -->
+        <div class="space-y-3">
+          <label class="flex items-center text-sm font-semibold text-black mb-2">
+            <div class="bg-gray-200 p-2 rounded-full mr-3">
+              <mat-icon class="text-black text-lg">person</mat-icon>
+            </div>
+            Full Name
+          </label>
+          <mat-form-field appearance="fill" class="w-full custom-form-field">
+            <input matInput formControlName="full_name" placeholder="Enter full name" class="bg-gray-50 text-gray-800">
+            <mat-error *ngIf="adminForm.get('full_name')?.hasError('required')">
+              Full name is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Second Row: Email and Role -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Email Field -->
+        <div class="space-y-3">
+          <label class="flex items-center text-sm font-semibold text-black mb-2">
+            <div class="bg-gray-200 p-2 rounded-full mr-3">
+              <mat-icon class="text-black text-lg">email</mat-icon>
+            </div>
+            Email Address
+          </label>
+          <mat-form-field appearance="fill" class="w-full custom-form-field">
+            <input matInput type="email" formControlName="email" placeholder="Enter email address" class="bg-gray-50 text-gray-800">
+            <mat-error *ngIf="adminForm.get('email')?.hasError('required')">
+              Email is required
+            </mat-error>
+            <mat-error *ngIf="adminForm.get('email')?.hasError('email')">
+              Please enter a valid email address
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Role Field -->
+        <div class="space-y-3">
+          <label class="flex items-center text-sm font-semibold text-black mb-2">
+            <div class="bg-gray-200 p-2 rounded-full mr-3">
+              <mat-icon class="text-black text-lg">security</mat-icon>
+            </div>
+            Administrator Role
+          </label>
+          <mat-form-field appearance="fill" class="w-full custom-form-field">
+            <mat-select formControlName="role" class="bg-gray-50 text-gray-800">
+              <mat-option value="super_admin">🔥 Super Administrator</mat-option>
+              <mat-option value="moderator">🛡️ Moderator</mat-option>
+              <mat-option value="support">🎧 Support Staff</mat-option>
+            </mat-select>
+            <mat-error *ngIf="adminForm.get('role')?.hasError('required')">
+              Role is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Password Fields (Only for new admin) -->
+      <div *ngIf="!isEditMode" class="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <div class="flex items-center mb-4">
+          <mat-icon class="text-black mr-2">lock</mat-icon>
+          <h3 class="text-lg font-semibold text-black">Security Settings</h3>
+        </div>
+        
+        <!-- Third Row: Password Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Password Field -->
+          <div class="space-y-3">
+            <label class="flex items-center text-sm font-semibold text-black mb-2">
+              <div class="bg-gray-200 p-2 rounded-full mr-3">
+                <mat-icon class="text-black text-lg">lock</mat-icon>
+              </div>
+              Password
+            </label>
+            <mat-form-field appearance="fill" class="w-full custom-form-field">
+              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Enter secure password" class="bg-white text-gray-800">
+              <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword" class="text-gray-500 hover:text-black">
+                <mat-icon>{{ hidePassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="adminForm.get('password')?.hasError('required')">
+                Password is required
+              </mat-error>
+              <mat-error *ngIf="adminForm.get('password')?.hasError('minlength')">
+                Password must be at least 6 characters long
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Confirm Password Field -->
+          <div class="space-y-3">
+            <label class="flex items-center text-sm font-semibold text-black mb-2">
+              <div class="bg-gray-200 p-2 rounded-full mr-3">
+                <mat-icon class="text-black text-lg">lock_outline</mat-icon>
+              </div>
+              Confirm Password
+            </label>
+            <mat-form-field appearance="fill" class="w-full custom-form-field">
+              <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" formControlName="confirmPassword" placeholder="Confirm your password" class="bg-white text-gray-800">
+              <button mat-icon-button matSuffix type="button" (click)="hideConfirmPassword = !hideConfirmPassword" class="text-gray-500 hover:text-black">
+                <mat-icon>{{ hideConfirmPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="adminForm.get('confirmPassword')?.hasError('required')">
+                Please confirm your password
+              </mat-error>
+              <mat-error *ngIf="adminForm.get('confirmPassword')?.hasError('passwordMismatch')">
+                Passwords do not match
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
+        <button type="button" 
+                mat-stroked-button 
+                (click)="closeModal()" 
+                [disabled]="isSubmitting"
+                class="px-6 py-3 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 rounded-lg font-medium">
+          <mat-icon class="mr-2">close</mat-icon>
+          Cancel
+        </button>
+        <button type="submit" 
+                mat-raised-button 
+                color="primary" 
+                [disabled]="!adminForm.valid || isSubmitting"
+                class="px-8 py-3 bg-black hover:bg-gray-800 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+          <span *ngIf="!isSubmitting" class="flex items-center">
+            <mat-icon class="mr-2">{{ isEditMode ? 'edit' : 'add' }}</mat-icon>
+            {{ isEditMode ? 'Update Administrator' : 'Create Administrator' }}
+          </span>
+          <span *ngIf="isSubmitting" class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isEditMode ? 'Updating...' : 'Creating...' }}
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

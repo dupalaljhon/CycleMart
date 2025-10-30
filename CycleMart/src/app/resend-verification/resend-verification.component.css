@@ -1,0 +1,168 @@
+/* Resend Verification Component Styles */
+.resend-verification-container {
+  background: linear-gradient(135deg, #6BA3BE 0%, #4a8ba8 100%);
+}
+
+/* Form animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-up {
+  animation: slideInUp 0.6s ease-out;
+}
+
+/* Input focus styles */
+.email-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 163, 190, 0.2);
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+/* Button hover effects */
+.resend-btn {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.resend-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(107, 163, 190, 0.3);
+}
+
+.resend-btn:active {
+  transform: translateY(0);
+}
+
+/* Loading animation enhancement */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Message animations */
+.message-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Help section styles */
+.help-section {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-left: 4px solid #6BA3BE;
+}
+
+/* Back button hover effect */
+.back-btn {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.back-btn:hover {
+  transform: translateX(-3px);
+}
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  width: 0;
+  height: 2px;
+  background-color: #6BA3BE;
+  transform: translateY(-50%);
+  transition: width 0.3s ease;
+}
+
+.back-btn:hover::before {
+  width: 20px;
+}
+
+/* Form validation styles */
+.input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+.input-success {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .resend-card {
+    margin: 0.5rem;
+    border-radius: 1rem;
+  }
+  
+  .resend-header {
+    padding: 1.5rem 1rem;
+  }
+  
+  .resend-content {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* Card shadow enhancement */
+.resend-card {
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Icon animations */
+.header-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Typography enhancements */
+.title {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+  opacity: 0.9;
+}
+
+/* Button ripple effect */
+.resend-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.resend-btn:active::after {
+  width: 300px;
+  height: 300px;
+}

@@ -6,6 +6,7 @@ interface SoldProduct {
   product_id: number;
   product_name: string;
   product_images: string[];
+  product_videos?: string[];
   price: number;
   description: string;
   location: string;
@@ -14,7 +15,7 @@ interface SoldProduct {
   category: string;
   quantity: number;
   status: 'active' | 'archived';
-  sale_status: 'sold';
+  sale_status: 'sold' | 'traded';
   created_at: string;
   uploader_id: number;
 }
@@ -31,6 +32,13 @@ export class SoldItemsComponent implements OnInit, OnChanges {
 
   soldItems: SoldProduct[] = [];
   isLoading = false;
+  
+  // Notification properties
+  showSuccessModal = false;
+  showErrorModal = false;
+  successMessage = '';
+  errorMessage = '';
+  isProcessing = false;
 
   constructor(private apiService: ApiService) {}
 
@@ -57,14 +65,19 @@ export class SoldItemsComponent implements OnInit, OnChanges {
       next: (response) => {
         this.isLoading = false;
         if (response.status === 'success') {
-          // Filter only sold items
+          // Filter sold and traded items
           this.soldItems = response.data
-            .filter((product: any) => product.sale_status === 'sold')
+            .filter((product: any) => product.sale_status === 'sold' || product.sale_status === 'traded')
             .map((product: any) => ({
               ...product,
               product_images: typeof product.product_images === 'string' 
                 ? JSON.parse(product.product_images) 
-                : product.product_images
+                : product.product_images,
+              product_videos: product.product_videos 
+                ? (typeof product.product_videos === 'string' 
+                    ? JSON.parse(product.product_videos) 
+                    : product.product_videos)
+                : []
             }));
         } else {
           console.error('Failed to load sold items:', response.message);
@@ -106,21 +119,52 @@ export class SoldItemsComponent implements OnInit, OnChanges {
         for_type: product.for_type
       };
 
+      this.isProcessing = true;
       this.apiService.updateSaleStatus(updateData).subscribe({
         next: (response) => {
+          this.isProcessing = false;
           if (response.status === 'success') {
             // Remove from sold items list
             this.soldItems = this.soldItems.filter(item => item.product_id !== product.product_id);
-            alert('Item marked as available again!');
+            this.showSuccess('Item marked as available again! Your product is now back in the active listings and visible to buyers.');
           } else {
-            alert('Failed to update item status: ' + response.message);
+            this.showError('Failed to update item status: ' + (response.message || 'Unknown error occurred'));
           }
         },
         error: (error) => {
+          this.isProcessing = false;
           console.error('Error updating item status:', error);
-          alert('Failed to update item status. Please try again.');
+          this.showError('Failed to update item status. Please check your internet connection and try again.');
         }
       });
     }
+  }
+
+  // Notification Methods
+  showSuccess(message: string) {
+    this.successMessage = message;
+    this.showSuccessModal = true;
+    this.showErrorModal = false;
+  }
+
+  showError(message: string) {
+    this.errorMessage = message;
+    this.showErrorModal = true;
+    this.showSuccessModal = false;
+  }
+
+  resetNotifications() {
+    this.showSuccessModal = false;
+    this.showErrorModal = false;
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  closeSuccessModal() {
+    this.showSuccessModal = false;
+  }
+
+  closeErrorModal() {
+    this.showErrorModal = false;
   }
 }

@@ -40,6 +40,19 @@ export class AdminLoginComponent {
             // Store admin token and user info
             localStorage.setItem('admin_token', response.token);
             localStorage.setItem('admin_user', JSON.stringify(response.user));
+            
+            // Store individual values needed by admin-monitoring component
+            localStorage.setItem('role', response.user.role);
+            localStorage.setItem('username', response.user.username);
+            localStorage.setItem('admin_id', response.user.id.toString());
+            localStorage.setItem('full_name', response.user.full_name || '');
+            localStorage.setItem('email', response.user.email || '');
+            
+            console.log('Admin login successful:', {
+              role: response.user.role,
+              username: response.user.username,
+              admin_id: response.user.id
+            });
 
             // Navigate to admin dashboard
             this.router.navigate(['/admin-dashboard']);

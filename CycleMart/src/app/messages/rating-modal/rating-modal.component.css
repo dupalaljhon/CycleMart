@@ -1,0 +1,149 @@
+/* Black and White Rating Modal Styles */
+.star-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.star-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s ease;
+}
+
+.star-button:hover {
+  transform: scale(1.1);
+}
+
+.star-button:focus {
+  outline: 2px solid #000000;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.star-icon {
+  width: 32px;
+  height: 32px;
+  transition: color 0.2s ease;
+}
+
+.star-filled {
+  color: #000000; /* Black for filled stars */
+}
+
+.star-empty {
+  color: #D1D5DB; /* gray-300 for empty stars */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .star-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Modal animation */
+.modal-backdrop {
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Form elements */
+.rating-textarea {
+  resize: none;
+  font-family: inherit;
+  color: #000000;
+  border: 2px solid #6B7280;
+  background-color: #FFFFFF;
+}
+
+.rating-textarea:focus {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  border-color: #000000;
+}
+
+.rating-textarea::placeholder {
+  color: #9CA3AF;
+}
+
+/* Button states */
+.submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.submit-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Cancel button */
+.cancel-button {
+  background-color: #FFFFFF;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+.cancel-button:hover {
+  background-color: #F3F4F6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Submit button */
+.submit-button {
+  background-color: #000000;
+  color: #FFFFFF;
+  border: 2px solid #000000;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #374151;
+}
+
+/* User info section */
+.user-info-card {
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+}
+
+/* Rating text labels */
+.rating-label {
+  font-weight: 500;
+  color: #000000;
+}
+
+.rating-description {
+  color: #4B5563;
+}
+
+.rating-value {
+  color: #374151;
+  font-weight: 500;
+}

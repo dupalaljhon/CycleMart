@@ -112,6 +112,18 @@ export class AdminSidenavComponent implements OnInit {
     this.closeSidebar();
   }
 
+  navigateToAdminMonitoring() {
+    this.activeRoute = '/admin-monitoring';
+    this.router.navigate(['/admin-monitoring']);
+    this.closeSidebar();
+  }
+
+  navigateToReportMonitoring() {
+    this.activeRoute = '/report-monitoring';
+    this.router.navigate(['/report-monitoring']);
+    this.closeSidebar();
+  }
+
   logout() {
     // Clear admin session data
     localStorage.removeItem('admin_token');

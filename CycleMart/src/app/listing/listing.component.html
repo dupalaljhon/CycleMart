@@ -3,18 +3,18 @@
   <app-sidenav></app-sidenav>
 
   <!-- Page content -->
-  <div class="flex-1 p-6 bg-[#f5f1eb] overflow-y-auto">
+  <div class="flex-1 p-6 bg-bg-primary overflow-y-auto">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-3xl font-bold text-black">My Listings</h1>
-      <p class="text-gray-600">Manage your bike parts and accessories</p>
+      <p class="text-black">Manage your bike parts and accessories</p>
     </div>
 
     <!-- Action Buttons -->
     <div class="mb-6 flex flex-wrap gap-4">
       <button 
         (click)="addNewListing()"
-        class="bg-[#6BA3BE] text-white px-8 py-4 rounded-xl hover:bg-[#5a92a5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        class="bg-white text-black border border-gray-300 px-8 py-4 rounded-xl hover:bg-gray-100 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
         <span class="flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -25,7 +25,7 @@
       
       <button 
         (click)="openSoldItemsModal()"
-        class="bg-gray-600 text-white px-8 py-4 rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        class="bg-white text-black border border-gray-300 px-8 py-4 rounded-xl hover:bg-gray-100 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
         <span class="flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -37,8 +37,8 @@
 
     <!-- Loading State -->
     <div *ngIf="isLoading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-      <p class="mt-4 text-gray-600">Loading your listings...</p>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+      <p class="mt-4 text-black">Loading your listings...</p>
     </div>
 
     <!-- Add New Product Modal -->
@@ -48,6 +48,14 @@
       (productAdded)="onProductAdded()">
     </app-listing-modal>
 
+    <!-- Edit Product Modal -->
+    <app-listing-edit-modal 
+      [showModal]="showEditModal"
+      [productToEdit]="productToEdit"
+      (closeModal)="closeEditModal()"
+      (productUpdated)="onProductUpdated()">
+    </app-listing-edit-modal>
+
     <!-- Sold/Traded Items Modal -->
     <div *ngIf="showSoldItemsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
          (click)="closeSoldItemsModal()">
@@ -55,16 +63,16 @@
            (click)="$event.stopPropagation()">
         
         <!-- Modal Header -->
-        <div class="bg-gray-600 text-white px-6 py-4 flex items-center justify-between">
+        <div class="bg-white text-black px-6 py-4 flex items-center justify-between border-b border-gray-300">
           <h2 class="text-xl font-bold flex items-center gap-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             My Sold/Traded Items
           </h2>
           <button 
             (click)="closeSoldItemsModal()"
-            class="text-white hover:text-gray-300 transition-colors">
+            class="text-black hover:text-gray-600 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -83,10 +91,10 @@
 
     <!-- Listings Grid -->
     <div *ngIf="listings.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div *ngFor="let listing of listings" class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 transform hover:-translate-y-1">
+      <div *ngFor="let listing of listings" class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-300 hover:border-gray-400 transform hover:-translate-y-1">
         
         <!-- Product Image -->
-        <div class="relative w-full h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden cursor-pointer group"
+        <div class="relative w-full h-52 bg-gray-100 overflow-hidden cursor-pointer group"
              (click)="openLightbox(listing, 0)">
           <img 
             *ngIf="listing.product_images && listing.product_images.length > 0; else noImage"
@@ -94,7 +102,7 @@
             [alt]="listing.product_name"
             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
           <ng-template #noImage>
-            <div class="w-full h-full flex items-center justify-center text-gray-400">
+            <div class="w-full h-full flex items-center justify-center text-black">
               <div class="text-center">
                 <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -106,17 +114,26 @@
           
           <!-- Image Count Badge -->
           <div *ngIf="listing.product_images && listing.product_images.length > 1" 
-               class="absolute top-3 right-3 bg-black bg-opacity-70 text-white px-2 py-1 rounded-full text-xs font-medium">
+               class="absolute top-3 right-3 text-white px-2 py-1 rounded-full text-xs font-medium bg-black bg-opacity-50">
             <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             {{listing.product_images.length}}
           </div>
+
+          <!-- Video indicator badge -->
+          <div *ngIf="listing.product_videos && listing.product_videos.length > 0" 
+               class="absolute top-3 left-3 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            {{listing.product_videos.length}}
+          </div>
           
           <!-- Click to expand overlay -->
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
             <div class="bg-white bg-opacity-90 rounded-full p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
               </svg>
             </div>
@@ -125,161 +142,146 @@
         
         <!-- Product Details -->
         <div class="p-5">
-          <div *ngIf="!listing.isEditing">
-            <h3 class="font-bold text-lg mb-2 text-gray-800 line-clamp-2">{{listing.product_name}}</h3>
-            <div class="flex items-center justify-between mb-3">
-              <p class="text-green-600 font-bold text-2xl">₱{{listing.price | number:'1.2-2'}}</p>
-              <div class="flex items-center text-gray-600 text-sm">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                </svg>
-                {{listing.quantity}} {{listing.quantity === 1 ? 'item' : 'items'}}
-              </div>
-            </div>
-            <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{listing.description}}</p>
-            
-            <div class="space-y-2 mb-4">
-              <div class="flex items-center text-gray-500 text-xs">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                {{listing.location}}
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">{{listing.category | titlecase}}</span>
-                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full font-medium">{{listing.condition | titlecase}}</span>
-              </div>
-              <div class="text-xs text-gray-500">
-                <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full font-medium">For {{listing.for_type | titlecase}}</span>
-              </div>
-            </div>
-            
-            <!-- Status Badge -->
-            <div class="mb-4 flex gap-2">
-              <span class="inline-flex items-center bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                {{listing.status | titlecase}}
-              </span>
-              <span class="inline-flex items-center text-xs px-3 py-1 rounded-full font-medium"
-                    [ngClass]="{
-                      'bg-blue-100 text-blue-800': listing.sale_status === 'available',
-                      'bg-gray-100 text-gray-800': listing.sale_status === 'sold'
-                    }">
-                {{listing.sale_status | titlecase}}
-              </span>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="space-y-2">
-              <div class="flex gap-2">
-                <button 
-                  (click)="editListing(listing)"
-                  class="flex-1 bg-[#6BA3BE] text-white py-2 px-4 rounded-lg hover:bg-[#5a92a5] transition-colors text-sm font-medium">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                  Edit
-                </button>
-                <button 
-                  (click)="deleteListing(listing)"
-                  class="bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition-colors text-sm">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
-              </div>
-              <button 
-                (click)="toggleSaleStatus(listing)"
-                [disabled]="listing.status === 'archived'"
-                class="w-full py-2 px-4 rounded-lg transition-all duration-200 text-sm font-medium"
-                [ngClass]="{
-                  'bg-green-500 text-white hover:bg-green-600': listing.sale_status === 'sold',
-                  'bg-yellow-500 text-white hover:bg-yellow-600': listing.sale_status === 'available',
-                  'bg-gray-300 text-gray-500 cursor-not-allowed': listing.status === 'archived'
-                }">
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="listing.sale_status === 'sold'"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="listing.sale_status === 'available'"/>
-                </svg>
-                {{getStatusButtonText(listing)}}
-              </button>
+          <h3 class="font-bold text-lg mb-2 text-black line-clamp-2">{{listing.product_name}}</h3>
+          <!-- Brand Display -->
+          <div class="mb-2">
+            <span [ngClass]="getBrandDisplayClass(listing.brand_name)" 
+                  class="text-xs px-3 py-1 rounded-full font-semibold">
+              {{ listing.brand_display || formatBrandDisplay(listing.brand_name, listing.custom_brand) }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-black font-bold text-2xl">₱{{listing.price | number:'1.2-2'}}</p>
+            <div class="flex items-center text-black text-sm">
+              <svg class="w-4 h-4 mr-1 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+              {{listing.quantity}} {{listing.quantity === 1 ? 'item' : 'items'}}
             </div>
           </div>
-
-          <!-- Edit Form -->
-          <div *ngIf="listing.isEditing" class="space-y-4">
-            <input 
-              type="text" 
-              [(ngModel)]="listing.product_name"
-              class="w-full p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Product name">
-            
-            <input 
-              type="number" 
-              [(ngModel)]="listing.price"
-              class="w-full p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Price">
-            
-            <textarea 
-              [(ngModel)]="listing.description"
-              rows="3"
-              class="w-full p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Description"></textarea>
-            
-            <input 
-              type="text" 
-              [(ngModel)]="listing.location"
-              class="w-full p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Location">
-
-            <input 
-              type="number" 
-              [(ngModel)]="listing.quantity"
-              min="1"
-              max="999"
-              class="w-full p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Quantity">
-
-            <select 
-              [(ngModel)]="listing.category"
-              class="w-full p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option *ngFor="let cat of categories" [value]="cat.value">{{cat.label}}</option>
-            </select>
-
-            <div class="grid grid-cols-2 gap-3">
-              <select 
-                [(ngModel)]="listing.condition"
-                class="p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="brand_new">Brand New</option>
-                <option value="second_hand">Second Hand</option>
-              </select>
-              
-              <select 
-                [(ngModel)]="listing.for_type"
-                class="p-3 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="sale">Sale</option>
-                <option value="trade">Trade</option>
-                <option value="both">Both Sale and Trade</option>
-              </select>
+          <p class="text-black text-sm mb-3 line-clamp-2">{{listing.description}}</p>
+          
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center text-black text-xs">
+              <svg class="w-4 h-4 mr-1 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              {{listing.location}}
             </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-black border border-gray-300 px-2 py-1 rounded-full font-medium">{{listing.category | titlecase}}</span>
+              <span class="text-black border border-gray-300 px-2 py-1 rounded-full font-medium">{{listing.condition | titlecase}}</span>
+            </div>
+            <div class="text-xs">
+              <span class="text-black border border-gray-300 px-2 py-1 rounded-full font-medium">For {{listing.for_type | titlecase}}</span>
+            </div>
+          </div>
+          
+          <!-- Status Badge -->
+          <div class="mb-4 flex gap-2">
+            <span class="inline-flex items-center text-black border border-gray-300 text-xs px-3 py-1 rounded-full font-medium">
+              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{listing.status | titlecase}}
+            </span>
+            <span class="inline-flex items-center text-xs px-3 py-1 rounded-full font-medium border border-gray-300 text-black">
+              {{listing.sale_status | titlecase}}
+            </span>
+          </div>
 
-            <div class="flex gap-2 pt-2">
+          <!-- Action buttons -->
+          <div class="space-y-2">
+            <div class="flex gap-2">
               <button 
-                (click)="saveEdit(listing)"
-                class="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium">
+                (click)="editListing(listing)"
+                class="flex-1 bg-white text-black border border-gray-300 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium">
                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
-                Save
+                Edit
               </button>
               <button 
-                (click)="cancelEdit(listing)"
-                class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium">
-                Cancel
+                (click)="deleteListing(listing)"
+                class="bg-white text-black border border-gray-300 py-2 px-3 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
               </button>
+            </div>
+            <!-- Status Action Dropdown -->
+            <div class="relative status-dropdown">
+              <button 
+                (click)="toggleDropdown(listing.product_id, $event)"
+                [disabled]="listing.status === 'archived' || isProcessing"
+                class="w-full py-2 px-4 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 bg-white text-black border border-gray-300"
+                [ngClass]="{
+                  'cursor-not-allowed': listing.status === 'archived' || isProcessing
+                }">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="listing.sale_status === 'available'"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" *ngIf="listing.sale_status === 'reserved'"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" *ngIf="listing.sale_status === 'traded'"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="listing.sale_status === 'sold'"/>
+                </svg>
+                <span>{{ 
+                  listing.sale_status === 'available' ? 'Mark Status' : 
+                  (listing.sale_status === 'reserved' ? 'Reserved' : 
+                  (listing.sale_status === 'sold' ? 'Mark as Sold' : 
+                  (listing.sale_status === 'traded' ? 'Mark as Traded' : 'Reserve Item'))) 
+                }}</span>
+                <svg class="w-4 h-4 transition-transform" [ngClass]="{'rotate-180': isDropdownOpen(listing.product_id)}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div 
+                *ngIf="isDropdownOpen(listing.product_id)"
+                class="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-lg shadow-lg border border-gray-300 py-1 z-10 animate-scale-in">
+                
+                <!-- Mark as Sold -->
+                <button 
+                  (click)="markProductStatus(listing, 'sold')"
+                  class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>Mark as Sold</span>
+                </button>
+                
+                <!-- Mark as Traded -->
+                <button 
+                  (click)="markProductStatus(listing, 'traded')"
+                  class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                  </svg>
+                  <span>Mark as Traded</span>
+                </button>
+                
+                <!-- Reserve Item -->
+                <button 
+                  (click)="markProductStatus(listing, 'reserved')"
+                  class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                  <span>Reserve Item</span>
+                </button>
+                
+                <!-- Mark as Available Again (only show if not available) -->
+                <button 
+                  *ngIf="listing.sale_status !== 'available'"
+                  (click)="markProductStatus(listing, 'available')"
+                  class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 flex items-center gap-2 border-t border-gray-300 mt-1 pt-2">
+                  <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  <span>Mark as Available</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -287,17 +289,17 @@
     </div>
 
     <!-- Empty state -->
-    <div *ngIf="!isLoading && listings.length === 0" class="text-center py-12 text-gray-500">
+    <div *ngIf="!isLoading && listings.length === 0" class="text-center py-12 text-black">
       <div class="mb-4">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="mx-auto h-12 w-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
       </div>
-      <p class="text-lg">No listings yet</p>
-      <p class="mb-4">Start by creating your first listing</p>
+      <p class="text-lg text-black">No listings yet</p>
+      <p class="mb-4 text-black">Start by creating your first listing</p>
       <button 
         (click)="addNewListing()"
-        class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
+        class="bg-white text-black border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-100 transition">
         Create First Listing
       </button>
     </div>
@@ -311,15 +313,15 @@
       <!-- Close Button -->
       <button 
         (click)="closeLightbox()"
-        class="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+        class="absolute top-4 right-4 z-10 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-white hover:bg-opacity-20 transition-opacity">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
 
       <!-- Product Info Header -->
-      <div *ngIf="lightboxProduct" class="absolute top-4 left-4 z-10 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg">
-        <h3 class="font-semibold">{{lightboxProduct.product_name}}</h3>
+      <div *ngIf="lightboxProduct" class="absolute top-4 left-4 z-10 text-white px-4 py-2">
+        <h3 class="font-semibold text-shadow">{{lightboxProduct.product_name}}</h3>
         <p class="text-sm opacity-75">{{lightboxCurrentIndex + 1}} of {{lightboxImages.length}}</p>
       </div>
 
@@ -338,7 +340,7 @@
         <button 
           *ngIf="lightboxImages.length > 1"
           (click)="prevLightboxImage(); $event.stopPropagation()"
-          class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+          class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 text-black rounded-full w-14 h-14 flex items-center justify-center hover:bg-opacity-90 transition-opacity">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
@@ -348,13 +350,115 @@
         <button 
           *ngIf="lightboxImages.length > 1"
           (click)="nextLightboxImage(); $event.stopPropagation()"
-          class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+          class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 text-black rounded-full w-14 h-14 flex items-center justify-center hover:bg-opacity-90 transition-opacity">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
           </svg>
         </button>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+  <div class="bg-white rounded-3xl p-10 max-w-lg w-full mx-4 text-center animate-scale-in shadow-2xl border border-gray-300">
+    <!-- Enhanced Icon with Animation -->
+    <div class="w-24 h-24 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce shadow-lg">
+      <svg class="w-12 h-12 text-black drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <!-- Enhanced Typography -->
+    <h3 class="text-3xl font-black text-black mb-4 drop-shadow-sm">🎉 Success!</h3>
+    <p class="text-lg text-black mb-8 font-medium leading-relaxed px-2">{{ successMessage }}</p>
+    <!-- Enhanced Button -->
+    <button 
+      (click)="closeSuccessModal()"
+      class="bg-white text-black border border-gray-300 px-10 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 active:scale-95">
+      Awesome! 🚀
+    </button>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div *ngIf="showErrorModal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+  <div class="bg-white rounded-3xl p-10 max-w-lg w-full mx-4 text-center animate-scale-in shadow-2xl border border-gray-300">
+    <!-- Enhanced Error Icon with Animation -->
+    <div class="w-24 h-24 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse shadow-lg">
+      <svg class="w-12 h-12 text-black drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </div>
+    <!-- Enhanced Typography -->
+    <h3 class="text-3xl font-black text-black mb-4 drop-shadow-sm">⚠️ Error</h3>
+    <p class="text-lg text-black mb-8 font-medium leading-relaxed px-2">{{ errorMessage }}</p>
+    <!-- Enhanced Button -->
+    <button 
+      (click)="closeErrorModal()"
+      class="bg-white text-black border border-gray-300 px-10 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 active:scale-95">
+      Got it! 👍
+    </button>
+  </div>
+</div>
+
+<!-- Status Change Confirmation Modal -->
+<div *ngIf="showStatusChangeModal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 modal-backdrop-animated">
+  <div class="bg-white rounded-3xl p-10 max-w-lg w-full mx-4 text-center confirm-modal-enter shadow-2xl border border-gray-300">
+    <!-- Status Change Icon -->
+    <div class="w-24 h-24 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-icon-bounce">
+      <svg class="w-12 h-12 text-black drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <!-- Typography -->
+    <h3 class="text-3xl font-black text-black mb-4 drop-shadow-sm">🔄 Status Change</h3>
+    <p class="text-lg text-black mb-8 font-medium leading-relaxed px-2">{{ statusChangeMessage }}</p>
+    <!-- Action Buttons -->
+    <div class="flex gap-4 justify-center">
+      <button 
+        (click)="closeStatusChangeModal()"
+        class="bg-white text-black border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 animate-button-press">
+        Cancel
+      </button>
+      <button 
+        (click)="confirmStatusChange()"
+        class="bg-white text-black border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 animate-button-press">
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 modal-backdrop-animated">
+  <div class="bg-white rounded-3xl p-10 max-w-lg w-full mx-4 text-center confirm-modal-enter shadow-2xl border border-gray-300">
+    <!-- Delete Icon -->
+    <div class="w-24 h-24 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-pulse">
+      <svg class="w-12 h-12 text-black drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    </div>
+    <!-- Typography -->
+    <h3 class="text-3xl font-black text-black mb-4 drop-shadow-sm">🗑️ Delete Listing</h3>
+    <p class="text-lg text-black mb-8 font-medium leading-relaxed px-2">
+      Are you sure you want to delete "<strong>{{ productToDelete?.product_name }}</strong>"? 
+      <br><br>
+      <span class="text-black font-semibold">This action cannot be undone!</span>
+    </p>
+    <!-- Action Buttons -->
+    <div class="flex gap-4 justify-center">
+      <button 
+        (click)="closeDeleteModal()"
+        class="bg-white text-black border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 animate-button-press">
+        Cancel
+      </button>
+      <button 
+        (click)="confirmDeletion()"
+        class="bg-white text-black border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 animate-button-press">
+        Delete Forever
+      </button>
     </div>
   </div>
 </div>

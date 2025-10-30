@@ -9,10 +9,14 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { ApiService } from '../../api/api.service';
+import { UserDetailModalComponent } from './user-detail-modal/user-detail-modal.component';
+import { DeleteUserModalComponent } from './delete-user-modal/delete-user-modal.component';
 
 interface User {
   id: number;
@@ -40,6 +44,8 @@ interface User {
     MatSortModule,
     MatChipsModule,
     MatTooltipModule,
+    MatSnackBarModule,
+    MatDialogModule,
     FormsModule
   ],
   templateUrl: './user-list.component.html',
@@ -64,7 +70,11 @@ export class UserListComponent implements OnInit, AfterViewInit {
     'actions'
   ];
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {}
 
   ngOnInit() {
     this.loadUsers();
@@ -113,7 +123,10 @@ export class UserListComponent implements OnInit, AfterViewInit {
     if (!imagePath) {
       return 'https://via.placeholder.com/40x40/6366f1/white?text=U';
     }
-    return `${this.apiService.baseUrl}${imagePath}`;
+    // The baseUrl already includes '/api/' and imagePath includes 'uploads/profile_xxx.jpeg'
+    const fullUrl = `${this.apiService.baseUrl}${imagePath}`;
+    console.log('Main table image URL:', fullUrl);
+    return fullUrl;
   }
 
   formatDate(dateString: string): string {
@@ -125,20 +138,101 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   viewUser(user: User) {
-    console.log('View user:', user);
-    // Add navigation to user details page
+    const dialogRef = this.dialog.open(UserDetailModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: user,
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'edit') {
+        this.editUser(result.user);
+      }
+    });
   }
 
   editUser(user: User) {
     console.log('Edit user:', user);
-    // Add edit functionality
+    this.showMessage(`Edit functionality for "${user.full_name}" coming soon!`);
+    // Add edit functionality here
   }
 
   deleteUser(user: User) {
-    if (confirm(`Are you sure you want to delete user "${user.full_name}"?`)) {
-      console.log('Delete user:', user);
-      // Add delete functionality
-    }
+    const dialogRef = this.dialog.open(DeleteUserModalComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: {
+        user: user,
+        onConfirm: (userToDelete: User) => this.performDeleteUser(userToDelete),
+        apiService: this.apiService
+      },
+      disableClose: true, // Prevent closing while deleting
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.deleted) {
+        // User was successfully deleted, refresh the list
+        this.loadUsers();
+      }
+    });
+  }
+
+  private async performDeleteUser(user: User): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Get current admin info
+      const adminId = localStorage.getItem('admin_id') || localStorage.getItem('id');
+      const adminRole = localStorage.getItem('role') || 'moderator';
+
+      if (!adminId) {
+        this.showError('Admin authentication required');
+        reject(new Error('Admin authentication required'));
+        return;
+      }
+
+      const deleteData = {
+        user_id: user.id,
+        admin_id: parseInt(adminId),
+        admin_role: adminRole
+      };
+
+      this.apiService.deleteUser(deleteData).subscribe({
+        next: (response) => {
+          if (response.status === 'success') {
+            this.showMessage(`✅ User "${user.full_name}" deleted successfully`);
+            resolve();
+          } else {
+            this.showError(`Failed to delete user: ${response.message}`);
+            reject(new Error(response.message));
+          }
+        },
+        error: (error) => {
+          console.error('Error deleting user:', error);
+          this.showError('❌ Error deleting user. Please try again.');
+          reject(error);
+        }
+      });
+    });
+  }
+
+  private showMessage(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      horizontalPosition: 'end',
+      verticalPosition: 'top'
+    });
+  }
+
+  private showError(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      horizontalPosition: 'end',
+      verticalPosition: 'top',
+      panelClass: ['error-snackbar']
+    });
   }
 
   getVerifiedUsersCount(): number {

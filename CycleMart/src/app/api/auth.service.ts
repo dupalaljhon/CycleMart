@@ -137,6 +137,18 @@ adminLogin(username: string, password: string): Observable<any> {
     this.router.navigate(['/login']);
   }
 
+  // Admin logout
+  adminLogout(): void {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    localStorage.removeItem('admin_id');
+    localStorage.removeItem('full_name');
+    localStorage.removeItem('email');
+    this.router.navigate(['/admin-login']);
+  }
+
   isLoggedIn(): boolean {
     return this.isAuthenticated();
   }

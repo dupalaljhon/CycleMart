@@ -1,0 +1,260 @@
+<div class="flex h-screen bg-gray-50">
+  <!-- Admin Sidenav -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Header -->
+    <mat-toolbar class="bg-white shadow-sm border-b">
+      <mat-icon class="mr-3 text-red-600">warning</mat-icon>
+      <span class="text-xl font-semibold">Report Monitoring</span>
+      <span class="flex-1"></span>
+      <button mat-raised-button color="primary" (click)="refreshReports()" [disabled]="loading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-stroked-button class="ml-2" (click)="exportReports()">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+    </mat-toolbar>
+
+    <!-- Filters Section -->
+    <mat-card class="m-4 mb-0">
+      <mat-card-content>
+        <div class="flex flex-wrap gap-4 items-end">
+          <!-- Search Filter -->
+          <mat-form-field class="flex-1 min-w-60">
+            <mat-label>Search Reports</mat-label>
+            <input matInput [(ngModel)]="searchFilter" (input)="applyFilter()" 
+                   placeholder="Search by reporter, reported user, product, or details...">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <!-- Status Filter -->
+          <mat-form-field class="w-48">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilter()">
+              <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+                {{ status.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Reason Type Filter -->
+          <mat-form-field class="w-56">
+            <mat-label>Reason Type</mat-label>
+            <mat-select [(ngModel)]="reasonTypeFilter" (selectionChange)="applyFilter()">
+              <mat-option *ngFor="let reason of reasonTypeOptions" [value]="reason.value">
+                {{ reason.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Clear Filters Button -->
+          <button mat-stroked-button (click)="clearFilters()" class="h-14">
+            <mat-icon>clear</mat-icon>
+            Clear Filters
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Table Content -->
+    <div class="flex-1 overflow-auto m-4 mt-2">
+      <mat-card>
+        <mat-card-content class="p-0">
+          <!-- Loading State -->
+          <div *ngIf="loading" class="flex justify-center items-center h-64">
+            <div class="text-center">
+              <mat-icon class="animate-spin text-4xl mb-4">refresh</mat-icon>
+              <p class="text-gray-600">Loading reports...</p>
+            </div>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="error && !loading" class="flex justify-center items-center h-64">
+            <div class="text-center">
+              <mat-icon class="text-red-500 text-4xl mb-4">error</mat-icon>
+              <p class="text-red-600 mb-4">{{ error }}</p>
+              <button mat-raised-button color="primary" (click)="loadReports()">
+                Try Again
+              </button>
+            </div>
+          </div>
+
+          <!-- Reports Table -->
+          <div *ngIf="!loading && !error" class="overflow-x-auto">
+            <table mat-table [dataSource]="dataSource" matSort class="w-full">
+              <!-- Report ID Column -->
+              <ng-container matColumnDef="report_id">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-bold">ID</th>
+                <td mat-cell *matCellDef="let report" class="font-mono">
+                  #{{ report.report_id }}
+                </td>
+              </ng-container>
+
+              <!-- Reporter Info Column -->
+              <ng-container matColumnDef="reporter_info">
+                <th mat-header-cell *matHeaderCellDef class="font-bold min-w-48">Reporter</th>
+                <td mat-cell *matCellDef="let report">
+                  <div class="flex items-center space-x-2">
+                    <mat-icon class="text-blue-600">person</mat-icon>
+                    <div>
+                      <div class="font-medium">{{ report.reporter_name || 'Unknown' }}</div>
+                      <div class="text-sm text-gray-500">{{ report.reporter_email || 'N/A' }}</div>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Reported Target Column -->
+              <ng-container matColumnDef="reported_target">
+                <th mat-header-cell *matHeaderCellDef class="font-bold min-w-56">Reported Target</th>
+                <td mat-cell *matCellDef="let report">
+                  <!-- Product Report -->
+                  <div *ngIf="report.product_id" class="flex items-center space-x-3">
+                    <img [src]="getProductImageUrl(report.product_images)" 
+                         [alt]="report.product_name" 
+                         class="w-12 h-12 object-cover rounded-lg border"
+                         (error)="onImageError($event)">
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-sm">{{ truncateText(report.product_name, 30) }}</div>
+                      <div class="text-xs text-green-600" *ngIf="report.product_price">
+                        ${{ report.product_price }}
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {{ truncateText(report.product_description, 40) }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- User Report -->
+                  <div *ngIf="report.reported_user_id && !report.product_id" class="flex items-center space-x-2">
+                    <mat-icon class="text-purple-600">account_circle</mat-icon>
+                    <div>
+                      <div class="font-medium">{{ report.reported_user_name || 'Unknown User' }}</div>
+                      <div class="text-sm text-gray-500">{{ report.reported_user_email || 'N/A' }}</div>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Reason Type Column -->
+              <ng-container matColumnDef="reason_type">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-bold">Reason</th>
+                <td mat-cell *matCellDef="let report">
+                  <mat-chip-set>
+                    <mat-chip [class]="'reason-' + report.reason_type.replace(' ', '-')">
+                      <mat-icon matChipAvatar>{{ getReasonTypeIcon(report.reason_type) }}</mat-icon>
+                      {{ report.reason_type | titlecase }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </td>
+              </ng-container>
+
+              <!-- Reason Details Column -->
+              <ng-container matColumnDef="reason_details">
+                <th mat-header-cell *matHeaderCellDef class="font-bold min-w-64">Details</th>
+                <td mat-cell *matCellDef="let report">
+                  <div class="max-w-xs">
+                    <p class="text-sm text-gray-700 italic" 
+                       [matTooltip]="report.reason_details || 'No details provided'"
+                       [matTooltipDisabled]="!report.reason_details || report.reason_details.length <= 50">
+                      "{{ truncateText(report.reason_details, 50) }}"
+                    </p>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-bold">Status</th>
+                <td mat-cell *matCellDef="let report">
+                  <mat-chip-set>
+                    <mat-chip [class]="getStatusClass(report.status)">
+                      {{ report.status | titlecase }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </td>
+              </ng-container>
+
+              <!-- Created At Column -->
+              <ng-container matColumnDef="created_at">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-bold">Created</th>
+                <td mat-cell *matCellDef="let report">
+                  <div class="text-sm">
+                    <div>{{ formatDate(report.created_at) }}</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Reviewed Info Column -->
+              <ng-container matColumnDef="reviewed_info">
+                <th mat-header-cell *matHeaderCellDef class="font-bold">Reviewed By</th>
+                <td mat-cell *matCellDef="let report">
+                  <div *ngIf="report.reviewed_by_name" class="text-sm">
+                    <div class="font-medium">{{ report.reviewed_by_name }}</div>
+                    <div class="text-gray-500" *ngIf="report.reviewed_at">
+                      {{ formatDate(report.reviewed_at) }}
+                    </div>
+                  </div>
+                  <div *ngIf="!report.reviewed_by_name" class="text-gray-400 text-sm">
+                    Not reviewed
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="font-bold">Actions</th>
+                <td mat-cell *matCellDef="let report">
+                  <div class="flex space-x-1">
+                    <button mat-icon-button 
+                            color="primary"
+                            [disabled]="report.status === 'reviewed'"
+                            (click)="markAsReviewed(report)"
+                            matTooltip="Mark as Reviewed">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button 
+                            color="accent"
+                            [disabled]="report.status === 'action_taken'"
+                            (click)="markAsActionTaken(report)"
+                            matTooltip="Mark as Action Taken">
+                      <mat-icon>done</mat-icon>
+                    </button>
+                    <button mat-icon-button 
+                            [disabled]="report.status === 'pending'"
+                            (click)="resetToPending(report)"
+                            matTooltip="Reset to Pending">
+                      <mat-icon>refresh</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+                  class="hover:bg-gray-50 cursor-pointer"></tr>
+            </table>
+
+            <!-- No Data State -->
+            <div *ngIf="dataSource.data.length === 0" class="text-center py-12">
+              <mat-icon class="text-gray-400 text-6xl mb-4">inbox</mat-icon>
+              <h3 class="text-xl font-medium text-gray-600 mb-2">No Reports Found</h3>
+              <p class="text-gray-500">There are no reports matching your current filters.</p>
+            </div>
+
+            <!-- Paginator -->
+            <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" 
+                           [pageSize]="25"
+                           showFirstLastButtons
+                           class="border-t">
+            </mat-paginator>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

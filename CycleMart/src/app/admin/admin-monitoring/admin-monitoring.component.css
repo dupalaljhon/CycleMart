@@ -1,0 +1,98 @@
+/* Admin Monitoring Component Styles */
+
+/* Processing overlay */
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.bg-opacity-75 {
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+/* Loading animation */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Button hover effects */
+.mat-mdc-icon-button:hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover\:bg-green-50:hover {
+  background-color: #f0fdf4;
+}
+
+.hover\:bg-orange-50:hover {
+  background-color: #fff7ed;
+}
+
+.hover\:bg-blue-50:hover {
+  background-color: #eff6ff;
+}
+
+.hover\:bg-purple-50:hover {
+  background-color: #faf5ff;
+}
+
+.hover\:bg-red-50:hover {
+  background-color: #fef2f2;
+}
+
+/* Disabled button styling */
+.mat-mdc-icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Table row hover effect */
+.mat-mdc-row:hover {
+  background-color: #f9fafb;
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Action buttons spacing */
+.space-x-1 > :not([hidden]) ~ :not([hidden]) {
+  margin-left: 0.25rem;
+}
+
+/* Color utilities */
+.text-green-600 {
+  color: #059669;
+}
+
+.text-orange-600 {
+  color: #ea580c;
+}
+
+.text-blue-600 {
+  color: #2563eb;
+}
+
+.text-purple-600 {
+  color: #9333ea;
+}
+
+.text-red-600 {
+  color: #dc2626;
+}

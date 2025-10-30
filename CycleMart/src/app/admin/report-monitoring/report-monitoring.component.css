@@ -1,0 +1,222 @@
+/* Status Chip Styles */
+.status-pending {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+.status-reviewed {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+.status-action-taken {
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+/* Reason Type Chip Styles */
+.reason-scam {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+.reason-fake-product {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+.reason-spam {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+.reason-inappropriate-content {
+  background-color: #ede9fe !important;
+  color: #7c3aed !important;
+}
+
+.reason-misleading-information {
+  background-color: #fed7d7 !important;
+  color: #e53e3e !important;
+}
+
+.reason-stolen-item {
+  background-color: #fecaca !important;
+  color: #b91c1c !important;
+}
+
+.reason-others {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+/* Table Styles */
+.mat-mdc-table {
+  background: white !important;
+}
+
+.mat-mdc-header-row {
+  background-color: #f8fafc !important;
+}
+
+.mat-mdc-header-cell {
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.mat-mdc-row:hover {
+  background-color: #f9fafb !important;
+}
+
+.mat-mdc-cell {
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding: 12px 8px !important;
+}
+
+/* Custom Scrollbar */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Chip Improvements */
+.mat-mdc-chip {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 4px 8px !important;
+  border-radius: 16px !important;
+}
+
+/* Tooltip Improvements */
+.mat-mdc-tooltip {
+  font-size: 12px !important;
+  background-color: #374151 !important;
+  color: white !important;
+  border-radius: 6px !important;
+}
+
+/* Button Styles */
+.mat-mdc-icon-button {
+  border-radius: 8px !important;
+}
+
+.mat-mdc-icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Card Improvements */
+.mat-mdc-card {
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Form Field Improvements */
+.mat-mdc-form-field {
+  font-size: 14px !important;
+}
+
+.mat-mdc-form-field .mat-mdc-floating-label {
+  color: #6b7280 !important;
+}
+
+/* Snackbar Styles */
+.snackbar-success {
+  background-color: #10b981 !important;
+  color: white !important;
+}
+
+.snackbar-error {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+.snackbar-info {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+  .flex-wrap {
+    flex-direction: column;
+  }
+  
+  .w-48, .w-56 {
+    width: 100% !important;
+  }
+  
+  .min-w-60 {
+    min-width: 100% !important;
+  }
+}
+
+/* Product Image Styling */
+.product-image {
+  border: 2px solid #e5e7eb;
+  transition: border-color 0.2s ease;
+}
+
+.product-image:hover {
+  border-color: #d1d5db;
+}
+
+/* Action Button Group */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+/* Custom Table Cell Padding */
+.mat-mdc-table .mat-mdc-cell:first-child,
+.mat-mdc-table .mat-mdc-header-cell:first-child {
+  padding-left: 16px !important;
+}
+
+.mat-mdc-table .mat-mdc-cell:last-child,
+.mat-mdc-table .mat-mdc-header-cell:last-child {
+  padding-right: 16px !important;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  flex-direction: column;
+}
+
+.loading-text {
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 16px;
+}

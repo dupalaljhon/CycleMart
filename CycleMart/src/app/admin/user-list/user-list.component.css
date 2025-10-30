@@ -1,0 +1,59 @@
+/* Custom dialog styles */
+::ng-deep .custom-dialog-container .mat-mdc-dialog-container {
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+/* Error snackbar styling */
+::ng-deep .error-snackbar {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar .mat-mdc-snack-bar-action {
+  color: white !important;
+}
+
+/* Table row hover effects */
+.mat-mdc-row:hover {
+  background-color: #f9fafb;
+  transition: background-color 0.15s ease;
+}
+
+/* Custom button hover effects */
+.hover\:bg-blue-50:hover {
+  background-color: #eff6ff;
+}
+
+.hover\:bg-red-50:hover {
+  background-color: #fef2f2;
+}
+
+/* Loading animation */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal backdrop */
+::ng-deep .cdk-overlay-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Responsive dialog sizing */
+@media (max-width: 768px) {
+  ::ng-deep .custom-dialog-container .mat-mdc-dialog-container {
+    margin: 16px;
+    width: calc(100vw - 32px);
+    max-width: none;
+  }
+}

@@ -3,102 +3,214 @@
   <app-admin-sidenav></app-admin-sidenav>
 
   <!-- Main Content -->
-  <div class="flex-1 p-6 overflow-y-auto bg-theme-background">
-    <!-- Header -->
-    <div class="mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-text">Listing Monitoring</h1>
-          <p class="text-theme-secondary">Monitor and manage all product listings</p>
+  <div class="flex-1 p-3 overflow-y-auto bg-theme-background">
+    <!-- Ultra Compact Header -->
+    <div class="mb-2">
+      <div class="bg-white rounded-md p-2 mb-2 text-black shadow-sm border border-gray-200">
+        <div class="flex justify-between items-center">
+          <div>
+            <h1 class="text-lg font-bold flex items-center gap-1">
+              <mat-icon class="text-xl">inventory_2</mat-icon>
+              Listing Monitoring
+            </h1>
+            <p class="text-gray-600 text-xs">Monitor and manage all product listings</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <div class="text-base font-bold">{{ dataSource.data.length }}</div>
+              <div class="text-xs opacity-90">Total Products</div>
+            </div>
+            <button 
+              (click)="refreshProducts()"
+              class="bg-black bg-opacity-10 text-black px-3 py-1 rounded-sm hover:bg-gray-200 transition-all duration-200 flex items-center gap-1 border border-gray-300">
+              <mat-icon class="text-xs">refresh</mat-icon>
+              <span class="text-xs">Refresh</span>
+            </button>
+          </div>
         </div>
-        <button 
-          (click)="refreshProducts()"
-          class="bg-[#6BA3BE] text-white px-4 py-2 rounded-lg hover:bg-[#5a92a5] transition-colors flex items-center gap-2">
-          <mat-icon>refresh</mat-icon>
-          Refresh
-        </button>
       </div>
 
-      <!-- Search and Filters -->
-      <div class="bg-theme-card rounded-lg p-4 shadow-sm mb-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- 🔍 Search and Filters Section -->
+      <div class="bg-white rounded-md shadow-sm p-3 mb-2 border border-gray-100">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-2 items-end">
+          
+          <!-- Section Header -->
+          <div class="lg:col-span-5 mb-1">
+            <div class="flex items-center gap-1">
+              <mat-icon class="text-black text-xs">filter_list</mat-icon>
+              <h3 class="text-sm font-semibold text-gray-800">Search & Filters</h3>
+            </div>
+          </div>
+
           <!-- Global Search -->
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Search products...</mat-label>
-            <input matInput 
-                   [(ngModel)]="searchTerm" 
-                   (input)="applyGlobalFilter()"
-                   placeholder="Search by name, category, seller...">
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
+          <div class="lg:col-span-2">
+            <mat-form-field appearance="fill" class="w-full">
+              <mat-label class="text-xs">Search products</mat-label>
+              <input 
+                matInput 
+                [(ngModel)]="searchTerm" 
+                (input)="applyGlobalFilter()" 
+                placeholder="Search by name, category, or seller"
+                class="whitespace-nowrap overflow-hidden text-ellipsis text-sm"
+              />
+              <button matSuffix mat-icon-button aria-label="Search">
+                <mat-icon class="text-gray-400 text-sm">search</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
 
           <!-- Status Filter -->
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Status</mat-label>
-            <mat-select [(ngModel)]="statusFilter" (selectionChange)="onStatusFilterChange()">
-              <mat-option value="all">All Status</mat-option>
-              <mat-option value="active">Active</mat-option>
-              <mat-option value="archived">Archived</mat-option>
-            </mat-select>
-          </mat-form-field>
+          <div class="lg:col-span-1">
+            <mat-form-field appearance="fill" class="w-full">
+              <mat-label class="text-xs">Status</mat-label>
+              <mat-select [(ngModel)]="statusFilter" (selectionChange)="onStatusFilterChange()">
+                <mat-option value="all">All Status</mat-option>
+                <mat-option value="active">Active</mat-option>
+                <mat-option value="archived">Archived</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
 
           <!-- Sale Status Filter -->
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Sale Status</mat-label>
-            <mat-select [(ngModel)]="saleStatusFilter" (selectionChange)="onSaleStatusFilterChange()">
-              <mat-option value="all">All Sale Status</mat-option>
-              <mat-option value="available">Available</mat-option>
-              <mat-option value="sold">Sold</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <!-- Results Count -->
-          <div class="flex items-center justify-center text-theme-secondary">
-            <span class="text-sm">
-              <strong>{{ dataSource.filteredData.length }}</strong> of <strong>{{ dataSource.data.length }}</strong> products
-            </span>
+          <div class="lg:col-span-1">
+            <mat-form-field appearance="fill" class="w-full">
+              <mat-label class="text-xs">Sale Status</mat-label>
+              <mat-select [(ngModel)]="saleStatusFilter" (selectionChange)="onSaleStatusFilterChange()">
+                <mat-option value="all">All Sales</mat-option>
+                <mat-option value="available">Available</mat-option>
+                <mat-option value="sold">Sold</mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
+
+          <!-- Product Type Filter -->
+          <div class="lg:col-span-1">
+            <mat-form-field appearance="fill" class="w-full">
+              <mat-label class="text-xs">Product Type</mat-label>
+              <mat-select [(ngModel)]="typeFilter" (selectionChange)="onTypeFilterChange()">
+                <mat-option value="all">All Types</mat-option>
+                <mat-option value="sale">For Sale</mat-option>
+                <mat-option value="trade">For Trade</mat-option>
+                <mat-option value="both">Both</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
+          <button 
+            (click)="clearFilters()"
+            class="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-sm transition-colors">
+            <mat-icon class="text-xs">clear_all</mat-icon>
+            Clear Filters
+          </button>
+          <button 
+            (click)="refreshProducts()"
+            class="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-sm transition-colors">
+            <mat-icon class="text-xs">refresh</mat-icon>
+            Refresh Data
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Loading State -->
     <div *ngIf="isLoading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6BA3BE] mx-auto"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
       <p class="mt-4 text-theme-secondary">Loading products...</p>
     </div>
 
-    <!-- Products Table -->
-    <div *ngIf="!isLoading" class="bg-theme-card rounded-lg shadow-lg overflow-hidden">
+    <!-- Enhanced Products Table -->
+    <div *ngIf="!isLoading" class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+      <!-- Table Header -->
+      <div class="bg-white px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <mat-icon class="text-black">inventory_2</mat-icon>
+            <h2 class="text-xl font-semibold text-black">Product Listings</h2>
+          </div>
+          <div class="text-black text-sm opacity-90">
+            {{ dataSource.filteredData.length }} products displayed
+          </div>
+        </div>
+      </div>
+
       <div class="overflow-x-auto">
         <table mat-table [dataSource]="dataSource" matSort class="w-full">
           
           <!-- Product Name Column -->
           <ng-container matColumnDef="product_name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">inventory_2</mat-icon>
-                Product Name
+                <mat-icon class="text-sm text-black">inventory_2</mat-icon>
+                Product Details
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <div class="flex items-center gap-3">
-                <img 
-                  *ngIf="product.product_images && product.product_images.length > 0"
-                  [src]="getImageUrl(product.product_images[0])" 
-                  class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                  (click)="viewImages(product)"
-                  alt="Product image">
-                <div 
-                  *ngIf="!product.product_images || product.product_images.length === 0"
-                  class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <mat-icon class="text-gray-400">image</mat-icon>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="flex items-center gap-4">
+                <!-- Media Section -->
+                <div class="flex gap-2">
+                  <!-- Main Product Image -->
+                  <div class="relative">
+                    <img 
+                      *ngIf="product.product_images && product.product_images.length > 0"
+                      [src]="getImageUrl(product.product_images[0])" 
+                      class="w-16 h-16 object-cover rounded-xl cursor-pointer hover:opacity-80 transition-all duration-200 shadow-md"
+                      (click)="viewImages(product)"
+                      alt="Product image">
+                    <div 
+                      *ngIf="!product.product_images || product.product_images.length === 0"
+                      class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-md">
+                      <mat-icon class="text-gray-400">image</mat-icon>
+                    </div>
+                    <div *ngIf="product.product_images && product.product_images.length > 1" 
+                         class="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {{ product.product_images.length }}
+                    </div>
+                  </div>
+                  
+                  <!-- Video Thumbnail -->
+                  <div class="relative" *ngIf="product.product_videos && product.product_videos.length > 0">
+                    <div class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-md cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105"
+                         (click)="viewVideos(product)"
+                         matTooltip="Click to view {{ product.product_videos.length }} video{{ product.product_videos.length > 1 ? 's' : '' }}"
+                         matTooltipPosition="above">
+                      <mat-icon class="text-black text-2xl">play_circle</mat-icon>
+                    </div>
+                    <div class="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {{ product.product_videos.length }}
+                    </div>
+                    <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-1 rounded">
+                      🎥
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div class="font-medium text-theme-text">{{ product.product_name }}</div>
-                  <div class="text-sm text-theme-secondary flex items-center gap-1">
+                
+                <!-- Product Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold text-gray-900 truncate">{{ product.product_name }}</div>
+                  <div class="text-sm text-gray-500 flex items-center gap-2 mt-1">
                     <mat-icon class="text-xs">inventory</mat-icon>
-                    {{ product.quantity }} available
+                    <span>{{ product.quantity }} available</span>
+                    <span class="text-gray-300">•</span>
+                    <span class="capitalize">{{ product.category }}</span>
+                  </div>
+                  
+                  <!-- Media Info -->
+                  <div class="text-xs text-gray-400 flex items-center gap-3 mt-1">
+                    <span *ngIf="product.product_images && product.product_images.length > 0" class="flex items-center gap-1">
+                      <mat-icon class="text-xs">image</mat-icon>
+                      {{ product.product_images.length }} image{{ product.product_images.length > 1 ? 's' : '' }}
+                    </span>
+                    <span *ngIf="product.product_videos && product.product_videos.length > 0" class="flex items-center gap-1">
+                      <mat-icon class="text-xs">videocam</mat-icon>
+                      {{ product.product_videos.length }} video{{ product.product_videos.length > 1 ? 's' : '' }}
+                    </span>
+                    <span *ngIf="hasMediaContent(product)" class="text-green-600 font-medium">
+                      {{ getTotalMediaCount(product) }} total media files
+                    </span>
                   </div>
                 </div>
               </div>
@@ -107,161 +219,178 @@
 
           <!-- Seller Column -->
           <ng-container matColumnDef="seller">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">person</mat-icon>
-                Seller
+                <mat-icon class="text-sm text-black">person</mat-icon>
+                Seller Info
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <div>
-                <div class="font-medium text-theme-text">{{ product.seller_name || 'Unknown' }}</div>
-                <div class="text-sm text-theme-secondary">{{ product.seller_email || 'No email' }}</div>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-semibold">
+                  {{ (product.seller_name || 'U').charAt(0).toUpperCase() }}
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">{{ product.seller_name || 'Unknown' }}</div>
+                  <div class="text-sm text-gray-500">{{ product.seller_email || 'No email' }}</div>
+                </div>
               </div>
             </td>
           </ng-container>
 
           <!-- Price Column -->
           <ng-container matColumnDef="price">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">attach_money</mat-icon>
+                <mat-icon class="text-sm text-black">attach_money</mat-icon>
                 Price
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <div class="font-semibold text-lg text-theme-text">{{ formatPrice(product.price) }}</div>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="text-xl font-bold text-black">{{ formatPrice(product.price) }}</div>
+              <div class="text-xs text-gray-500">{{ getForTypeText(product.for_type) }}</div>
             </td>
           </ng-container>
 
-          <!-- Category Column -->
-          <ng-container matColumnDef="category">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+          <!-- Product Type Column -->
+          <ng-container matColumnDef="for_type">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">category</mat-icon>
-                Category
+                <mat-icon class="text-sm text-black">swap_horiz</mat-icon>
+                Product Type
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <mat-chip class="bg-theme-tertiary text-theme-text">{{ product.category }}</mat-chip>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="flex items-center gap-2">
+                <div 
+                  [class]="product.for_type === 'sale' ? 'bg-white text-black border-gray-300' : 
+                           product.for_type === 'trade' ? 'bg-gray-200 text-black border-gray-400' : 
+                           'bg-gray-400 text-black border-gray-500'"
+                  class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1">
+                  <mat-icon class="text-xs">
+                    {{ product.for_type === 'sale' ? 'attach_money' : 
+                       product.for_type === 'trade' ? 'swap_horiz' : 
+                       'compare_arrows' }}
+                  </mat-icon>
+                  {{ getForTypeText(product.for_type) }}
+                </div>
+              </div>
             </td>
           </ng-container>
 
-          <!-- Condition Column -->
+          <!-- Condition & Type Column -->
           <ng-container matColumnDef="condition">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">verified</mat-icon>
+                <mat-icon class="text-sm text-black">verified</mat-icon>
                 Condition
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <mat-chip 
-                [class]="product.condition === 'brand_new' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'">
-                {{ product.condition === 'brand_new' ? 'Brand New' : 'Second Hand' }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- For Type Column -->
-          <ng-container matColumnDef="for_type">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">local_offer</mat-icon>
-                Type
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <div 
+                    [class]="product.condition === 'brand new' ? 'bg-white text-black border-gray-400' : 'bg-gray-200 text-black border-gray-400'"
+                    class="px-3 py-1 rounded-full text-xs font-medium border">
+                    {{ product.condition === 'brand new' ? 'Brand New' : 'Second Hand' }}
+                  </div>
+                </div>
               </div>
-            </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <mat-chip class="bg-blue-100 text-blue-800">{{ getForTypeText(product.for_type) }}</mat-chip>
             </td>
           </ng-container>
 
           <!-- Status Column -->
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">radio_button_checked</mat-icon>
+                <mat-icon class="text-sm text-black">radio_button_checked</mat-icon>
                 Status
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <mat-chip 
-                [class]="product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                <mat-icon class="text-xs mr-1">
-                  {{ product.status === 'active' ? 'check_circle' : 'archive' }}
-                </mat-icon>
-                {{ product.status | titlecase }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Sale Status Column -->
-          <ng-container matColumnDef="sale_status">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">sell</mat-icon>
-                Sale Status
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <div 
+                    [class]="product.status === 'active' ? 'bg-white text-black border-gray-300' : 'bg-gray-800 text-white border-gray-500'"
+                    class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1">
+                    <mat-icon class="text-xs">
+                      {{ product.status === 'active' ? 'check_circle' : 'archive' }}
+                    </mat-icon>
+                    {{ product.status | titlecase }}
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div 
+                    [class]="product.sale_status === 'available' ? 'bg-white text-black border-gray-300' : 'bg-gray-600 text-white border-gray-500'"
+                    class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1">
+                    <mat-icon class="text-xs">
+                      {{ product.sale_status === 'available' ? 'shopping_cart' : 'done' }}
+                    </mat-icon>
+                    {{ getSaleStatusText(product) }}
+                  </div>
+                </div>
               </div>
-            </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <mat-chip 
-                [class]="product.sale_status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
-                <mat-icon class="text-xs mr-1">
-                  {{ product.sale_status === 'available' ? 'shopping_cart' : 'done' }}
-                </mat-icon>
-                {{ getSaleStatusText(product) }}
-              </mat-chip>
             </td>
           </ng-container>
 
           <!-- Created At Column -->
           <ng-container matColumnDef="created_at">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">schedule</mat-icon>
+                <mat-icon class="text-sm text-black">schedule</mat-icon>
                 Created
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
-              <div class="text-sm text-theme-secondary">{{ formatDate(product.created_at) }}</div>
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
+              <div class="text-sm text-gray-600">{{ formatDate(product.created_at) }}</div>
+              <div class="text-xs text-gray-400">{{ getTimeAgo(product.created_at) }}</div>
             </td>
           </ng-container>
 
           <!-- Actions Column -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="bg-[#6BA3BE] text-white font-semibold p-4">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
               <div class="flex items-center gap-2">
-                <mat-icon class="text-sm">settings</mat-icon>
+                <mat-icon class="text-sm text-black">settings</mat-icon>
                 Actions
               </div>
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-theme-border">
+            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
               <div class="flex gap-2">
                 <button 
                   *ngIf="product.product_images && product.product_images.length > 0"
-                  mat-icon-button 
+                  mat-mini-fab
                   (click)="viewImages(product)"
-                  class="text-[#6BA3BE] hover:bg-[#6BA3BE] hover:text-white transition-colors"
+                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
                   matTooltip="View Images">
-                  <mat-icon>visibility</mat-icon>
+                  <mat-icon class="!text-sm">visibility</mat-icon>
+                </button>
+                
+                <button 
+                  *ngIf="product.product_videos && product.product_videos.length > 0"
+                  mat-mini-fab
+                  (click)="viewVideos(product)"
+                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
+                  matTooltip="View Videos">
+                  <mat-icon class="!text-sm">play_arrow</mat-icon>
                 </button>
                 
                 <button 
                   *ngIf="product.status === 'active'"
-                  mat-icon-button 
+                  mat-mini-fab
                   (click)="archiveProduct(product)"
-                  class="text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
                   matTooltip="Archive Product">
-                  <mat-icon>archive</mat-icon>
+                  <mat-icon class="!text-sm">archive</mat-icon>
                 </button>
                 
                 <button 
                   *ngIf="product.status === 'archived'"
-                  mat-icon-button 
+                  mat-mini-fab
                   (click)="restoreProduct(product)"
-                  class="text-green-500 hover:bg-green-500 hover:text-white transition-colors"
+                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
                   matTooltip="Restore Product">
-                  <mat-icon>unarchive</mat-icon>
+                  <mat-icon class="!text-sm">unarchive</mat-icon>
                 </button>
               </div>
             </td>
@@ -269,34 +398,45 @@
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
-              class="hover:bg-theme-tertiary transition-colors cursor-pointer"></tr>
+              class="hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-50"></tr>
         </table>
       </div>
 
-      <!-- Paginator -->
-      <mat-paginator 
-        [pageSizeOptions]="[10, 25, 50, 100]" 
-        [pageSize]="25"
-        class="border-t border-theme-border"
-        showFirstLastButtons>
-      </mat-paginator>
+      <!-- Enhanced Paginator -->
+      <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <mat-paginator 
+          [pageSizeOptions]="[10, 25, 50, 100]" 
+          [pageSize]="25"
+          showFirstLastButtons
+          class="!bg-transparent">
+        </mat-paginator>
+      </div>
 
-      <!-- No Data State -->
-      <div *ngIf="dataSource.filteredData.length === 0 && !isLoading" class="text-center py-12 text-theme-secondary">
-        <mat-icon class="text-6xl text-theme-tertiary mb-4">search_off</mat-icon>
-        <p class="text-lg font-medium">No products found</p>
-        <p *ngIf="searchTerm || statusFilter !== 'all' || saleStatusFilter !== 'all'">
-          Try adjusting your filters or search terms
-        </p>
-        <p *ngIf="!searchTerm && statusFilter === 'all' && saleStatusFilter === 'all'">
-          No products have been posted yet
-        </p>
+      <!-- Enhanced No Data State -->
+      <div *ngIf="dataSource.filteredData.length === 0 && !isLoading" class="text-center py-16 bg-gray-50">
+        <div class="max-w-md mx-auto">
+          <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+            <mat-icon class="text-4xl text-gray-400">search_off</mat-icon>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
+          <p class="text-gray-500 mb-6" *ngIf="searchTerm || statusFilter !== 'all' || saleStatusFilter !== 'all'">
+            Try adjusting your filters or search terms to find what you're looking for.
+          </p>
+          <p class="text-gray-500 mb-6" *ngIf="!searchTerm && statusFilter === 'all' && saleStatusFilter === 'all'">
+            No products have been posted yet. Check back later for new listings.
+          </p>
+          <button 
+            (click)="clearFilters()"
+            class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+            Clear All Filters
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Image Preview Modal -->
-  <div *ngIf="showImagePreview" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" 
+  <div *ngIf="showImagePreview" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999]" 
        (click)="closeImagePreview()">
     <div class="relative w-full h-full flex items-center justify-center p-4">
       
@@ -354,5 +494,231 @@
       </div>
     </div>
   </div>
+
+  <!-- Video Preview Modal -->
+  <div *ngIf="showVideoPreview" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999]" 
+       (click)="closeVideoPreview()">
+    <div class="relative w-full h-full flex items-center justify-center p-4">
+      
+      <!-- Close Button -->
+      <button 
+        (click)="closeVideoPreview()"
+        class="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <!-- Product Info Header -->
+      <div *ngIf="selectedVideoProduct" class="absolute top-4 left-4 z-10 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg">
+        <h3 class="font-semibold">{{ selectedVideoProduct.product_name }}</h3>
+        <p class="text-sm opacity-75">{{ currentVideoIndex + 1 }} of {{ previewVideos.length }}</p>
+        <p class="text-xs opacity-60" *ngIf="previewVideos[currentVideoIndex]">{{ getVideoType(previewVideos[currentVideoIndex]) }}</p>
+      </div>
+
+      <!-- Main Video Container -->
+      <div class="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center"
+           (click)="$event.stopPropagation()">
+        
+        <!-- Main Video -->
+        <div class="relative">
+          <video 
+            *ngIf="previewVideos.length > 0"
+            [src]="getVideoUrl(previewVideos[currentVideoIndex])"
+            class="max-w-full max-h-full rounded-lg shadow-2xl"
+            controls
+            autoplay
+            preload="metadata">
+            Your browser does not support the video tag.
+          </video>
+          
+          <!-- Video Info Overlay -->
+          <div class="absolute bottom-4 right-4 bg-black bg-opacity-60 text-white px-3 py-2 rounded-lg">
+            <div class="text-sm font-medium">{{ getVideoType(previewVideos[currentVideoIndex]) }}</div>
+            <div class="text-xs opacity-75">Click to play/pause</div>
+          </div>
+        </div>
+
+        <!-- Previous Button -->
+        <button 
+          *ngIf="previewVideos.length > 1"
+          (click)="prevVideo()"
+          class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+
+        <!-- Next Button -->
+        <button 
+          *ngIf="previewVideos.length > 1"
+          (click)="nextVideo()"
+          class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-opacity">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+
+      <!-- Video Thumbnails -->
+      <div *ngIf="previewVideos.length > 1" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-black bg-opacity-50 p-2 rounded-lg">
+        <button 
+          *ngFor="let video of previewVideos; let i = index"
+          (click)="currentVideoIndex = i"
+          class="w-16 h-16 bg-gray-700 rounded cursor-pointer transition-all duration-200 flex flex-col items-center justify-center relative"
+          [class.opacity-50]="i !== currentVideoIndex"
+          [class.opacity-100]="i === currentVideoIndex"
+          [class.ring-2]="i === currentVideoIndex"
+          [class.ring-purple-400]="i === currentVideoIndex">
+          <mat-icon class="text-white text-lg">play_arrow</mat-icon>
+          <span class="text-white text-xs">{{ i + 1 }}</span>
+          <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 rounded-b">
+            {{ getVideoExtension(video).toUpperCase() }}
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Archive Product Modal -->
+  <div *ngIf="showArchiveModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+       (click)="closeArchiveModal()">
+    <div class="bg-white rounded-xl max-w-md w-full overflow-hidden shadow-2xl transform transition-all"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-red-500 to-red-600">
+        <div class="flex items-center gap-2">
+          <div class="p-1.5 bg-white/20 rounded-lg">
+            <mat-icon class="text-white">archive</mat-icon>
+          </div>
+          <h2 class="text-lg font-bold text-white">Archive Product</h2>
+        </div>
+        <button 
+          (click)="closeArchiveModal()"
+          class="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6">
+        <div *ngIf="productToArchive" class="mb-4">
+          <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <img 
+              *ngIf="productToArchive.product_images && productToArchive.product_images.length > 0"
+              [src]="getImageUrl(productToArchive.product_images[0])" 
+              class="w-12 h-12 object-cover rounded-lg"
+              alt="Product image">
+            <div 
+              *ngIf="!productToArchive.product_images || productToArchive.product_images.length === 0"
+              class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+              <mat-icon class="text-gray-400">image</mat-icon>
+            </div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-900">{{ productToArchive.product_name }}</h3>
+              <p class="text-sm text-gray-500">{{ productToArchive.category }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <mat-form-field appearance="fill" class="w-full">
+            <mat-label>Reason for archiving</mat-label>
+            <textarea 
+              matInput 
+              [(ngModel)]="archiveReason"
+              placeholder="Please provide a detailed reason for archiving this product..."
+              rows="3"
+              required>
+            </textarea>
+          </mat-form-field>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button 
+            (click)="closeArchiveModal()"
+            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition-all duration-200 font-semibold text-center">
+            Cancel
+          </button>
+          <button 
+            (click)="confirmArchive()"
+            [disabled]="!archiveReason.trim()"
+            class="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-center">
+            Archive Product
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restore Product Modal -->
+  <div *ngIf="showRestoreModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+       (click)="closeRestoreModal()">
+    <div class="bg-white rounded-xl max-w-md w-full overflow-hidden shadow-2xl transform transition-all"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-green-500 to-green-600">
+        <div class="flex items-center gap-2">
+          <div class="p-1.5 bg-white/20 rounded-lg">
+            <mat-icon class="text-white">unarchive</mat-icon>
+          </div>
+          <h2 class="text-lg font-bold text-white">Restore Product</h2>
+        </div>
+        <button 
+          (click)="closeRestoreModal()"
+          class="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6">
+        <div *ngIf="productToRestore" class="mb-4">
+          <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <img 
+              *ngIf="productToRestore.product_images && productToRestore.product_images.length > 0"
+              [src]="getImageUrl(productToRestore.product_images[0])" 
+              class="w-12 h-12 object-cover rounded-lg"
+              alt="Product image">
+            <div 
+              *ngIf="!productToRestore.product_images || productToRestore.product_images.length === 0"
+              class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+              <mat-icon class="text-gray-400">image</mat-icon>
+            </div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-900">{{ productToRestore.product_name }}</h3>
+              <p class="text-sm text-gray-500">{{ productToRestore.category }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <mat-form-field appearance="fill" class="w-full">
+            <mat-label>Reason for restoring</mat-label>
+            <textarea 
+              matInput 
+              [(ngModel)]="restoreReason"
+              placeholder="Please provide a detailed reason for restoring this product..."
+              rows="3"
+              required>
+            </textarea>
+          </mat-form-field>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button 
+            (click)="closeRestoreModal()"
+            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition-all duration-200 font-semibold text-center">
+            Cancel
+          </button>
+          <button 
+            (click)="confirmRestore()"
+            [disabled]="!restoreReason.trim()"
+            class="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-center">
+            Restore Product
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 

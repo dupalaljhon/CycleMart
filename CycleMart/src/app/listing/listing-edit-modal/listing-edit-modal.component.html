@@ -1,0 +1,403 @@
+<!-- Edit Product Modal -->
+<div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 modal-overlay"
+     (click)="onOverlayClick()">
+  <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto modal-content"
+       (click)="onModalClick($event)">
+    
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-[#6BA3BE]">
+      <div>
+        <h2 class="text-2xl font-bold text-white">Edit Product</h2>
+        <p class="text-white opacity-90 mt-1">Update your listing details</p>
+      </div>
+      <button 
+        (click)="close()"
+        class="text-white hover:text-gray-200 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="p-6">
+      <form class="space-y-6">
+        <!-- Product Name and Brand -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Product Name *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="editProduct.product_name"
+              name="product_name"
+              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+              placeholder="Enter product name">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Brand *</label>
+            <select 
+              [(ngModel)]="editProduct.brand_name"
+              name="brand_name"
+              (change)="onBrandChange()"
+              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
+              <option *ngFor="let brand of brands" [value]="brand.value">{{brand.label}}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Custom Brand Input (shown when "others" is selected) -->
+        <div *ngIf="shouldShowCustomBrand()" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div class="flex items-center mb-2">
+            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <label class="block text-sm font-semibold text-blue-800">Specify Custom Brand *</label>
+          </div>
+          <input 
+            type="text" 
+            [(ngModel)]="editProduct.custom_brand"
+            name="custom_brand"
+            class="w-full p-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+            placeholder="Enter the brand name"
+            maxlength="100">
+          <p class="text-xs text-blue-600 mt-1">Please enter the specific brand name that's not listed above.</p>
+        </div>
+
+        <!-- Price and Location -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Price (₱) *</label>
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₱</span>
+              <input 
+                type="number" 
+                [(ngModel)]="editProduct.price"
+                name="price"
+                min="0"
+                step="0.01"
+                class="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                placeholder="0.00">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="editProduct.location"
+              name="location"
+              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+              placeholder="City, Province">
+          </div>
+        </div>
+
+        <!-- Quantity -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
+          <div class="relative max-w-xs">
+            <input 
+              type="number" 
+              [(ngModel)]="editProduct.quantity"
+              name="quantity"
+              min="1"
+              max="999"
+              class="w-full p-4 pr-16 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+              placeholder="1">
+            <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+              items
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Number of items available for sale/trade</p>
+        </div>
+
+        <!-- Category, Condition, For Type -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+            <select 
+              [(ngModel)]="editProduct.category"
+              name="category"
+              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
+              <option *ngFor="let cat of categories" [value]="cat.value">{{cat.label}}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Condition *</label>
+            <select 
+              [(ngModel)]="editProduct.condition"
+              name="condition"
+              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
+              <option value="brand new">Brand New</option>
+              <option value="second hand">Second Hand</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">For *</label>
+            <select 
+              [(ngModel)]="editProduct.for_type"
+              name="for_type"
+              class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white">
+              <option value="sale">Sale Only</option>
+              <option value="trade">Trade Only</option>
+              <option value="both">Both Sale and Trade</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
+          <textarea 
+            [(ngModel)]="editProduct.description"
+            name="description"
+            rows="5"
+            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
+            placeholder="Describe your product in detail..."></textarea>
+        </div>
+
+        <!-- Images -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
+          
+          <!-- Drag and Drop Area -->
+          <div 
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            [class.drag-over]="isDragOver"
+            class="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer drag-drop-area">
+            
+            <input 
+              type="file" 
+              (change)="onImageSelect($event)"
+              accept="image/*"
+              multiple
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            
+            <div class="space-y-2">
+              <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <p class="text-gray-600 font-medium">Add more images or drag and drop here</p>
+              <p class="text-sm text-gray-500">PNG, JPG, GIF up to 5MB each</p>
+            </div>
+          </div>
+          
+          <!-- Image Preview Grid -->
+          <div *ngIf="editProduct.product_images && editProduct.product_images.length > 0" class="mt-6">
+            
+            <!-- Thumbnail Info -->
+            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-center text-blue-800 text-sm font-medium">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                The first image will be used as the main thumbnail
+              </div>
+            </div>
+
+            <!-- Image Grid with Drag & Drop -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div *ngFor="let image of editProduct.product_images; let i = index"
+                   [ngClass]="getImageClasses(i)"
+                   class="relative rounded-lg overflow-hidden aspect-square image-preview"
+                   draggable="true"
+                   (dragstart)="onDragStart($event, i)"
+                   (dragover)="onDragOverImage($event, i)"
+                   (drop)="onDropImage($event, i)"
+                   (dragend)="onDragEnd()">
+                
+                <!-- Image -->
+                <img 
+                  [src]="getImageUrl(image)" 
+                  [alt]="'Product image ' + (i + 1)"
+                  class="w-full h-full object-cover">
+                
+                <!-- Thumbnail Badge -->
+                <div *ngIf="i === 0" 
+                     class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                  Thumbnail
+                </div>
+                
+                <!-- Image Controls -->
+                <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
+                  <div class="opacity-0 hover:opacity-100 transition-opacity duration-200 flex gap-2">
+                    
+                    <!-- Set as Thumbnail Button -->
+                    <button *ngIf="i !== 0"
+                            (click)="setAsThumbnail(i)"
+                            class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full transition-colors"
+                            title="Set as thumbnail">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                      </svg>
+                    </button>
+                    
+                    <!-- Remove Button -->
+                    <button 
+                      (click)="removeImage(i)"
+                      class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                      title="Remove image">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Videos -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Product Videos (Optional)</label>
+          
+          <!-- Video Drag and Drop Area -->
+          <div 
+            (dragover)="onVideoDragOver($event)"
+            (dragleave)="onVideoDragLeave($event)"
+            (drop)="onVideoDrop($event)"
+            [class.drag-over]="isDragOver"
+            class="relative border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors cursor-pointer">
+            
+            <input 
+              type="file" 
+              (change)="onVideoSelect($event)"
+              accept="video/mp4,video/mov,video/avi,video/webm,video/ogg,.mp4,.mov,.avi,.webm,.ogg"
+              multiple
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            
+            <div class="space-y-2">
+              <svg class="mx-auto h-12 w-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              <p class="text-gray-600 font-medium">Add product videos or drag and drop here</p>
+              <p class="text-sm text-gray-500">MP4, MOV, AVI, WebM, OGG up to 50MB each (Max 3 videos)</p>
+            </div>
+          </div>
+          
+          <!-- Video Preview Grid -->
+          <div *ngIf="editProduct.product_videos && editProduct.product_videos.length > 0" class="mt-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div *ngFor="let video of editProduct.product_videos; let i = index"
+                   [ngClass]="{'ring-2 ring-purple-500': dragOverIndex === i}"
+                   class="relative rounded-lg overflow-hidden aspect-video bg-gray-100 video-preview"
+                   draggable="true"
+                   (dragstart)="onVideoDragStart($event, i)"
+                   (dragover)="onVideoDragOverItem($event, i)"
+                   (drop)="onVideoDropItem($event, i)"
+                   (dragend)="onDragEnd()">
+                
+                <!-- Video -->
+                <video 
+                  [src]="getVideoUrl(video)" 
+                  class="w-full h-full object-cover"
+                  controls
+                  preload="metadata">
+                  Your browser does not support the video tag.
+                </video>
+                
+                <!-- Video Controls -->
+                <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
+                  <div class="opacity-0 hover:opacity-100 transition-opacity duration-200">
+                    <button 
+                      (click)="removeVideo(i)"
+                      class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                      title="Remove video">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Drag indicator -->
+                <div class="absolute top-2 right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full opacity-80">
+                  {{ i + 1 }}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Reorder Instructions -->
+            <div class="mt-3 text-sm text-gray-500 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+              </svg>
+              Drag videos to reorder them
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex gap-4 pt-6 border-t border-gray-200">
+          <button 
+            type="button"
+            (click)="saveChanges()"
+            [disabled]="isProcessing"
+            class="flex-1 bg-[#6BA3BE] text-white px-8 py-4 rounded-xl hover:bg-[#5a92a5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span class="flex items-center justify-center gap-2">
+              <svg *ngIf="!isProcessing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <svg *ngIf="isProcessing" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8v8l4-4m0 0l4 4m-4-4v8a8 8 0 01-8 8"/>
+              </svg>
+              {{ isProcessing ? 'Saving Changes...' : 'Save Changes' }}
+            </span>
+          </button>
+          <button 
+            type="button"
+            (click)="close()"
+            [disabled]="isProcessing"
+            class="flex-1 bg-gray-500 text-white px-8 py-4 rounded-xl hover:bg-gray-600 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
+       (click)="closeSuccessModal()">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300"
+         (click)="$event.stopPropagation()">
+      <div class="p-6 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Success!</h3>
+        <p class="text-sm text-gray-500 mb-6">{{ successMessage }}</p>
+        <button 
+          (click)="closeSuccessModal()"
+          class="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div *ngIf="showErrorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
+       (click)="closeErrorModal()">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300"
+         (click)="$event.stopPropagation()">
+      <div class="p-6 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Error</h3>
+        <p class="text-sm text-gray-500 mb-6">{{ errorMessage }}</p>
+        <button 
+          (click)="closeErrorModal()"
+          class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors font-medium">
+          Try Again
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

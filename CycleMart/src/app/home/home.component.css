@@ -1,0 +1,57 @@
+/* Home Component Styles */
+
+/* Report Modal Enhancements */
+.fixed.inset-0.bg-black\/80 {
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bg-white.rounded-3xl {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Report Button Hover Effects */
+.p-2.bg-red-500 {
+  transition: all 0.3s ease;
+}
+
+.p-2.bg-red-500:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Tooltip Enhancements */
+.group:hover .opacity-0 {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Modal Overlay */
+.z-50 {
+  z-index: 9999;
+}
+
+/* Ensure modal content doesn't interfere with page scroll */
+body.modal-open {
+  overflow: hidden;
+}

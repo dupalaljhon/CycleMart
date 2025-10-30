@@ -1,0 +1,70 @@
+/* Edit Modal Specific Styles */
+.modal-overlay {
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.drag-drop-area {
+  transition: all 0.3s ease;
+}
+
+.drag-drop-area.drag-over {
+  border-color: #6BA3BE;
+  background-color: #f0f9ff;
+  transform: scale(1.02);
+}
+
+.image-preview {
+  transition: all 0.2s ease;
+}
+
+.image-preview:hover {
+  transform: scale(1.05);
+}
+
+.image-preview.dragging {
+  transform: scale(0.95);
+  opacity: 0.5;
+}
+
+.image-preview.drag-over {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.5);
+}
+
+.video-preview {
+  transition: all 0.2s ease;
+}
+
+.video-preview:hover {
+  transform: scale(1.05);
+}
+
+.video-preview.dragging {
+  transform: scale(0.95);
+  opacity: 0.5;
+}
+
+.video-preview.drag-over {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px -5px rgba(147, 51, 234, 0.5);
+}
+
+/* Modal animations */
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}

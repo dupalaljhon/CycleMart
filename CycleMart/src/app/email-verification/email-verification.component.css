@@ -1,36 +1,124 @@
-/* Email verification component specific styles */
-
-.animate-spin {
-  animation: spin 1s linear infinite;
+/* Email Verification Component Styles */
+.email-verification-container {
+  background: linear-gradient(135deg, #6BA3BE 0%, #4a8ba8 100%);
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Custom button hover effects */
-.hover-scale:hover {
-  transform: scale(1.02);
-  transition: transform 0.2s ease-in-out;
-}
-
-/* Success animation */
-.success-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-@keyframes fadeIn {
+/* Custom animations */
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Loading spinner enhancement */
+.verification-spinner {
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #6BA3BE;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Status icons */
+.status-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.status-icon.success {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.status-icon.error {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.status-icon.warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* Button styles */
+.verification-btn {
+  transition: all 0.3s ease;
+  transform: translateY(0);
+}
+
+.verification-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.verification-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .verification-card {
+    margin: 1rem;
+    border-radius: 1rem;
+  }
+}
+
+/* Custom focus styles */
+.verification-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 163, 190, 0.5);
+}
+
+/* Text styles */
+.verification-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.verification-message {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+/* Card shadow */
+.verification-card {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Progress indicator for countdown */
+.countdown-progress {
+  width: 100%;
+  height: 4px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.countdown-bar {
+  height: 100%;
+  background-color: #6BA3BE;
+  transition: width 0.1s linear;
 }

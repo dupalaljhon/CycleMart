@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attachment API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .attachment-item { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+        img, video { max-width: 300px; max-height: 200px; margin: 10px 0; }
+        .error { color: red; }
+        .success { color: green; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Attachment API Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Get Messages with Attachments</h2>
+        <button onclick="testGetMessages()">Test Get Messages API</button>
+        <div id="messages-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Send Message with Attachment (Simulated)</h2>
+        <button onclick="testAttachmentURLs()">Test Attachment URLs</button>
+        <div id="attachment-urls-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Direct File Access</h2>
+        <button onclick="testDirectFileAccess()">Test Direct File Access</button>
+        <div id="file-access-result"></div>
+    </div>
+
+    <script>
+        async function testGetMessages() {
+            const resultDiv = document.getElementById('messages-result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+
+            try {
+                const response = await fetch('http://localhost/CycleMart/CycleMart/CycleMart-api/api/messages?conversation_id=1');
+                const result = await response.json();
+                
+                let html = '<h3>API Response:</h3>';
+                html += '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                
+                if (result.status === 'success' && result.data.length > 0) {
+                    html += '<h3>Messages with Attachments:</h3>';
+                    let foundAttachments = false;
+                    
+                    result.data.forEach((message, index) => {
+                        if (message.attachments && message.attachments.length > 0) {
+                            foundAttachments = true;
+                            html += '<div class="attachment-item">';
+                            html += '<h4>Message #' + (index + 1) + ' (ID: ' + message.message_id + ')</h4>';
+                            html += '<p><strong>Text:</strong> ' + (message.message_text || 'No text') + '</p>';
+                            html += '<p><strong>Attachments:</strong></p>';
+                            
+                            message.attachments.forEach((attachment, attIndex) => {
+                                html += '<div style="margin-left: 20px;">';
+                                html += '<p>Attachment ' + (attIndex + 1) + ':</p>';
+                                html += '<p>Type: ' + attachment.type + '</p>';
+                                html += '<p>Name: ' + (attachment.name || 'N/A') + '</p>';
+                                html += '<p>Path: ' + attachment.path + '</p>';
+                                html += '<p>URL: <a href="' + attachment.url + '" target="_blank">' + attachment.url + '</a></p>';
+                                
+                                if (attachment.type === 'image') {
+                                    html += '<img src="' + attachment.url + '" alt="' + (attachment.name || 'Image') + '" onload="console.log(\'Image loaded successfully\')" onerror="console.error(\'Failed to load image: ' + attachment.url + '\'); this.style.border=\'2px solid red\';">';
+                                } else if (attachment.type === 'video') {
+                                    html += '<video controls onloadeddata="console.log(\'Video loaded successfully\')" onerror="console.error(\'Failed to load video: ' + attachment.url + '\'); this.style.border=\'2px solid red\';">';
+                                    html += '<source src="' + attachment.url + '" type="video/mp4">';
+                                    html += '<source src="' + attachment.url + '" type="video/webm">';
+                                    html += '<source src="' + attachment.url + '" type="video/ogg">';
+                                    html += 'Your browser does not support the video tag.';
+                                    html += '</video>';
+                                }
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        }
+                    });
+                    
+                    if (!foundAttachments) {
+                        html += '<p class="error">No messages with attachments found in conversation 1</p>';
+                    }
+                } else {
+                    html += '<p class="error">API Error or no messages found</p>';
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="error">Error: ' + error.message + '</p>';
+                console.error('Error testing get messages:', error);
+            }
+        }
+
+        async function testAttachmentURLs() {
+            const resultDiv = document.getElementById('attachment-urls-result');
+            
+            // Test known attachment URLs from the uploads/attachments directory
+            const testUrls = [
+                'http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/attachments/msg_68fbc8059dfa1_1761331205.jpg',
+                'http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/attachments/msg_68fbc825c8e41_1761331237.jpg',
+                'http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/attachments/msg_68fbc85c2bae7_1761331292.mp4'
+            ];
+
+            let html = '<h3>Testing Direct URLs:</h3>';
+            
+            testUrls.forEach((url, index) => {
+                html += '<div class="attachment-item">';
+                html += '<h4>Test URL #' + (index + 1) + '</h4>';
+                html += '<p>URL: <a href="' + url + '" target="_blank">' + url + '</a></p>';
+                
+                const filename = url.split('/').pop();
+                const extension = filename.split('.').pop().toLowerCase();
+                
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+                    html += '<img src="' + url + '" alt="Test Image ' + (index + 1) + '" onload="console.log(\'Direct image URL works: ' + url + '\')" onerror="console.error(\'Direct image URL failed: ' + url + '\'); this.parentNode.insertAdjacentHTML(\'beforeend\', \'<p class=\\\"error\\\">Failed to load image</p>\');">';
+                } else if (['mp4', 'webm', 'ogg', 'avi'].includes(extension)) {
+                    html += '<video controls onloadeddata="console.log(\'Direct video URL works: ' + url + '\')" onerror="console.error(\'Direct video URL failed: ' + url + '\'); this.parentNode.insertAdjacentHTML(\'beforeend\', \'<p class=\\\"error\\\">Failed to load video</p>\');">';
+                    html += '<source src="' + url + '" type="video/' + extension + '">';
+                    html += 'Your browser does not support the video tag.';
+                    html += '</video>';
+                }
+                html += '</div>';
+            });
+            
+            resultDiv.innerHTML = html;
+        }
+
+        async function testDirectFileAccess() {
+            const resultDiv = document.getElementById('file-access-result');
+            resultDiv.innerHTML = '<p>Testing direct file access...</p>';
+
+            try {
+                // Test if we can fetch the file directly
+                const testUrl = 'http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/attachments/msg_68fbc8059dfa1_1761331205.jpg';
+                
+                const response = await fetch(testUrl, { method: 'HEAD' });
+                
+                let html = '<h3>Direct File Access Test:</h3>';
+                html += '<p>Test URL: <a href="' + testUrl + '" target="_blank">' + testUrl + '</a></p>';
+                html += '<p>Response Status: ' + response.status + '</p>';
+                html += '<p>Response OK: ' + response.ok + '</p>';
+                
+                if (response.ok) {
+                    html += '<p class="success">✅ File is accessible via HTTP</p>';
+                    html += '<img src="' + testUrl + '" alt="Direct access test" style="max-width: 200px;">';
+                } else {
+                    html += '<p class="error">❌ File is not accessible via HTTP</p>';
+                    html += '<p>This might be a server configuration issue.</p>';
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="error">Network Error: ' + error.message + '</p>';
+                console.error('Error testing direct file access:', error);
+            }
+        }
+
+        // Auto-run the first test when page loads
+        setTimeout(testGetMessages, 1000);
+    </script>
+</body>
+</html>

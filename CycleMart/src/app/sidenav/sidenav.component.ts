@@ -17,6 +17,7 @@ export class SidenavComponent implements OnInit {
   isSidebarOpen = false; // for mobile open/close
   isMobile = false;      // detects screen size
   activeRoute = '';      // track current route
+  showLogoutModal = false; // for logout confirmation modal
 
   constructor(
     private authService: AuthService, 
@@ -85,11 +86,20 @@ export class SidenavComponent implements OnInit {
   }
 
   logout() {
-    // Add confirmation dialog
-    if (confirm('Are you sure you want to logout?')) {
-      this.authService.logout();
-      this.router.navigate(['/login']);
-    }
+    // Show logout modal instead of alert
+    this.showLogoutModal = true;
+  }
+
+  // Confirm logout and proceed
+  confirmLogout() {
+    this.showLogoutModal = false;
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+
+  // Cancel logout and close modal
+  cancelLogout() {
+    this.showLogoutModal = false;
   }
 
   // Check if route is active

@@ -1,0 +1,231 @@
+/* Black and White Enhanced Chat Animations and Effects */
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth message bubble animations */
+.message-bubble {
+  transition: all 0.2s ease-in-out;
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced scrollbar for chat container */
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background: #666666;
+  border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+/* Typing indicator animation */
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+/* Enhanced button hover effects */
+.btn-send {
+  transition: all 0.2s ease-in-out;
+  background-color: #000000;
+}
+
+.btn-send:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  background-color: #333333;
+}
+
+.btn-send:active {
+  transform: scale(0.95);
+}
+
+/* Product info message styling - Black and White */
+.product-info-message {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-left: 4px solid #000000;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced avatar styling */
+.user-avatar {
+  transition: all 0.2s ease-in-out;
+  border: 2px solid #000000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Chat header enhancements - Black and White */
+.chat-header {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 2px solid #000000;
+  backdrop-filter: blur(10px);
+}
+
+/* Message input enhancements - Black and White */
+.message-input {
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #cccccc;
+}
+
+.message-input:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  border-color: #000000;
+}
+
+/* Black and White unread badge */
+.unread-badge {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Black and White selected chat indicator */
+.selected-chat {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-right: 4px solid #000000;
+}
+
+/* Black and White message bubbles */
+.my-message {
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+.other-message {
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #e5e5e5;
+}
+
+/* Button styling - Black and White */
+.action-button {
+  background-color: #f8f9fa;
+  color: #000000;
+  border: 1px solid #e5e5e5;
+  transition: all 0.2s ease-in-out;
+}
+
+.action-button:hover {
+  background-color: #e9ecef;
+  color: #000000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.primary-button {
+  background-color: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+}
+
+.primary-button:hover {
+  background-color: #333333;
+  border-color: #333333;
+}
+
+/* Status dropdown styling - Black and White */
+.status-dropdown {
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-option {
+  color: #000000;
+  transition: all 0.2s ease-in-out;
+}
+
+.status-option:hover {
+  background-color: #f8f9fa;
+  color: #000000;
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+  .animate-fadeIn {
+    animation: fadeInMobile 0.2s ease-in-out;
+  }
+  
+  @keyframes fadeInMobile {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Black and White theme for all states */
+.sidebar-header {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.chat-background {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Archive and restore button styling */
+.archive-button, .restore-button {
+  color: #666666;
+  transition: all 0.2s ease-in-out;
+}
+
+.archive-button:hover, .restore-button:hover {
+  color: #000000;
+  transform: scale(1.1);
+}
+
+.delete-button {
+  color: #dc3545;
+}
+
+.delete-button:hover {
+  color: #c82333;
+  transform: scale(1.1);
+}

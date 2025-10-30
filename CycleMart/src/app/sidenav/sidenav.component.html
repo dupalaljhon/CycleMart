@@ -1,11 +1,11 @@
 <!-- Wrapper -->
-<div class="flex h-screen relative bg-theme-primary">
+<div class="flex h-screen relative bg-white">
 
   <!-- Mobile Menu Button (Fixed Position) -->
   <button 
     *ngIf="isMobile"
     (click)="toggleSidebar()"
-    class="fixed top-3 left-3 z-50 btn-secondary p-2 rounded-lg shadow-theme-lg border-theme-primary"
+    class="fixed top-3 left-3 z-50 bg-white text-black border border-gray-300 p-2 rounded-lg shadow-lg"
     [ngClass]="{'translate-x-64': isSidebarOpen}"
   >
     <!-- Hamburger/Close Icon -->
@@ -19,7 +19,7 @@
 
   <!-- Sidebar -->
   <div 
-    class="bg-theme-card text-theme-primary flex flex-col transition-all duration-300 shadow-theme-xl border-r border-theme-primary z-40"
+    class="bg-white text-black flex flex-col transition-all duration-300 shadow-xl border-r border-gray-300 z-40"
     [ngClass]="{
       'w-56': !isCollapsed && !isMobile,
       'w-14': isCollapsed && !isMobile,
@@ -28,36 +28,36 @@
     }"
   >
     <!-- Header with Logo and Theme Toggle -->
-    <div class="p-4 flex items-center justify-between border-b border-theme-primary bg-theme-secondary">
+    <div class="p-4 flex items-center justify-between border-b border-gray-300 bg-white">
       <div *ngIf="!isCollapsed || isMobile" class="flex items-center space-x-2">
         <!-- CycleMart Logo -->
-        <div class="bg-[#6BA3BE] p-2 rounded-lg shadow-lg">
+        <div class="bg-black p-2 rounded-lg shadow-lg">
           <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
           </svg>
         </div>
         <div>
-          <h1 class="text-lg font-bold text-theme-primary">CycleMart</h1>
-          <p class="text-xs text-theme-tertiary">Dashboard</p>
+          <h1 class="text-lg font-bold text-black">CycleMart</h1>
+          <p class="text-xs text-gray-600">Dashboard</p>
         </div>
       </div>
       
       <!-- Compact logo for collapsed state -->
-      <div *ngIf="isCollapsed && !isMobile" class="bg-[#6BA3BE] p-2 rounded-lg shadow-lg mx-auto">
+      <div *ngIf="isCollapsed && !isMobile" class="bg-black p-2 rounded-lg shadow-lg mx-auto">
         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
           <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
         </svg>
       </div>
       
       <!-- Collapse button (desktop only) -->
-      <button *ngIf="!isMobile" class="text-theme-secondary hover:text-white hover:bg-[#6BA3BE] p-2 rounded-lg transition-all duration-200" (click)="toggleCollapse()">
+      <button *ngIf="!isMobile" class="text-black hover:text-white hover:bg-black p-2 rounded-lg transition-all duration-200" (click)="toggleCollapse()">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" [ngClass]="{'rotate-180': isCollapsed}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
 
       <!-- Close button (mobile only) -->
-      <button *ngIf="isMobile" class="text-theme-secondary hover:text-white hover:bg-[#6BA3BE] p-2 rounded-lg transition-all duration-200" (click)="toggleSidebar()">
+      <button *ngIf="isMobile" class="text-black hover:text-white hover:bg-black p-2 rounded-lg transition-all duration-200" (click)="toggleSidebar()">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
@@ -65,139 +65,154 @@
     </div>
 
     <!-- Menu -->
-    <nav class="flex-1 p-3 space-y-1 overflow-y-auto bg-theme-card">
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto bg-white">
       <!-- User Info Section -->
-      <div *ngIf="!isCollapsed || isMobile" class="mb-4 p-3 bg-theme-secondary rounded-lg border border-theme-primary">
+      <div *ngIf="!isCollapsed || isMobile" class="mb-4 p-3 bg-white rounded-lg border border-gray-300">
         <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 bg-[#6BA3BE] rounded-full flex items-center justify-center">
+          <div class="w-8 h-8 bg-black rounded-full flex items-center justify-center">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-theme-primary truncate">Welcome back!</p>
-            <p class="text-xs text-theme-tertiary truncate">Manage your bike parts</p>
+            <p class="text-sm font-medium text-black truncate">Welcome back!</p>
+            <p class="text-xs text-gray-600 truncate">Manage your bike parts</p>
           </div>
         </div>
       </div>
 
       <!-- Navigation Items -->
       <!-- Home -->
-      <a routerLink="/home" routerLinkActive="bg-[#6BA3BE] text-white border-l-4"
+      <a routerLink="/home" routerLinkActive="bg-gray-100 text-black border-l-4"
          (click)="closeSidebarOnNavigate()"
-         class="relative group flex items-center gap-2 p-2 rounded-lg hover:bg-[#6BA3BE] hover:text-white transition-all duration-200 border border-transparent hover:border-theme-secondary">
+         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- Home Icon -->
-        <div class="flex-shrink-0 w-8 h-8 bg-[#6BA3BE] rounded-lg flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9v9a2 2 0 01-2 2h-4a2 2 0 01-2-2V12H9v9a2 2 0 01-2 2H3z" />
           </svg>
         </div>
         <div *ngIf="!isCollapsed || isMobile" class="flex-1">
-          <span class="text-sm font-medium group-hover:text-white">Home</span>
-          <p class="text-xs text-theme-tertiary group-hover:text-white group-hover:opacity-90">Dashboard overview</p>
+          <span class="font-medium text-black group-hover:text-black">Home</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Dashboard overview</p>
         </div>
       </a>
 
       <!-- Profile -->
-      <a routerLink="/profile" routerLinkActive="bg-[#6BA3BE] text-white border-l-4"
+      <a routerLink="/profile" routerLinkActive="bg-gray-100 text-black border-l-4"
          (click)="closeSidebarOnNavigate()"
-         class="relative group flex items-center gap-2 p-2 rounded-lg hover:bg-[#6BA3BE] hover:text-white transition-all duration-200 border border-transparent hover:border-theme-secondary">
+         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- User Icon -->
-        <div class="flex-shrink-0 w-8 h-8 bg-[#6BA3BE] rounded-lg flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
         <div *ngIf="!isCollapsed || isMobile" class="flex-1">
-          <span class="text-sm font-medium group-hover:text-white">Profile</span>
-          <p class="text-xs text-theme-tertiary group-hover:text-white group-hover:opacity-90">Manage account</p>
+          <span class="font-medium text-black group-hover:text-black">Profile</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Manage account</p>
         </div>
       </a>
 
       <!-- Listing -->
-      <a routerLink="/listing" routerLinkActive="bg-[#6BA3BE] text-white border-l-4"
+      <a routerLink="/listing" routerLinkActive="bg-gray-100 text-black border-l-4"
          (click)="closeSidebarOnNavigate()"
-         class="relative group flex items-center gap-2 p-2 rounded-lg hover:bg-[#6BA3BE] hover:text-white transition-all duration-200 border border-transparent hover:border-theme-secondary">
+         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- List Icon -->
-        <div class="flex-shrink-0 w-8 h-8 bg-[#6BA3BE] rounded-lg flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
         </div>
         <div *ngIf="!isCollapsed || isMobile" class="flex-1">
-          <span class="text-sm font-medium group-hover:text-white">Listings</span>
-          <p class="text-xs text-theme-tertiary group-hover:text-white group-hover:opacity-90">Manage products</p>
+          <span class="font-medium text-black group-hover:text-black">Listings</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Manage products</p>
         </div>
       </a>
 
       <!-- Messages -->
-      <a routerLink="/messages" routerLinkActive="bg-[#6BA3BE] text-white border-l-4"
+      <a routerLink="/messages" routerLinkActive="bg-gray-100 text-black border-l-4"
          (click)="closeSidebarOnNavigate()"
-         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-[#6BA3BE] hover:text-white transition-all duration-200 border border-transparent hover:border-theme-secondary">
+         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- Chat Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-[#6BA3BE] rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div *ngIf="!isCollapsed || isMobile" class="flex-1">
-          <span class="font-medium group-hover:text-white">Messages</span>
-          <p class="text-xs text-theme-tertiary group-hover:text-white group-hover:opacity-90">Chat with buyers</p>
+          <span class="font-medium text-black group-hover:text-black">Messages</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Chat with buyers</p>
         </div>
         <!-- Message count badge -->
-        <div *ngIf="!isCollapsed || isMobile" class="bg-orange-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+        <!-- <div *ngIf="!isCollapsed || isMobile" class="bg-orange-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
           3
-        </div>
+        </div> -->
       </a>
 
-      <!-- Notifications -->
-      <a routerLink="/notification" routerLinkActive="bg-[#6BA3BE] text-white border-l-4"
+      <!-- Notifications
+      <a routerLink="/notification" routerLinkActive="bg-gray-100 text-black border-l-4"
          (click)="closeSidebarOnNavigate()"
-         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-[#6BA3BE] hover:text-white transition-all duration-200 border border-transparent hover:border-theme-secondary">
-        <!-- Bell Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-[#6BA3BE] rounded-lg flex items-center justify-center">
+         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
+        Bell Icon
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 01-6 0" />
           </svg>
         </div>
         <div *ngIf="!isCollapsed || isMobile" class="flex-1">
-          <span class="font-medium group-hover:text-white">Notifications</span>
-          <p class="text-xs text-theme-tertiary group-hover:text-white group-hover:opacity-90">Recent updates</p>
+          <span class="font-medium text-black group-hover:text-black">Notifications</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Recent updates</p>
         </div>
-        <!-- Notification badge -->
-        <div *ngIf="!isCollapsed || isMobile" class="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center animate-pulse">
-          5
+         Notification badge -->
+        
+      <!-- </a> --> 
+
+      <!-- Reports -->
+      <a routerLink="/reports" routerLinkActive="bg-gray-100 text-black border-l-4"
+         (click)="closeSidebarOnNavigate()"
+         class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
+        <!-- Report Icon -->
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <div *ngIf="!isCollapsed || isMobile" class="flex-1">
+          <span class="font-medium text-black group-hover:text-black">Reports</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Submit & view reports</p>
         </div>
       </a>
     </nav>
 
     <!-- Footer Section -->
-    <div class="p-3 border-t border-theme-primary bg-theme-secondary">
+    <div class="p-3 border-t border-gray-300 bg-white">
       <!-- Logout Button -->
       <button (click)="logout()"
-              class="relative group flex items-center gap-2 p-2 rounded-lg hover:bg-[#6BA3BE] hover:text-white transition-all duration-200 w-full text-left border border-transparent hover:border-[#6BA3BE]">
+              class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 w-full text-left border border-transparent hover:border-gray-300">
         <!-- Logout Icon -->
-        <div class="flex-shrink-0 w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1" />
           </svg>
         </div>
         <div *ngIf="!isCollapsed || isMobile" class="flex-1">
-          <span class="text-sm font-medium text-red-500 group-hover:text-white">Log Out</span>
-          <p class="text-xs text-theme-tertiary group-hover:text-white group-hover:opacity-90">Sign out safely</p>
+          <span class="font-medium text-black group-hover:text-black">Log Out</span>
+          <p class="text-xs text-gray-600 group-hover:text-gray-600">Sign out safely</p>
         </div>
       </button>
 
       <!-- App Version (only shown when expanded) -->
-      <div *ngIf="!isCollapsed || isMobile" class="mt-2 pt-2 border-t border-theme-primary">
+      <div *ngIf="!isCollapsed || isMobile" class="mt-2 pt-2 border-t border-gray-300">
         <div class="text-center">
-          <p class="text-xs text-theme-tertiary">CycleMart Dashboard</p>
-          <p class="text-xs text-theme-tertiary opacity-75">Version 2.0.1</p>
+          <p class="text-xs text-gray-600">CycleMart Dashboard</p>
+          <p class="text-xs text-gray-600 opacity-75">Version 2.0.1</p>
         </div>
       </div>
     </div>
@@ -207,9 +222,9 @@
   <!-- Mobile overlay -->
   <div 
     *ngIf="isSidebarOpen && isMobile" 
-    class="fixed inset-0 bg-theme-overlay z-30 transition-opacity duration-300 backdrop-blur-sm" 
-    (click)="toggleSidebar()"
-  ></div>
+    class="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 backdrop-blur-sm" 
+    (click)="toggleSidebar()">
+  </div>
 
   <!-- Main Content Area -->
   <div 
@@ -221,6 +236,62 @@
     <!-- Content goes here - this is where router-outlet would be -->
     <div class="pt-16 md:pt-0">
       <router-outlet></router-outlet>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div *ngIf="showLogoutModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+       (click)="cancelLogout()">
+    <div class="bg-white rounded-lg max-w-xs w-full overflow-hidden shadow-2xl transform transition-all"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-red-500 to-red-600">
+        <div class="flex items-center gap-1.5">
+          <div class="p-1 bg-white/20 rounded">
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"/>
+            </svg>
+          </div>
+          <h2 class="text-base font-bold text-white">Confirm Logout</h2>
+        </div>
+        <button 
+          (click)="cancelLogout()"
+          class="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-3">
+        <div class="text-center mb-3">
+          <div class="mx-auto flex items-center justify-center w-8 h-8 rounded-full bg-red-100 mb-2">
+            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+          </div>
+          <h3 class="text-sm font-semibold text-gray-900 mb-1">Logout?</h3>
+          <p class="text-xs text-gray-600">You'll be signed out.</p>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex gap-2">
+          <button 
+            (click)="cancelLogout()"
+            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded text-xs font-medium text-center">
+            Cancel
+          </button>
+          <button 
+            (click)="confirmLogout()"
+            class="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-1.5 rounded shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs font-medium text-center">
+            Logout
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

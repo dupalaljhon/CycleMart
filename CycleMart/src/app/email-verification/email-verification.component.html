@@ -1,56 +1,152 @@
-<div class="flex items-center justify-center min-h-screen bg-gray-100">
-  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+<div class="min-h-screen bg-gradient-to-br from-[#6BA3BE] to-[#4a8ba8] flex items-center justify-center p-4">
+  <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
     
-    <!-- Loading State -->
-    <div *ngIf="isLoading" class="py-8">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#213A57] mx-auto mb-4"></div>
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Verifying Your Email</h2>
-      <p class="text-gray-600">Please wait while we verify your email address...</p>
-    </div>
-
-    <!-- Success State -->
-    <div *ngIf="isSuccess" class="py-8">
-      <div class="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    <!-- Header -->
+    <div class="bg-[#6BA3BE] text-white p-6 text-center">
+      <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
         </svg>
       </div>
-      <h2 class="text-2xl font-semibold text-green-800 mb-4">Email Verified Successfully!</h2>
-      <p class="text-gray-600 mb-6">{{ message }}</p>
-      <div class="space-y-3">
-        <p class="text-sm text-gray-500">You will be redirected to login in a few seconds...</p>
-        <button 
-          (click)="goToLogin()"
-          class="w-full py-3 bg-[#213A57] text-white rounded-md font-medium hover:bg-[#1a2f47] transition"
-        >
-          Go to Login Now
-        </button>
-      </div>
+      <h1 class="text-2xl font-bold">Email Verification</h1>
+      <p class="text-blue-100 mt-2">CycleMart Account Verification</p>
     </div>
 
-    <!-- Error State -->
-    <div *ngIf="isError" class="py-8">
-      <div class="mx-auto mb-4 h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
+    <!-- Content -->
+    <div class="p-8">
+      
+      <!-- Loading State -->
+      <div *ngIf="verificationStatus === 'loading'" class="text-center">
+        <div class="animate-spin w-12 h-12 border-4 border-[#6BA3BE] border-t-transparent rounded-full mx-auto mb-4"></div>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Verifying Your Email</h2>
+        <p class="text-gray-600">Please wait while we verify your email address...</p>
       </div>
-      <h2 class="text-2xl font-semibold text-red-800 mb-4">Verification Failed</h2>
-      <p class="text-gray-600 mb-6">{{ message }}</p>
-      <div class="space-y-3">
-        <button 
-          (click)="resendVerification()"
-          class="w-full py-3 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
-        >
-          Request New Verification Email
-        </button>
-        <button 
-          (click)="goToLogin()"
-          class="w-full py-3 bg-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-400 transition"
-        >
-          Back to Login
-        </button>
+
+      <!-- Success State -->
+      <div *ngIf="verificationStatus === 'success'" class="text-center">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+             [ngClass]="{
+               'bg-blue-100': message && message.includes('already verified'),
+               'bg-green-100': !message || !message.includes('already verified')
+             }">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               [ngClass]="{
+                 'text-blue-500': message && message.includes('already verified'),
+                 'text-green-500': !message || !message.includes('already verified')
+               }">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold mb-2"
+            [ngClass]="{
+              'text-blue-800': message && message.includes('already verified'),
+              'text-green-800': !message || !message.includes('already verified')
+            }">
+          {{ message && message.includes('already verified') ? 'Account Already Verified!' : 'Verification Successful!' }}
+        </h2>
+        <p class="text-gray-600 mb-6">{{ message }}</p>
+        <div class="space-y-3">
+          <!-- Show countdown and auto-redirect for fresh verifications -->
+          <div *ngIf="message && !message.includes('already verified')" class="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p class="text-sm text-green-700 flex items-center justify-center">
+              <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 104 0m-4 0a2 2 0 100-4m6 4a2 2 0 100 4m0-4a2 2 0 110-4m0 4a2 2 0 104 0m-6-8a2 2 0 110-4m0 4a2 2 0 104 0m-6 8a2 2 0 100 4"></path>
+              </svg>
+              Redirecting to login page in 3 seconds...
+            </p>
+          </div>
+          <!-- Show information for already verified accounts -->
+          <div *ngIf="message && message.includes('already verified')" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p class="text-sm text-blue-700 flex items-center justify-center">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Your account was verified previously. You can login now.
+            </p>
+          </div>
+          <button 
+            (click)="navigateToLogin()"
+            class="w-full bg-[#6BA3BE] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a92a5] transition-colors"
+          >
+            {{ message && message.includes('already verified') ? 'Go to Login' : 'Continue to Login' }}
+          </button>
+        </div>
       </div>
+
+      <!-- Error State -->
+      <div *ngIf="verificationStatus === 'error'" class="text-center">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-red-800 mb-2">Verification Failed</h2>
+        <p class="text-gray-600 mb-6">{{ message }}</p>
+        <div class="space-y-3">
+          <button 
+            (click)="navigateToResendPage()"
+            class="w-full bg-[#6BA3BE] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a92a5] transition-colors"
+          >
+            Request New Verification Email
+          </button>
+          <button 
+            (click)="navigateToLogin()"
+            class="w-full bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+
+      <!-- Expired State -->
+      <div *ngIf="verificationStatus === 'expired'" class="text-center">
+        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-yellow-800 mb-2">Link Expired</h2>
+        <p class="text-gray-600 mb-6">{{ message }}</p>
+        <div class="space-y-3">
+          <button 
+            *ngIf="userEmail"
+            (click)="resendVerification()"
+            [disabled]="isLoading"
+            class="w-full bg-[#6BA3BE] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a92a5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span *ngIf="!isLoading">Send New Verification Email</span>
+            <span *ngIf="isLoading" class="flex items-center justify-center">
+              <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Sending...
+            </span>
+          </button>
+          <button 
+            *ngIf="!userEmail"
+            (click)="navigateToResendPage()"
+            class="w-full bg-[#6BA3BE] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a92a5] transition-colors"
+          >
+            Request New Verification Email
+          </button>
+          <button 
+            (click)="navigateToLogin()"
+            class="w-full bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-gray-50 px-8 py-4 text-center">
+      <p class="text-sm text-gray-500">
+        Need help? Contact us at 
+        <a href="mailto:cyclemrt&#64;gmail.com" class="text-[#6BA3BE] hover:underline">cyclemrt&#64;gmail.com</a>
+      </p>
     </div>
 
   </div>

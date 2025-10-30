@@ -1,4 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+@import '@angular/material/prebuilt-themes/deeppurple-amber.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,35 +8,64 @@
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
-/* Custom CSS Variables for Theme System */
+/* Material Design Black & White Theme Overrides */
+.mat-mdc-raised-button.mat-primary {
+  --mdc-protected-button-container-color: #000000 !important;
+  --mdc-protected-button-label-text-color: #ffffff !important;
+}
+
+.mat-mdc-raised-button.mat-primary:hover {
+  --mdc-protected-button-container-color: #374151 !important;
+}
+
+.mat-mdc-outlined-button {
+  --mdc-outlined-button-outline-color: #d1d5db !important;
+  --mdc-outlined-button-label-text-color: #000000 !important;
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: #000000 !important;
+}
+
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: #000000 !important;
+}
+
+/* Custom CSS Variables for 3-Color System */
 :root {
-  /* Light Theme Colors */
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-primary-light: #3b82f6;
+  /* 3-Color Palette */
+  --color-primary: #14B8A6;        /* Primary Teal - Navbar, links, icons */
+  --color-secondary: #1E293B;      /* Secondary Navy - Text, shadows, sidebar */
+  --color-accent: #84CC16;         /* Accent Lime Green - Buttons, highlights, notifications */
   
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #06b6d4;
+  /* Color Variations */
+  --color-primary-light: #5EEAD4;
+  --color-primary-dark: #0F766E;
+  --color-secondary-light: #475569;
+  --color-secondary-dark: #0F172A;
+  --color-accent-light: #BEF264;
+  --color-accent-dark: #65A30D;
   
-  /* Light Theme Backgrounds */
-  --bg-primary: #f5f1eb;
-  --bg-secondary: #ede4d3;
-  --bg-tertiary: #e6d7c3;
-  --bg-card: #faf8f4;
-  --bg-overlay: rgba(0, 0, 0, 0.5);
+  /* Backgrounds */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-overlay: rgba(30, 41, 59, 0.5);
+  --bg-sidebar: var(--color-secondary);
   
-  /* Light Theme Text */
-  --text-primary: #000000;
-  --text-secondary: #374151;
-  --text-tertiary: #6b7280;
+  /* Text Colors (Navy-based) */
+  --text-primary: var(--color-secondary);
+  --text-secondary: var(--color-secondary-light);
+  --text-tertiary: #64748b;
   --text-inverse: #ffffff;
   
-  /* Light Theme Borders */
-  --border-primary: #d7ccc8;
-  --border-secondary: #bcaaa4;
-  --border-focus: #6BA3BE;
+  /* Borders */
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --border-focus: var(--color-primary);
   
   /* Light Theme Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -43,50 +74,139 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
-/* Utility Classes for Theme System */
+/* Utility Classes for 3-Color System */
+
+/* Text utilities */
+.text-shadow {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.text-shadow-light {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Border utilities for simple design */
+.border-primary {
+  border-color: var(--color-primary) !important;
+}
+
+.border-secondary {
+  border-color: var(--color-secondary) !important;
+}
+
+.border-accent {
+  border-color: var(--color-accent) !important;
+}
 .bg-theme-primary { background-color: var(--bg-primary); }
 .bg-theme-secondary { background-color: var(--bg-secondary); }
 .bg-theme-tertiary { background-color: var(--bg-tertiary); }
 .bg-theme-card { background-color: var(--bg-card); }
+.bg-theme-sidebar { background-color: var(--bg-sidebar); }
+
+.bg-color-primary { background-color: var(--color-primary); }
+.bg-color-secondary { background-color: var(--color-secondary); }
+.bg-color-accent { background-color: var(--color-accent); }
 
 .text-theme-primary { color: var(--text-primary); }
 .text-theme-secondary { color: var(--text-secondary); }
 .text-theme-tertiary { color: var(--text-tertiary); }
 .text-theme-inverse { color: var(--text-inverse); }
 
+.text-color-primary { color: var(--color-primary); }
+.text-color-secondary { color: var(--color-secondary); }
+.text-color-accent { color: var(--color-accent); }
+
 .border-theme-primary { border-color: var(--border-primary); }
 .border-theme-secondary { border-color: var(--border-secondary); }
 .border-theme-focus { border-color: var(--border-focus); }
+
+.border-color-primary { border-color: var(--color-primary); }
+.border-color-secondary { border-color: var(--color-secondary); }
+.border-color-accent { border-color: var(--color-accent); }
+
+/* Additional Background Color Variations */
+.bg-primary { background-color: var(--color-primary); }
+.bg-primary-light { background-color: var(--color-primary-light); }
+.bg-primary-dark { background-color: var(--color-primary-dark); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-secondary-light { background-color: var(--color-secondary-light); }
+.bg-secondary-dark { background-color: var(--color-secondary-dark); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-accent-light { background-color: var(--color-accent-light); }
+.bg-accent-dark { background-color: var(--color-accent-dark); }
+
+/* Text Color Variations */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-accent { color: var(--color-accent); }
+
+/* Hover State Classes */
+.hover\:bg-primary:hover { background-color: var(--color-primary); }
+.hover\:bg-primary-dark:hover { background-color: var(--color-primary-dark); }
+.hover\:bg-secondary:hover { background-color: var(--color-secondary); }
+.hover\:bg-secondary-dark:hover { background-color: var(--color-secondary-dark); }
+.hover\:bg-accent:hover { background-color: var(--color-accent); }
+.hover\:bg-accent-dark:hover { background-color: var(--color-accent-dark); }
 
 .shadow-theme-sm { box-shadow: var(--shadow-sm); }
 .shadow-theme-md { box-shadow: var(--shadow-md); }
 .shadow-theme-lg { box-shadow: var(--shadow-lg); }
 .shadow-theme-xl { box-shadow: var(--shadow-xl); }
 
-/* Button Styles */
+/* Button Styles - New 3-Color System */
 .btn-primary {
-  background-color: #6BA3BE;
+  background-color: var(--color-primary);
   color: var(--text-inverse);
-  border: none;
+  border: 2px solid var(--color-primary);
   transition: all 0.2s ease;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
-  background-color: #5a92a5;
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
+}
+
+.btn-accent {
+  background-color: var(--color-accent);
+  color: var(--text-inverse);
+  border: 2px solid var(--color-accent);
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.btn-accent:hover {
+  background-color: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
+  background-color: var(--color-secondary);
+  color: var(--text-inverse);
+  border: 2px solid var(--color-secondary);
   transition: all 0.2s ease;
+  font-weight: 600;
 }
 
 .btn-secondary:hover {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-secondary);
+  background-color: var(--color-secondary-dark);
+  border-color: var(--color-secondary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-secondary);
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.btn-outline:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-primary);
 }
 
 /* Form Input Styles */

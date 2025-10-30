@@ -1,4 +1,4 @@
-/* Custom styles for listing component */
+/* Custom styles for listing component - 3-Color System */
 
 /* Line clamp utilities */
 .line-clamp-2 {
@@ -17,10 +17,10 @@
   overflow: hidden;
 }
 
-/* Drag and drop styles */
+/* Drag and drop styles using primary color */
 .drag-over {
-  border-color: #3b82f6 !important;
-  background-color: #eff6ff !important;
+  border-color: var(--color-primary) !important;
+  background-color: rgba(107, 163, 190, 0.1) !important;
 }
 
 /* Smooth hover animations */
@@ -32,6 +32,28 @@
 /* Modal backdrop blur */
 .modal-backdrop {
   backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Success state styles */
+.success-state {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+/* Error state styles */
+.error-state {
+  color: var(--color-error);
+  border-color: var(--color-error);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Primary state styles */
+.primary-state {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: rgba(107, 163, 190, 0.1);
 }
 
 /* Lightbox styles */
@@ -125,38 +147,55 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
-/* Custom scrollbar for modal */
+/* Custom scrollbar for modal using 3-color system */
 .modal-content::-webkit-scrollbar {
   width: 6px;
 }
 
 .modal-content::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   border-radius: 3px;
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-primary);
   border-radius: 3px;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-primary-dark);
 }
 
-/* Image upload area animations */
+/* Image upload area animations using primary color */
 .upload-area {
   transition: all 0.3s ease;
+  border-color: var(--border-primary);
+  background-color: var(--bg-primary);
 }
 
 .upload-area:hover {
-  border-color: #6366f1;
-  background-color: #f8fafc;
+  border-color: var(--color-primary);
+  background-color: var(--bg-secondary);
 }
 
 /* Status badge animations */
 .status-badge {
   animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.status-available {
+  background-color: var(--color-success);
+  color: var(--text-inverse);
+}
+
+.status-sold {
+  background-color: var(--color-error);
+  color: var(--text-inverse);
+}
+
+.status-reserved {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
 }
 
 @keyframes pulse-soft {
@@ -174,4 +213,98 @@ kbd {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.025em;
+}
+
+/* Modal animations */
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Modal backdrop fade-in */
+@keyframes modal-backdrop-fade {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+.modal-backdrop-animated {
+  animation: modal-backdrop-fade 0.3s ease-out;
+}
+
+/* Modal content slide-up animation */
+@keyframes slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Confirmation modal specific animations */
+.confirm-modal-enter {
+  animation: slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Icon bounce animation for status change */
+@keyframes icon-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-icon-bounce {
+  animation: icon-bounce 0.6s ease-in-out infinite;
+}
+
+/* Button press animation */
+@keyframes button-press {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-button-press:active {
+  animation: button-press 0.1s ease-in-out;
+}
+
+/* Status dropdown styles */
+.status-dropdown .dropdown-menu {
+  transform-origin: bottom center;
+}
+
+/* Dropdown item hover transitions */
+.status-dropdown button:hover {
+  transition: all 0.15s ease-in-out;
 }

@@ -55,12 +55,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
         case 'products':
             if (isset($_GET['uploader_id'])) {
                 echo json_encode($get->getProductsByUser((int)$_GET['uploader_id']));
+            } elseif (isset($_GET['product_id'])) {
+                echo json_encode($get->getProductById((int)$_GET['product_id']));
             } else {
                 http_response_code(400);
                 echo json_encode([
                     "status" => "error",
                     "code" => 400,
-                    "message" => "Missing uploader_id",
+                    "message" => "Missing uploader_id or product_id",
                     "data" => []
                 ]);
             }
@@ -91,9 +93,137 @@ switch ($_SERVER['REQUEST_METHOD']) {
             break;
 
         case 'dashboard-stats':
-            echo json_encode($post->getDashboardStats());
+            echo json_encode($get->getDashboardStats());
             break;
 
+        case 'chart-data':
+            echo json_encode($get->getChartData());
+            break;
+
+        case 'all-admins':
+            echo json_encode($get->getAllAdmins());
+            break;
+
+        case 'admin':
+            if (isset($_GET['id'])) {
+                echo json_encode($get->getAdminById((int) $_GET['id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing admin ID",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'conversations':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserConversations((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'archived-conversations':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserArchivedConversations((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'messages':
+            if (isset($_GET['conversation_id'])) {
+                echo json_encode($get->getConversationMessages((int) $_GET['conversation_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing conversation_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'user-reports':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($post->getUserReports((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'all-reports':
+            echo json_encode($post->getAllReports());
+            break;
+
+        case 'user-ratings':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserRatings((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+            case 'conversation-rating':
+            if (isset($_GET['conversation_id']) && isset($_GET['rated_by'])) {
+                echo json_encode($get->getConversationRating((int) $_GET['conversation_id'], (int) $_GET['rated_by']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing conversation_id or rated_by",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'user-average-ratings':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserAverageRatings((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'sellers-with-ratings':
+            echo json_encode($get->getAllSellersWithRatings());
+            break;
+            
         default:
             http_response_code(403);
             echo json_encode(["status" => "error", "message" => "Forbidden"]);
@@ -120,9 +250,23 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->loginUser($data));
                 break;
 
+            case 'verify-email':
+                echo json_encode($post->verifyEmail($data));
+                break;
+
+            case 'resend-verification':
+                echo json_encode($post->resendVerificationEmail($data));
+                break;
+
             case 'admin':
                 if (isset($request[1]) && $request[1] === 'login') {
                     echo json_encode($post->adminLogin($data));
+                } elseif (isset($request[1]) && $request[1] === 'create') {
+                    echo json_encode($post->createAdmin($data));
+                } elseif (isset($request[1]) && $request[1] === 'update') {
+                    echo json_encode($post->updateAdmin($data));
+                } elseif (isset($request[1]) && $request[1] === 'delete') {
+                    echo json_encode($post->deleteAdmin($data));
                 } else {
                     echo json_encode(["status" => "error", "message" => "Invalid admin endpoint"]);
                     http_response_code(400);
@@ -161,20 +305,48 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->archiveProduct($data));
                 break;
 
-            case 'verify-email':
-                echo json_encode($post->verifyEmail($data));
-                break;
-
-            case 'generate-verification':
-                echo json_encode($post->generateVerificationToken($data));
-                break;
-
-            case 'resend-verification':
-                echo json_encode($post->generateVerificationToken($data));
-                break;
-
             case 'markNotificationAsRead':
                 echo json_encode($post->markNotificationAsRead($data->notification_id, $data->admin_id));
+                break;
+
+            case 'create-conversation':
+                echo json_encode($post->createConversation($data));
+                break;
+
+            case 'send-message':
+                echo json_encode($post->sendMessage($data));
+                break;
+
+            case 'mark-messages-read':
+                echo json_encode($post->markMessagesAsRead($data));
+                break;
+
+            case 'submit-report':
+                echo json_encode($post->submitReport($data));
+                break;
+
+            case 'update-report-status':
+                echo json_encode($post->updateReportStatus($data));
+                break;
+
+            case 'delete-user':
+                echo json_encode($post->deleteUser($data));
+                break;
+
+            case 'submit-rating':
+                echo json_encode($post->submitRating($data));
+                break;
+
+            case 'archive-conversation':
+                echo json_encode($post->archiveConversation($data));
+                break;
+
+            case 'restore-conversation':
+                echo json_encode($post->restoreConversation($data));
+                break;
+
+            case 'delete-conversation':
+                echo json_encode($post->deleteConversation($data));
                 break;
 
             default:

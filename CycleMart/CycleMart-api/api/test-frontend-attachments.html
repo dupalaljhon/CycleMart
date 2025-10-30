@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attachment URL Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-item { margin-bottom: 30px; border: 1px solid #ccc; padding: 15px; }
+        img { max-width: 300px; height: auto; }
+        video { max-width: 300px; height: auto; }
+    </style>
+</head>
+<body>
+    <h1>Attachment URL Test</h1>
+    <div id="content">Loading...</div>
+
+    <script>
+        async function testAttachments() {
+            try {
+                // Test the API endpoint
+                const response = await fetch('http://localhost/CycleMart/CycleMart/CycleMart-api/api/messages?conversation_id=1');
+                const result = await response.json();
+                
+                const content = document.getElementById('content');
+                content.innerHTML = '';
+                
+                if (result.status === 'success' && result.data.length > 0) {
+                    result.data.forEach(message => {
+                        if (message.attachments && message.attachments.length > 0) {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = 'test-item';
+                            messageDiv.innerHTML = `
+                                <h3>Message ID: ${message.message_id}</h3>
+                                <p><strong>Text:</strong> ${message.message_text}</p>
+                            `;
+                            
+                            message.attachments.forEach(attachment => {
+                                const attachmentDiv = document.createElement('div');
+                                attachmentDiv.innerHTML = `
+                                    <h4>Attachment: ${attachment.name || 'Unknown'}</h4>
+                                    <p><strong>Type:</strong> ${attachment.type}</p>
+                                    <p><strong>URL:</strong> <a href="${attachment.url}" target="_blank">${attachment.url}</a></p>
+                                `;
+                                
+                                if (attachment.type === 'image') {
+                                    const img = document.createElement('img');
+                                    img.src = attachment.url;
+                                    img.alt = attachment.name || 'Image';
+                                    img.onerror = function() {
+                                        this.style.display = 'none';
+                                        const errorMsg = document.createElement('p');
+                                        errorMsg.innerHTML = '<strong style="color: red;">Failed to load image</strong>';
+                                        this.parentNode.insertBefore(errorMsg, this);
+                                    };
+                                    attachmentDiv.appendChild(img);
+                                } else if (attachment.type === 'video') {
+                                    const video = document.createElement('video');
+                                    video.controls = true;
+                                    video.src = attachment.url;
+                                    video.onerror = function() {
+                                        this.style.display = 'none';
+                                        const errorMsg = document.createElement('p');
+                                        errorMsg.innerHTML = '<strong style="color: red;">Failed to load video</strong>';
+                                        this.parentNode.insertBefore(errorMsg, this);
+                                    };
+                                    attachmentDiv.appendChild(video);
+                                }
+                                
+                                messageDiv.appendChild(attachmentDiv);
+                            });
+                            
+                            content.appendChild(messageDiv);
+                        }
+                    });
+                } else {
+                    content.innerHTML = '<p>No messages with attachments found or API error</p>';
+                    console.log('API Response:', result);
+                }
+            } catch (error) {
+                console.error('Error testing attachments:', error);
+                document.getElementById('content').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        // Run test when page loads
+        testAttachments();
+    </script>
+</body>
+</html>

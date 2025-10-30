@@ -1,0 +1,355 @@
+/* Black and White Material Design Overrides */
+
+/* Report Modal Container */
+.report-modal-container {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.report-modal-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.report-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-field-container {
+  width: 100%;
+  position: relative;
+  z-index: auto;
+  overflow: visible;
+}
+
+.report-form-field {
+  width: 100% !important;
+  position: relative;
+  z-index: auto;
+}
+
+.report-select {
+  position: relative;
+  z-index: 2;
+}
+
+.report-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px !important;
+  min-height: 48px !important;
+}
+
+.report-option-icon {
+  font-size: 18px;
+  width: 24px;
+  display: inline-block;
+}
+
+.report-option-text {
+  flex: 1;
+  font-size: 14px;
+  color: #000000;
+}
+
+.report-textarea {
+  min-height: 100px !important;
+  resize: vertical;
+}
+
+.report-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.report-cancel-btn {
+  color: #6b7280 !important;
+  background: transparent !important;
+  border: 1px solid #d1d5db !important;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+.report-cancel-btn:hover {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.report-submit-btn {
+  background-color: #000000 !important;
+  color: white !important;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.report-submit-btn:hover:not(:disabled) {
+  background-color: #374151 !important;
+}
+
+.report-submit-btn:disabled {
+  background-color: #9ca3af !important;
+  color: #f3f4f6 !important;
+  cursor: not-allowed;
+}
+
+/* Table customization */
+.mat-mdc-table {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+}
+
+.mat-mdc-header-row {
+  background-color: #f3f4f6 !important;
+}
+
+.mat-mdc-header-cell {
+  color: #000000 !important;
+  font-weight: bold !important;
+  border-bottom: 1px solid #d1d5db !important;
+}
+
+.mat-mdc-cell {
+  color: #000000 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.mat-mdc-row:hover {
+  background-color: #f9fafb !important;
+}
+
+/* Button customization */
+.mat-mdc-raised-button {
+  background-color: #000000 !important;
+  color: white !important;
+}
+
+.mat-mdc-raised-button:hover {
+  background-color: #374151 !important;
+}
+
+.mat-mdc-button {
+  color: #000000 !important;
+}
+
+.mat-mdc-button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Form field customization - Fix overlapping */
+.mat-mdc-form-field {
+  width: 100% !important;
+  position: relative;
+  z-index: 1;
+}
+
+.mat-mdc-form-field .mdc-notched-outline {
+  border-color: #d1d5db !important;
+}
+
+.mat-mdc-form-field.mat-focused .mdc-notched-outline {
+  border-color: #000000 !important;
+  border-width: 2px !important;
+}
+
+.mat-mdc-form-field .mat-mdc-floating-label {
+  color: #6b7280 !important;
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: #000000 !important;
+}
+
+.mat-mdc-form-field .mat-mdc-input-element {
+  color: #000000 !important;
+}
+
+.mat-mdc-form-field .mat-mdc-input-element::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Select dropdown fixes - Enhanced */
+.mat-mdc-select {
+  color: #000000 !important;
+}
+
+.mat-mdc-select-panel {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.2) !important;
+  max-height: 400px !important;
+  z-index: 99999 !important;
+  position: fixed !important;
+  min-width: 200px !important;
+}
+
+.mat-mdc-option {
+  color: #000000 !important;
+  background: white !important;
+  min-height: 48px !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  z-index: 100000 !important;
+  line-height: 1.4 !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.mat-mdc-option:hover {
+  background: #f3f4f6 !important;
+}
+
+.mat-mdc-option.mat-selected {
+  background: #000000 !important;
+  color: white !important;
+}
+
+.mat-mdc-option.mat-selected:hover {
+  background: #374151 !important;
+}
+
+/* Force dropdown visibility */
+.mat-mdc-select-arrow {
+  color: #000000 !important;
+}
+
+.mat-mdc-select-trigger {
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Chip customization */
+.mat-mdc-chip {
+  color: #000000 !important;
+  background-color: #e5e7eb !important;
+  border-radius: 6px !important;
+}
+
+/* Spinner customization */
+.mat-mdc-progress-spinner circle {
+  stroke: #000000 !important;
+}
+
+/* Custom select styling for testing */
+.custom-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  color: #000000;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.custom-select:focus {
+  border-color: #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.custom-select:hover {
+  border-color: #6b7280;
+}
+
+/* Option styling */
+.custom-select option {
+  padding: 12px;
+  background: white;
+  color: #000000;
+}
+
+/* Global override for Material Select - Force visibility */
+.mat-select-panel,
+.mat-mdc-select-panel {
+  z-index: 100002 !important;
+  background: white !important;
+  border: 2px solid #000 !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+  max-height: 400px !important;
+  min-width: 200px !important;
+  transform: none !important;
+  position: fixed !important;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .mat-mdc-table {
+    font-size: 0.875rem;
+  }
+  
+  .mat-mdc-header-cell,
+  .mat-mdc-cell {
+    padding: 8px 4px;
+  }
+  
+  .report-modal-container {
+    padding: 16px;
+    margin: 16px;
+  }
+  
+  .report-form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .report-cancel-btn,
+  .report-submit-btn {
+    width: 100%;
+  }
+}
+
+/* Fix z-index issues - Maximum priority */
+.cdk-overlay-container {
+  z-index: 99998 !important;
+}
+
+.cdk-overlay-backdrop {
+  z-index: 99997 !important;
+}
+
+.cdk-overlay-pane {
+  z-index: 99999 !important;
+}
+
+.mat-mdc-select-panel {
+  z-index: 100000 !important;
+}
+
+/* Force dropdown to appear above everything */
+.cdk-overlay-connected-position-bounding-box {
+  z-index: 100001 !important;
+}
+
+/* Ensure the modal doesn't interfere */
+.report-modal-container {
+  z-index: 1 !important;
+  position: relative !important;
+}
+
+/* Global override for Material Select */
+.mat-select-panel {
+  z-index: 100002 !important;
+  background: white !important;
+  border: 2px solid #000 !important;
+}
+

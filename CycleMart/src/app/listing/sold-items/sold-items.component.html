@@ -36,11 +36,16 @@
       </div>
       
       <!-- Sold/Traded Status Badge -->
-      <div class="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+      <div class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold"
+           [ngClass]="{
+             'bg-red-600 text-white': item.sale_status === 'sold',
+             'bg-purple-600 text-white': item.sale_status === 'traded'
+           }">
         <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" *ngIf="item.sale_status === 'sold'"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" *ngIf="item.sale_status === 'traded'"/>
         </svg>
-        {{getSaleTypeText(item.for_type)}}
+        {{item.sale_status | titlecase}}
       </div>
     </div>
     
@@ -87,11 +92,16 @@
       <div class="mt-4">
         <button 
           (click)="markAsAvailable(item)"
-          class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-medium">
-          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          [disabled]="isProcessing"
+          class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg *ngIf="isProcessing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <svg *ngIf="!isProcessing" class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
-          Mark as Available Again
+          {{ isProcessing ? 'Processing...' : 'Mark as Available Again' }}
         </button>
       </div>
     </div>
@@ -108,4 +118,43 @@
   <h3 class="text-xl font-medium text-gray-900 mb-2">No sold/traded items</h3>
   <p class="text-gray-500 mb-4">You haven't sold or traded any items yet.</p>
   <p class="text-sm text-gray-400">Items you mark as sold or traded will appear here.</p>
+</div>
+
+<!-- Success Modal -->
+<div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+  <div class="bg-white rounded-3xl p-10 max-w-lg w-full mx-4 text-center animate-scale-in shadow-2xl border-4 border-green-400">
+    <!-- Enhanced Icon with Animation -->
+    <div class="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce shadow-lg">
+      <svg class="w-12 h-12 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <!-- Enhanced Typography -->
+    <h3 class="text-3xl font-black text-gray-900 mb-4 drop-shadow-sm">🎉 Success!</h3>
+    <p class="text-lg text-gray-700 mb-8 font-medium leading-relaxed px-2">{{ successMessage }}</p>
+    <!-- Enhanced Button -->
+    <button 
+      (click)="closeSuccessModal()"
+      class="bg-gradient-to-r from-green-500 to-green-600 text-white px-10 py-4 rounded-2xl hover:from-green-600 hover:to-green-700 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 active:scale-95">
+      Awesome! 🚀
+    </button>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div *ngIf="showErrorModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4">
+  <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center animate-scale-in">
+    <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </div>
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">Error</h3>
+    <p class="text-gray-600 mb-6">{{ errorMessage }}</p>
+    <button 
+      (click)="closeErrorModal()"
+      class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors font-semibold">
+      Close
+    </button>
+  </div>
 </div>

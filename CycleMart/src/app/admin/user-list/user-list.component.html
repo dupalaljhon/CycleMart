@@ -14,7 +14,7 @@
         
         <!-- Search Bar -->
         <div class="flex items-center space-x-4">
-          <mat-form-field appearance="outline" class="w-80">
+          <mat-form-field appearance="fill" class="w-80">
             <mat-label>Search users</mat-label>
             <input matInput 
                    placeholder="Search by name, email, or phone"
@@ -117,8 +117,8 @@
                   {{ user.full_name || 'N/A' }}
                 </div>
                 <div class="text-sm text-gray-500 flex items-center mt-1">
-                  <mat-icon class="text-xs mr-1">tag</mat-icon>
-                  ID: {{ user.id }}
+                  <!-- <mat-icon class="text-xs mr-1">tag</mat-icon> -->
+                  <!-- ID: {{ user.id }} -->
                 </div>
               </div>
             </td>
@@ -216,25 +216,17 @@
               <div class="flex items-center justify-center space-x-1">
                 <button mat-icon-button 
                         color="primary"
-                        (click)="viewUser(user)"
+                        (click)="viewUser(user); $event.stopPropagation()"
                         matTooltip="View Details"
                         matTooltipPosition="above"
                         class="hover:bg-blue-50 transition-colors duration-200">
                   <mat-icon class="text-blue-600">visibility</mat-icon>
                 </button>
                 
-                <button mat-icon-button 
-                        color="accent"
-                        (click)="editUser(user)"
-                        matTooltip="Edit User"
-                        matTooltipPosition="above"
-                        class="hover:bg-orange-50 transition-colors duration-200">
-                  <mat-icon class="text-orange-600">edit</mat-icon>
-                </button>
-                
+             
                 <button mat-icon-button 
                         color="warn"
-                        (click)="deleteUser(user)"
+                        (click)="deleteUser(user); $event.stopPropagation()"
                         matTooltip="Delete User"
                         matTooltipPosition="above"
                         class="hover:bg-red-50 transition-colors duration-200">

@@ -21,16 +21,33 @@ export class LoginComponent {
   password: string = '';
   phone: string = '';
   address: string = '';
+  street: string = '';
+  barangay: string = '';
+  city: string = '';
+  province: string = '';
   termsAccepted: boolean = false;
   isLoginMode: boolean = true;
   isLoading: boolean = false;
-  showResendVerification: boolean = false;
-  verificationEmail: string = '';
   showTermsModal: boolean = false;
+  
+  // UI state properties
+  showPassword: boolean = false;
+  showEmailError: boolean = false;
+  emailError: string = '';
+  showEmailRequirements: boolean = false;
+  showPasswordRequirementsInfo: boolean = false;
   
   // Password validation properties
   passwordErrors: string[] = [];
   showPasswordRequirements: boolean = false;
+
+  // Modal properties
+  showNotificationModal: boolean = false;
+  notificationMessage: string = '';
+  notificationType: 'success' | 'error' = 'success';
+  showActionButton: boolean = false;
+  actionButtonText: string = '';
+  actionCallback: (() => void) | null = null;
 
   constructor(
     private authService: AuthService, 
@@ -44,12 +61,11 @@ export class LoginComponent {
     
     // Validate password for registration mode
     if (!this.isLoginMode && !this.validatePassword(this.password)) {
-      alert('Please ensure your password meets all requirements:\n' + this.passwordErrors.join('\n'));
+      this.showErrorMessage('⚠️ Please ensure your password meets all requirements:\n\n' + this.passwordErrors.join('\n'));
       return;
     }
     
     this.isLoading = true;
-    this.showResendVerification = false;
 
     if (this.isLoginMode) {
       this.authService.login(this.email, this.password).subscribe({
@@ -62,14 +78,58 @@ export class LoginComponent {
             }
             console.log('Login successful:', response);
             this.router.navigate(['/home']);
+          } else if (response.status === 'error' && response.data?.requires_verification) {
+            // User needs to verify email
+            this.showErrorMessage(
+              '⚠️ ' + response.message + '\n\nClick below to resend verification email.',
+              '📧 Resend Verification',
+              () => this.router.navigate(['/resend-verification'])
+            );
           } else {
-            alert(response.message || 'Invalid email or password');
+            // Handle various login errors with user-friendly messages
+            let errorMessage = response.message || 'Invalid email or password';
+            
+            // Make error messages more user-friendly
+            if (errorMessage.toLowerCase().includes('invalid credentials')) {
+              errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            } else if (errorMessage.toLowerCase().includes('user not found')) {
+              errorMessage = 'No account found with this email address. Please check your email or create a new account.';
+            } else if (errorMessage.toLowerCase().includes('email and password required')) {
+              errorMessage = 'Please enter both email and password to sign in.';
+            }
+            
+            this.showErrorMessage('🔒 ' + errorMessage);
           }
         },
         error: (error) => {
           this.isLoading = false;
           console.error('Login error:', error);
-          alert('Invalid email or password');
+          
+          // Check if it's a verification error
+          if (error.error?.data?.requires_verification) {
+            this.showErrorMessage(
+              '⚠️ ' + error.error.message + '\n\nClick below to resend verification email.',
+              '📧 Resend Verification',
+              () => this.router.navigate(['/resend-verification'])
+            );
+          } else {
+            // Handle network or other login errors
+            let errorMessage = 'Invalid email or password';
+            
+            // Check if we have a specific error message from the server
+            if (error.error && error.error.message) {
+              errorMessage = error.error.message;
+              
+              // Make error messages more user-friendly
+              if (errorMessage.toLowerCase().includes('invalid credentials')) {
+                errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+              } else if (errorMessage.toLowerCase().includes('user not found')) {
+                errorMessage = 'No account found with this email address. Please check your email or create a new account.';
+              }
+            }
+            
+            this.showErrorMessage('🔒 ' + errorMessage);
+          }
         }
       });
     } else {
@@ -78,7 +138,10 @@ export class LoginComponent {
         email: this.email, 
         password: this.password,
         phone: this.phone,
-        address: this.address,
+        street: this.street,
+        barangay: this.barangay,
+        city: this.city,
+        province: this.province,
         terms_accepted: this.termsAccepted ? 1 : 0
       }).subscribe({
         next: (response) => {
@@ -86,23 +149,26 @@ export class LoginComponent {
           console.log('Registration successful:', response);
           
           if (response.status === 'success') {
-            if (response.data?.email_sent) {
-              alert('Registration successful! Please check your email to verify your account.');
+            if (response.data?.verification_email_sent) {
+              this.showSuccessMessage('🎉 Registration successful! Verification email sent to your inbox. Please check your email to verify your account before logging in.');
             } else {
-              alert('Registration successful! However, there was an issue sending the verification email. You can request a new one below.');
-              this.verificationEmail = this.email;
-              this.showResendVerification = true;
+              this.showErrorMessage('⚠️ Registration successful! However, verification email failed to send. Please contact support.');
             }
             this.isLoginMode = true;
             this.resetForm();
+          } else if (response.status === 'warning') {
+            // Registration successful but email failed
+            this.showErrorMessage('⚠️ Registration completed with warnings. Please contact support if you need assistance.');
+            this.isLoginMode = true;
+            this.resetForm();
           } else {
-            alert(response.message || 'Registration failed. Please try again.');
+            this.showErrorMessage(response.message || 'Registration failed. Please try again.');
           }
         },
         error: (error) => {
           this.isLoading = false;
           console.error('Registration error:', error);
-          alert('Registration failed. Please try again.');
+          this.showErrorMessage('❌ Registration failed. Please try again.');
         }
       });
     }
@@ -120,33 +186,18 @@ export class LoginComponent {
     this.password = '';
     this.phone = '';
     this.address = '';
+    this.street = '';
+    this.barangay = '';
+    this.city = '';
+    this.province = '';
     this.termsAccepted = false;
-    this.showResendVerification = false;
-    this.verificationEmail = '';
     this.passwordErrors = [];
     this.showPasswordRequirements = false;
-  }
-
-  resendVerificationEmail() {
-    if (!this.verificationEmail) {
-      alert('Please enter your email address');
-      return;
-    }
-
-    this.apiService.resendVerificationEmail(this.verificationEmail).subscribe({
-      next: (response) => {
-        if (response.status === 'success') {
-          alert('Verification email sent! Please check your inbox.');
-          this.showResendVerification = false;
-        } else {
-          alert(response.message || 'Failed to send verification email');
-        }
-      },
-      error: (error) => {
-        console.error('Resend verification error:', error);
-        alert('Failed to send verification email. Please try again.');
-      }
-    });
+    this.showEmailError = false;
+    this.emailError = '';
+    this.showEmailRequirements = false;
+    this.showPasswordRequirementsInfo = false;
+    this.showPassword = false;
   }
 
   // Terms & Conditions Modal Methods
@@ -242,5 +293,81 @@ export class LoginComponent {
   // Navigation method for admin login
   navigateToAdminLogin() {
     this.router.navigate(['/admin-login']);
+  }
+
+  // Email validation methods
+  onEmailInput() {
+    if (this.email && !this.validateEmail(this.email)) {
+      this.showEmailError = true;
+      this.emailError = 'Please enter a valid email address';
+    } else {
+      this.showEmailError = false;
+      this.emailError = '';
+    }
+  }
+
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  toggleEmailRequirements() {
+    this.showEmailRequirements = !this.showEmailRequirements;
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
+  togglePasswordRequirementsInfo() {
+    this.showPasswordRequirementsInfo = !this.showPasswordRequirementsInfo;
+  }
+
+  // Toast/Alert helper methods
+  private showSuccessMessage(message: string) {
+    this.notificationMessage = message;
+    this.notificationType = 'success';
+    this.showNotificationModal = true;
+    this.showActionButton = false;
+    this.actionCallback = null;
+    
+    // Auto-close after 4 seconds
+    setTimeout(() => {
+      this.closeNotificationModal();
+    }, 4000);
+  }
+
+  private showErrorMessage(message: string, actionText?: string, actionCallback?: () => void) {
+    this.notificationMessage = message;
+    this.notificationType = 'error';
+    this.showNotificationModal = true;
+    
+    if (actionText && actionCallback) {
+      this.showActionButton = true;
+      this.actionButtonText = actionText;
+      this.actionCallback = actionCallback;
+      // Don't auto-close if there's an action button
+    } else {
+      this.showActionButton = false;
+      this.actionCallback = null;
+      // Auto-close after 5 seconds (longer for errors)
+      setTimeout(() => {
+        this.closeNotificationModal();
+      }, 5000);
+    }
+  }
+
+  closeNotificationModal() {
+    this.showNotificationModal = false;
+    this.notificationMessage = '';
+    this.showActionButton = false;
+    this.actionCallback = null;
+  }
+
+  executeAction() {
+    if (this.actionCallback) {
+      this.actionCallback();
+    }
+    this.closeNotificationModal();
   }
 }

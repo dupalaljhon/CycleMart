@@ -1,0 +1,246 @@
+<!-- Standalone Reports Page Layout (with sidenav) -->
+<div *ngIf="!isModal" class="flex h-screen bg-white">
+  <!-- Sidenav -->
+  <app-sidenav></app-sidenav>
+
+  <!-- Main Content -->
+  <div class="flex-1 p-4 md:p-6 bg-white overflow-y-auto">
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-black mb-2">My Reports</h1>
+      <p class="text-gray-600">View and track your submitted reports</p>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="flex justify-center items-center h-64">
+      <mat-spinner diameter="50"></mat-spinner>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && reports.length === 0" class="text-center py-16">
+      <div class="bg-white border border-gray-300 rounded-lg p-8">
+        <div class="text-6xl mb-4 text-gray-400">📋</div>
+        <h3 class="text-xl font-bold text-black mb-4">No Reports Yet</h3>
+        <p class="text-gray-600 mb-6">You haven't submitted any reports yet.</p>
+        <button mat-raised-button 
+                color="primary" 
+                class="bg-black text-white hover:bg-gray-800"
+                (click)="goBack()">
+          Back to Home
+        </button>
+      </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div *ngIf="!loading && reports.length > 0" class="bg-white border border-gray-300 rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table mat-table [dataSource]="reports" class="w-full">
+          
+          <!-- Product Image Column -->
+          <ng-container matColumnDef="product_image">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Product</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              <div class="flex items-center">
+                <img [src]="getProductImageUrl(report.product_images)" 
+                     [alt]="report.product_name || 'Product image'"
+                     class="w-12 h-12 object-cover rounded border border-gray-300"
+                     (error)="onImageError($event)">
+                <div class="ml-3" *ngIf="report.product_name">
+                  <div class="text-sm font-medium text-black">{{report.product_name}}</div>
+                  <div class="text-xs text-gray-600">#{{report.report_id}}</div>
+                </div>
+                <div class="ml-3" *ngIf="!report.product_name">
+                  <div class="text-sm text-gray-600">Product #{{report.product_id}}</div>
+                  <div class="text-xs text-gray-600">Report #{{report.report_id}}</div>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Reason Type Column -->
+          <ng-container matColumnDef="reason_type">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Reason</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              <mat-chip class="bg-gray-200 text-black">
+                {{getReasonTypeLabel(report.reason_type)}}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Target Column -->
+          <ng-container matColumnDef="target">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Target</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              <div *ngIf="report.product_id">
+                <strong>Product:</strong> {{report.product_name || 'Product #' + report.product_id}}
+                <div class="text-sm text-gray-600" *ngIf="report.product_price">
+                  Price: ${{report.product_price}}
+                </div>
+              </div>
+              <div *ngIf="report.reported_user_id">
+                <strong>User:</strong> {{report.reported_user_name || 'User #' + report.reported_user_id}}
+                <div class="text-sm text-gray-600" *ngIf="report.reported_user_email">
+                  {{report.reported_user_email}}
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Status</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              <mat-chip [class]="getStatusClass(report.status)">
+                {{getStatusText(report.status)}}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Created Date Column -->
+          <ng-container matColumnDef="created_at">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Date</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              {{formatDate(report.created_at)}}
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Actions</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              <button mat-button 
+                      class="text-black hover:bg-gray-100"
+                      (click)="viewReportDetails(report)">
+                View Details
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover:bg-gray-50"></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Version (no sidenav) -->
+<div *ngIf="isModal" class="report-modal-container">
+  <!-- Header -->
+  <div class="report-modal-header">
+    <h2 class="text-xl font-bold text-black mb-2">
+      Report {{ prefilledProduct ? 'Product' : prefilledUser ? 'User' : 'Content' }}
+    </h2>
+    <p class="text-gray-600">Help us maintain a safe community by reporting inappropriate content or behavior.</p>
+  </div>
+
+  <!-- Submit Report Form -->
+  <form (ngSubmit)="submitReport()" #reportFormRef="ngForm" class="report-form-container">
+    
+    <!-- Debug Section (Development Only) -->
+    <!-- <div class="mb-4 p-3 bg-gray-100 rounded border">
+      <h3 class="text-sm font-bold mb-2">Debug Info:</h3>
+      <p class="text-xs">Modal: {{ isModal }}, User: {{ currentUser?.id || 'None' }}</p>
+      <p class="text-xs">Report Types: {{ reportTypes.length }}, Selected: {{ reportForm.reason_type || 'None' }}</p>
+      <p class="text-xs">Product: {{ prefilledProduct?.product_name || 'None' }}</p>
+    </div> -->
+    
+    <!-- Target Type Selection (hidden if prefilled) -->
+    <div *ngIf="!prefilledProduct && !prefilledUser" class="form-field-container">
+      <mat-form-field appearance="outline" class="w-full report-form-field">
+        <mat-label>What are you reporting?</mat-label>
+        <mat-select [(ngModel)]="reportForm.target_type" name="target_type">
+          <mat-option value="user">User/Profile</mat-option>
+          <mat-option value="product">Product/Listing</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- Target Identifier (hidden if prefilled) -->
+    <div *ngIf="!prefilledProduct && !prefilledUser" class="form-field-container">
+      <mat-form-field appearance="outline" class="w-full report-form-field">
+        <mat-label>{{ reportForm.target_type === 'user' ? 'User ID' : 'Product ID' }}</mat-label>
+        <input matInput 
+               type="number" 
+               [(ngModel)]="reportForm.target_identifier" 
+               name="target_identifier"
+               [placeholder]="'Enter ' + reportForm.target_type + ' ID'"
+               required>
+      </mat-form-field>
+    </div>
+
+    <!-- Reason Type -->
+    <div class="form-field-container">
+      <!-- Test with basic HTML select first -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Test Basic Select:</label>
+        <select [(ngModel)]="reportForm.reason_type" 
+                name="test_reason_type"
+                class="w-full p-2 border border-gray-300 rounded">
+          <option value="">Select a reason...</option>
+          <option value="scam">⚠️ Scam/Fraud</option>
+          <option value="fake product">🚫 Fake Product</option>
+          <option value="spam">📧 Spam</option>
+          <option value="inappropriate content">🔞 Inappropriate Content</option>
+          <option value="misleading information">❌ Misleading Information</option>
+          <option value="stolen item">🚨 Stolen Item</option>
+          <option value="others">📝 Others</option>
+        </select>
+      </div>
+      
+      <!-- Material Select -->
+
+      <!-- Debug info to see if reportTypes is loaded -->
+      <div class="text-xs text-gray-500 mt-1">
+        Debug: reportTypes.length = {{ reportTypes.length }}, Selected: {{ reportForm.reason_type || 'None' }}
+      </div>
+    </div>
+
+    <!-- Reason Details -->
+    <div class="form-field-container">
+      <mat-form-field appearance="fill" class="w-full report-form-field">
+        <mat-label>Detailed Explanation</mat-label>
+        <textarea matInput 
+                  [(ngModel)]="reportForm.reason_details" 
+                  name="reason_details"
+                  placeholder="Please provide detailed information about why you are reporting this..."
+                  required
+                  minlength="10"
+                  rows="4"
+                  class="report-textarea"></textarea>
+      </mat-form-field>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="report-form-actions">
+      <button mat-button 
+              type="button" 
+              class="report-cancel-btn"
+              (click)="goBack()">
+        Cancel
+      </button>
+      <button mat-raised-button 
+              type="submit" 
+              class="report-submit-btn"
+              [disabled]="loading">
+        <span *ngIf="loading">Submitting...</span>
+        <span *ngIf="!loading">Submit Report</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Simple Modal for Messages -->
+<div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" (click)="closeModal()">
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 border border-gray-300" (click)="$event.stopPropagation()">
+    <div class="text-center">
+      <h3 class="text-lg font-bold text-black mb-4">{{ modalTitle }}</h3>
+      <p class="text-gray-600 mb-6">{{ modalMessage }}</p>
+      <button mat-raised-button 
+              class="bg-black text-white hover:bg-gray-800"
+              (click)="closeModal()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
