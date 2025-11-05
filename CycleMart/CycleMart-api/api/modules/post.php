@@ -1141,6 +1141,7 @@ public function submitReport($data) {
     $product_description = $data->product_description ?? null;
     $reason_type = $data->reason_type ?? null;
     $reason_details = $data->reason_details ?? null;
+    $proof = $data->proof ?? null;  // Array of base64 strings from frontend
 
     // Validate required fields
     if (!$reporter_id || !$reason_type) {
@@ -1161,6 +1162,71 @@ public function submitReport($data) {
     // Validate product_images JSON if provided
     if ($product_images !== null && !$this->isValidJson($product_images)) {
         return $this->sendPayload(null, "error", "Product images must be valid JSON", 400);
+    }
+
+    // Process proof files if provided
+    $proofFilePaths = null;
+    if ($proof && is_array($proof)) {
+        $savedProofPaths = [];
+        
+        foreach ($proof as $index => $base64File) {
+            // Validate and save each proof file
+            if (preg_match('/^data:(image|video)\/(\w+);base64,/', $base64File, $matches)) {
+                $fileType = $matches[1];  // 'image' or 'video'
+                $ext = strtolower($matches[2]);
+                
+                // Validate file extension
+                $allowedImageExts = ['jpeg', 'jpg', 'png', 'gif'];
+                $allowedVideoExts = ['mp4', 'webm', 'mov'];
+                
+                if (($fileType === 'image' && !in_array($ext, $allowedImageExts)) ||
+                    ($fileType === 'video' && !in_array($ext, $allowedVideoExts))) {
+                    return $this->sendPayload(null, "error", "Unsupported file type: {$ext}", 400);
+                }
+                
+                // Decode base64 data
+                $imageData = base64_decode(str_replace($matches[0], '', $base64File));
+                
+                if ($imageData === false) {
+                    return $this->sendPayload(null, "error", "Invalid base64 data for proof file", 400);
+                }
+                
+                // Validate file size (10MB limit)
+                $maxSize = 10 * 1024 * 1024; // 10MB
+                if (strlen($imageData) > $maxSize) {
+                    return $this->sendPayload(null, "error", "Proof file too large. Maximum size is 10MB", 400);
+                }
+                
+                // Generate unique filename
+                $filename = 'proof_' . uniqid() . '_' . $index . '.' . $ext;
+                $filePath = 'uploads/proof/' . $filename;
+                
+                // Create uploads/proof directory if it doesn't exist
+                $uploadDir = dirname($filePath);
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                // Save file
+                if (file_put_contents($filePath, $imageData)) {
+                    $savedProofPaths[] = $filePath;
+                } else {
+                    return $this->sendPayload(null, "error", "Failed to save proof file", 500);
+                }
+            } else {
+                return $this->sendPayload(null, "error", "Invalid proof file format", 400);
+            }
+        }
+        
+        // Convert to JSON for database storage
+        if (!empty($savedProofPaths)) {
+            $proofFilePaths = json_encode($savedProofPaths);
+            
+            // Validate JSON format for database constraint
+            if (!$this->isValidJson($proofFilePaths)) {
+                return $this->sendPayload(null, "error", "Failed to encode proof files as JSON", 500);
+            }
+        }
     }
 
     // Check if reporter exists
@@ -1209,6 +1275,7 @@ public function submitReport($data) {
                 product_description, 
                 reason_type, 
                 reason_details, 
+                proof,
                 status, 
                 created_at
             ) VALUES (
@@ -1219,6 +1286,7 @@ public function submitReport($data) {
                 :product_description, 
                 :reason_type, 
                 :reason_details, 
+                :proof,
                 'pending', 
                 NOW()
             )";
@@ -1232,7 +1300,8 @@ public function submitReport($data) {
             ':product_images' => $product_images,
             ':product_description' => $product_description,
             ':reason_type' => $reason_type,
-            ':reason_details' => $reason_details
+            ':reason_details' => $reason_details,
+            ':proof' => $proofFilePaths
         ]);
 
         $report_id = $this->pdo->lastInsertId();
@@ -1279,6 +1348,7 @@ public function getUserReports($user_id) {
                 r.product_description,
                 r.reason_type,
                 r.reason_details,
+                r.proof,
                 r.status,
                 r.created_at,
                 r.reviewed_by,
@@ -1307,10 +1377,13 @@ public function getUserReports($user_id) {
         $stmt->execute([$user_id]);
         $reports = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Convert JSON strings to arrays for product_images if they exist
+        // Convert JSON strings to arrays for product_images and proof if they exist
         foreach ($reports as &$report) {
             if ($report['product_images'] && $this->isValidJson($report['product_images'])) {
                 $report['product_images'] = json_decode($report['product_images'], true);
+            }
+            if ($report['proof'] && $this->isValidJson($report['proof'])) {
+                $report['proof'] = json_decode($report['proof'], true);
             }
         }
 
@@ -1332,6 +1405,7 @@ public function getAllReports() {
                 r.product_description,
                 r.reason_type,
                 r.reason_details,
+                r.proof,
                 r.status,
                 r.created_at,
                 r.reviewed_by,
@@ -1346,6 +1420,11 @@ public function getAllReports() {
                         (SELECT email FROM users WHERE id = r.reporter_id)
                     ELSE NULL 
                 END as reporter_email,
+                CASE 
+                    WHEN r.reporter_id IS NOT NULL THEN 
+                        (SELECT profile_image FROM users WHERE id = r.reporter_id)
+                    ELSE NULL 
+                END as reporter_profile_image,
                 CASE 
                     WHEN r.reported_user_id IS NOT NULL THEN 
                         (SELECT full_name FROM users WHERE id = r.reported_user_id)
@@ -1369,11 +1448,13 @@ public function getAllReports() {
         $stmt->execute();
         $reports = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Convert JSON strings to arrays for product_images if they exist
+        // Convert JSON strings to arrays for product_images but keep proof as JSON string for frontend
         foreach ($reports as &$report) {
             if ($report['product_images'] && $this->isValidJson($report['product_images'])) {
                 $report['product_images'] = json_decode($report['product_images'], true);
             }
+            // Keep proof as JSON string - the frontend will handle parsing
+            // This ensures the TypeScript getProofFileUrls() method works correctly
         }
 
         return $this->sendPayload($reports, "success", "All reports retrieved successfully", 200);

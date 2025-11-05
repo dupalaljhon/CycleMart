@@ -15,6 +15,7 @@ import { FormsModule } from '@angular/forms';
 
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { ApiService } from '../../api/api.service';
+import { ProfileImageService } from '../../services/profile-image.service';
 import { UserDetailModalComponent } from './user-detail-modal/user-detail-modal.component';
 import { DeleteUserModalComponent } from './delete-user-modal/delete-user-modal.component';
 
@@ -73,7 +74,8 @@ export class UserListComponent implements OnInit, AfterViewInit {
   constructor(
     private apiService: ApiService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private profileImageService: ProfileImageService
   ) {}
 
   ngOnInit() {
@@ -120,13 +122,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   getProfileImageUrl(imagePath?: string): string {
-    if (!imagePath) {
-      return 'https://via.placeholder.com/40x40/6366f1/white?text=U';
-    }
-    // The baseUrl already includes '/api/' and imagePath includes 'uploads/profile_xxx.jpeg'
-    const fullUrl = `${this.apiService.baseUrl}${imagePath}`;
-    console.log('Main table image URL:', fullUrl);
-    return fullUrl;
+    return this.profileImageService.getUserProfileImageUrl(imagePath, 'U');
   }
 
   formatDate(dateString: string): string {

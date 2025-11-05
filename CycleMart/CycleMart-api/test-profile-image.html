@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile Image Test</title>
+</head>
+<body>
+    <h1>Profile Image Accessibility Test</h1>
+    
+    <h2>Test Image 1: Direct Path</h2>
+    <img src="http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/profile_68f5cc87bff31.jpeg" 
+         alt="Test Profile Image 1" 
+         style="width: 100px; height: 100px; border: 1px solid #ccc;"
+         onload="console.log('Image 1 loaded successfully')"
+         onerror="console.log('Image 1 failed to load')">
+    
+    <h2>Test Image 2: Placeholder</h2>
+    <img src="https://via.placeholder.com/40x40/6366f1/white?text=R" 
+         alt="Placeholder" 
+         style="width: 100px; height: 100px; border: 1px solid #ccc;"
+         onload="console.log('Placeholder loaded successfully')"
+         onerror="console.log('Placeholder failed to load')">
+    
+    <h2>Test with different path formats:</h2>
+    <p>Path 1: <code>http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/profile_68f5cc87bff31.jpeg</code></p>
+    <p>Path 2: <code>http://localhost/CycleMart/CycleMart/CycleMart-api/uploads/profile_68f5cc87bff31.jpeg</code></p>
+    
+    <div style="display: flex; gap: 20px;">
+        <div>
+            <h3>Path 1 (with api/)</h3>
+            <img src="http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/profile_68f5cc87bff31.jpeg" 
+                 alt="Test Profile Image 2" 
+                 style="width: 100px; height: 100px; border: 1px solid #ccc;"
+                 onload="console.log('Image 2 (with api/) loaded successfully')"
+                 onerror="console.log('Image 2 (with api/) failed to load')">
+        </div>
+        
+        <div>
+            <h3>Path 2 (direct uploads/)</h3>
+            <img src="http://localhost/CycleMart/CycleMart/CycleMart-api/uploads/profile_68f5cc87bff31.jpeg" 
+                 alt="Test Profile Image 3" 
+                 style="width: 100px; height: 100px; border: 1px solid #ccc;"
+                 onload="console.log('Image 3 (direct uploads/) loaded successfully')"
+                 onerror="console.log('Image 3 (direct uploads/) failed to load')">
+        </div>
+    </div>
+
+    <script>
+        console.log('Profile image test page loaded');
+    </script>
+</body>
+</html>

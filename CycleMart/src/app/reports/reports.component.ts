@@ -23,6 +23,7 @@ export interface Report {
   product_description?: string | null;  // Product description from database (text field)
   reason_type: 'scam' | 'fake product' | 'spam' | 'inappropriate content' | 'misleading information' | 'stolen item' | 'others';
   reason_details?: string | null;
+  proof?: string | null;  // JSON string of proof files (images/videos) from database (longtext with json_valid check)
   status: 'pending' | 'reviewed' | 'action_taken';
   created_at: string;  // timestamp from database
   reviewed_by?: number | null;
@@ -42,6 +43,8 @@ export interface ReportForm {
   reason_details: string;
   target_type: 'user' | 'product';
   target_identifier: string;
+  proof_files?: File[];  // Array of proof files (images/videos)
+  proof?: string[];  // Array of base64 strings for proof files
 }
 
 @Component({
@@ -78,13 +81,19 @@ export class ReportsComponent implements OnInit {
   currentUser: any = null;
   
   // Material Table Configuration
-  displayedColumns: string[] = ['product_image', 'reason_type', 'target', 'status', 'created_at', 'actions'];
+  displayedColumns: string[] = ['product_image', 'reason_type', 'target', 'proof', 'status', 'created_at', 'actions'];
   
   // Modal State
   showModal = false;
   modalTitle = '';
   modalMessage = '';
   modalType: 'success' | 'error' | 'info' = 'info';
+  
+  // Proof Modal State
+  showProofModal = false;
+  currentProofFiles: string[] = [];
+  currentProofIndex = 0;
+  currentReportId: number | null = null;
   
   // Form Data (for modal mode only)
   reportForm: ReportForm = {
@@ -93,8 +102,17 @@ export class ReportsComponent implements OnInit {
     target_type: 'product',  // Default to product reporting
     target_identifier: '',
     reported_user_id: null,
-    product_id: null
+    product_id: null,
+    proof_files: [],
+    proof: []
   };
+  
+  // Proof file handling
+  selectedProofFiles: File[] = [];
+  proofPreviews: { file: File, url: string, type: 'image' | 'video' }[] = [];
+  maxProofFiles = 5;
+  maxFileSize = 10 * 1024 * 1024; // 10MB
+  allowedFileTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm', 'video/mov'];
   
   // Report Types (for display purposes)
   reportTypes = [
@@ -216,13 +234,16 @@ export class ReportsComponent implements OnInit {
     console.log('🔵 REPORTS: Form validation passed, preparing data...');
     this.loading = true;
     
-    // Prepare report data based on database table structure
-    const reportData: any = {
-      reporter_id: this.currentUser.id,
-      reason_type: this.reportForm.reason_type,
-      reason_details: this.reportForm.reason_details || null,
-      status: 'pending'  // Default status as per database
-    };
+    // Convert proof files to base64 if any
+    this.convertProofFilesToBase64().then(proofBase64Array => {
+      // Prepare report data based on database table structure
+      const reportData: any = {
+        reporter_id: this.currentUser.id,
+        reason_type: this.reportForm.reason_type,
+        reason_details: this.reportForm.reason_details || null,
+        proof: proofBase64Array.length > 0 ? proofBase64Array : null,  // Array of base64 strings
+        status: 'pending'  // Default status as per database
+      };
 
     // Add target information based on type
     if (this.reportForm.target_type === 'user') {
@@ -313,6 +334,11 @@ export class ReportsComponent implements OnInit {
         this.showErrorMessage(errorMessage);
       }
     });
+    }).catch(error => {
+      this.loading = false;
+      console.error('Error converting proof files:', error);
+      this.showErrorMessage('Error processing proof files. Please try again.');
+    });
   }
 
   // Form Validation (for modal mode only)
@@ -371,13 +397,17 @@ export class ReportsComponent implements OnInit {
   // Reset Form (for modal mode only)
   resetForm(): void {
     this.reportForm = {
-      reason_type: 'scam',
+      reason_type: null,
       reason_details: '',
       target_type: 'product',
       target_identifier: '',
       reported_user_id: null,
-      product_id: null
+      product_id: null,
+      proof_files: [],
+      proof: []
     };
+    this.selectedProofFiles = [];
+    this.proofPreviews = [];
   }
 
   // Load user's reports
@@ -455,6 +485,84 @@ export class ReportsComponent implements OnInit {
 
   closeModal(): void {
     this.showModal = false;
+  }
+
+  // Proof Modal Methods
+  viewProofFiles(report: Report): void {
+    const proofUrls = this.getProofFileUrls(report.proof || null);
+    if (proofUrls.length === 0) {
+      this.showErrorMessage('No proof files available');
+      return;
+    }
+
+    this.currentProofFiles = proofUrls;
+    this.currentProofIndex = 0;
+    this.currentReportId = report.report_id;
+    this.showProofModal = true;
+    
+    console.log('🔍 PROOF MODAL: Opening proof modal for report:', report.report_id, 'with files:', proofUrls);
+  }
+
+  // Navigate through proof files
+  previousProofFile(): void {
+    if (this.currentProofIndex > 0) {
+      this.currentProofIndex--;
+    }
+  }
+
+  nextProofFile(): void {
+    if (this.currentProofIndex < this.currentProofFiles.length - 1) {
+      this.currentProofIndex++;
+    }
+  }
+
+  // Close proof modal
+  closeProofModal(): void {
+    this.showProofModal = false;
+    this.currentProofFiles = [];
+    this.currentProofIndex = 0;
+    this.currentReportId = null;
+  }
+
+  // Get current proof file
+  getCurrentProofFile(): string {
+    return this.currentProofFiles[this.currentProofIndex] || '';
+  }
+
+  // Check if current file is an image
+  isCurrentFileImage(): boolean {
+    return this.isProofImage(this.getCurrentProofFile());
+  }
+
+  // Check if current file is a video
+  isCurrentFileVideo(): boolean {
+    return this.isProofVideo(this.getCurrentProofFile());
+  }
+
+  // Handle modal image errors
+  onModalImageError(event: Event): void {
+    console.error('🔍 PROOF MODAL: Image load error:', event);
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
+    }
+  }
+
+  // Get file type for display
+  getProofFileType(url: string): string {
+    if (this.isProofImage(url)) {
+      if (url.toLowerCase().includes('.jpg') || url.toLowerCase().includes('.jpeg')) return 'JPEG Image';
+      if (url.toLowerCase().includes('.png')) return 'PNG Image';
+      if (url.toLowerCase().includes('.gif')) return 'GIF Image';
+      return 'Image';
+    }
+    if (this.isProofVideo(url)) {
+      if (url.toLowerCase().includes('.mp4')) return 'MP4 Video';
+      if (url.toLowerCase().includes('.webm')) return 'WebM Video';
+      if (url.toLowerCase().includes('.mov')) return 'MOV Video';
+      return 'Video';
+    }
+    return 'File';
   }
 
   // Close modal for parent component
@@ -801,5 +909,181 @@ export class ReportsComponent implements OnInit {
     }
 
     return true;
+  }
+
+  // Proof File Upload Methods
+  
+  onProofFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      this.handleProofFiles(Array.from(input.files));
+    }
+  }
+
+  onProofFilesDrop(event: DragEvent): void {
+    event.preventDefault();
+    if (event.dataTransfer?.files) {
+      this.handleProofFiles(Array.from(event.dataTransfer.files));
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  private handleProofFiles(files: File[]): void {
+    for (const file of files) {
+      if (this.selectedProofFiles.length >= this.maxProofFiles) {
+        this.showErrorMessage(`Maximum ${this.maxProofFiles} proof files allowed`);
+        break;
+      }
+
+      if (!this.validateProofFile(file)) {
+        continue;
+      }
+
+      this.selectedProofFiles.push(file);
+      this.createProofPreview(file);
+    }
+    
+    this.reportForm.proof_files = this.selectedProofFiles;
+  }
+
+  private validateProofFile(file: File): boolean {
+    // Check file size
+    if (file.size > this.maxFileSize) {
+      this.showErrorMessage(`File "${file.name}" is too large. Maximum size is ${this.maxFileSize / (1024 * 1024)}MB`);
+      return false;
+    }
+
+    // Check file type
+    if (!this.allowedFileTypes.includes(file.type)) {
+      this.showErrorMessage(`File "${file.name}" has unsupported format. Allowed: images (JPEG, PNG, GIF) and videos (MP4, WebM, MOV)`);
+      return false;
+    }
+
+    // Check if file already selected
+    if (this.selectedProofFiles.some(f => f.name === file.name && f.size === file.size)) {
+      this.showErrorMessage(`File "${file.name}" is already selected`);
+      return false;
+    }
+
+    return true;
+  }
+
+  private createProofPreview(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      const type = file.type.startsWith('image/') ? 'image' : 'video';
+      this.proofPreviews.push({ file, url, type });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeProofFile(index: number): void {
+    this.selectedProofFiles.splice(index, 1);
+    this.proofPreviews.splice(index, 1);
+    this.reportForm.proof_files = this.selectedProofFiles;
+  }
+
+  private async convertProofFilesToBase64(): Promise<string[]> {
+    const base64Files: string[] = [];
+    
+    for (const file of this.selectedProofFiles) {
+      try {
+        const base64 = await this.fileToBase64(file);
+        base64Files.push(base64);
+      } catch (error) {
+        console.error('Error converting file to base64:', error);
+        throw new Error(`Failed to process file: ${file.name}`);
+      }
+    }
+    
+    return base64Files;
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Get proof file URLs for display
+  getProofFileUrls(proof: string | null): string[] {
+    console.log('🔍 PROOF: getProofFileUrls called with:', proof);
+    console.log('🔍 PROOF: Type:', typeof proof);
+    
+    // Handle null, undefined, empty string cases
+    if (!proof || proof === null || proof === undefined || proof === '' || proof === 'null') {
+      console.log('🔍 PROOF: No proof data found');
+      return [];
+    }
+    
+    try {
+      // If it's already an array, return it
+      if (Array.isArray(proof)) {
+        console.log('🔍 PROOF: Already an array:', proof);
+        return proof.map(path => this.buildImageUrl(path));
+      }
+      
+      // Try to parse as JSON
+      const proofArray = JSON.parse(proof);
+      console.log('🔍 PROOF: Parsed JSON:', proofArray);
+      
+      if (Array.isArray(proofArray)) {
+        // Filter out empty or null items
+        const validPaths = proofArray.filter(path => path && path !== null && path !== '');
+        console.log('🔍 PROOF: Valid paths:', validPaths);
+        return validPaths.map(path => this.buildImageUrl(path));
+      } else if (proofArray && typeof proofArray === 'string') {
+        // Single file as string
+        console.log('🔍 PROOF: Single file string:', proofArray);
+        return [this.buildImageUrl(proofArray)];
+      }
+    } catch (error) {
+      console.error('🔍 PROOF: Error parsing proof JSON:', error);
+      console.error('🔍 PROOF: Original data:', proof);
+      
+      // If JSON parsing fails, try to treat as a single string path
+      if (typeof proof === 'string' && proof.trim().length > 0 && proof !== 'null' && proof !== '[]') {
+        console.log('🔍 PROOF: Treating as single string path:', proof);
+        return [this.buildImageUrl(proof.trim())];
+      }
+    }
+    
+    console.log('🔍 PROOF: Returning empty array');
+    return [];
+  }
+
+  // Check if proof file is image
+  isProofImage(url: string): boolean {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+    return imageExtensions.some(ext => url.toLowerCase().includes(ext));
+  }
+
+  // Check if proof file is video
+  isProofVideo(url: string): boolean {
+    const videoExtensions = ['.mp4', '.webm', '.mov'];
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+  }
+
+  // Get file icon for proof files
+  getProofFileIcon(url: string): string {
+    if (this.isProofImage(url)) return '🖼️';
+    if (this.isProofVideo(url)) return '🎥';
+    return '📁';
+  }
+
+  // Open proof file in new tab
+  openProofFile(url: string): void {
+    window.open(url, '_blank');
   }
 }

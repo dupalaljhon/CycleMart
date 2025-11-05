@@ -4,8 +4,9 @@ import { RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api/api.service';
-import { ReportsComponent } from '../reports/reports.component';
+
 import { NotificationService } from '../services/notification.service';
+import { ReportsComponent } from '../reports/reports.component';
 
 @Component({
   selector: 'app-home',
@@ -58,6 +59,9 @@ export class HomeComponent implements OnInit {
   // Profile modal state
   showProfileModal: boolean = false;
   selectedSellerProfile: any = null;
+  profileModalActiveTab: 'reviews' | 'listings' = 'reviews';
+  sellerOtherListings: any[] = [];
+  loadingOtherListings: boolean = false;
 
   // Reviews modal state
   showReviewsModal: boolean = false;
@@ -232,23 +236,21 @@ export class HomeComponent implements OnInit {
     return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/${cleanImageName}`;
   }
 
-  getProfileImageUrl(profileImage: string | null, username?: string): string {
-    if (!profileImage) {
-      // Generate a personalized avatar with the user's name or default
-      const displayName = username || 'User';
-      const encodedName = encodeURIComponent(displayName);
-      return `https://ui-avatars.com/api/?name=${encodedName}&background=000000&color=ffffff&size=128`;
+  getProfileImageUrl(profileImage: string | null, username?: string): string | null {
+    if (!profileImage || profileImage.trim() === '') {
+      // Return null when no profile image exists
+      return null;
     }
     
-    // Handle base64 images
+    // Handle base64 images (actual uploaded images)
     if (profileImage.startsWith('data:')) {
       return profileImage;
     }
     
     // Remove any extra path prefixes from the image name
     const cleanImageName = profileImage.replace(/^uploads[\/\\]/, '');
-    // Create the correct path to the uploads folder
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/${cleanImageName}`;
+    // Create the correct path to the uploads folder (actual uploaded images)
+    return `http://localhost/CycleMart/CycleMart/CycleMart-api/uploads/${cleanImageName}`;
   }
 
   formatSaleType(forType: string): string {
@@ -1027,6 +1029,13 @@ export class HomeComponent implements OnInit {
     console.log('Opening profile modal for:', product.seller);
     console.log('Product data:', product); // Debug log to see available fields
     
+    // Reset modal state
+    this.profileModalActiveTab = 'reviews';
+    this.sellerOtherListings = [];
+    this.loadingOtherListings = false;
+    this.sellerReviews = [];
+    this.loadingReviews = false;
+    
     // Show modal immediately with basic info
     this.selectedSellerProfile = {
       seller_name: product.seller || product.seller_name,
@@ -1048,6 +1057,8 @@ export class HomeComponent implements OnInit {
     if (product.uploader_id) {
       console.log('Loading seller details for uploader_id:', product.uploader_id);
       this.loadSellerDetails(product.uploader_id);
+      // Load reviews by default since Reviews tab is active
+      this.loadSellerReviews(this.selectedSellerProfile);
     } else {
       console.error('No uploader_id found in product data');
       this.selectedSellerProfile.loading = false;
@@ -1118,6 +1129,9 @@ export class HomeComponent implements OnInit {
   closeProfileModal() {
     this.showProfileModal = false;
     this.selectedSellerProfile = null;
+    this.profileModalActiveTab = 'reviews';
+    this.sellerOtherListings = [];
+    this.loadingOtherListings = false;
   }
 
   // Open reviews modal for selected seller
@@ -1150,13 +1164,27 @@ export class HomeComponent implements OnInit {
         next: (response) => {
           console.log('Seller reviews response:', response);
           if (response && response.data && Array.isArray(response.data)) {
+            console.log('Raw review data:', response.data);
             this.sellerReviews = response.data.map((review: any) => ({
-              reviewer_name: review.reviewer_name || 'Anonymous',
-              reviewer_profile_image: review.reviewer_profile_image || null,
-              rating: parseInt(review.rating) || 0,
-              comment: review.comment || '',
-              created_at: review.created_at || new Date().toISOString()
+              buyer_name: review.buyer_name || 'Anonymous',
+              buyer_profile_image: review.buyer_profile_image || null,
+              // Use the calculated average stars from the API
+              stars: parseFloat(review.average_stars) || 0,
+              // Use 'feedback' field from the actual database schema
+              review_text: review.feedback || '',
+              product_name: review.product_name || '',
+              created_at: review.created_at || new Date().toISOString(),
+              // Include individual ratings for detailed display
+              communication_rating: parseInt(review.communication_rating) || 0,
+              product_rating: parseInt(review.product_rating) || 0,
+              app_help_rating: parseInt(review.app_help_rating) || 0,
+              // Keep original data for any additional fields
+              ...review
             }));
+            console.log('Mapped seller reviews:', this.sellerReviews);
+          } else {
+            console.log('No review data found or invalid format');
+            this.sellerReviews = [];
           }
           this.loadingReviews = false;
         },
@@ -1230,5 +1258,178 @@ export class HomeComponent implements OnInit {
     } catch (error) {
       return 'Unknown date';
     }
+  }
+
+  // ===== PROFILE MODAL TAB METHODS =====
+
+  // Switch between tabs in profile modal
+  switchProfileModalTab(tab: 'reviews' | 'listings') {
+    this.profileModalActiveTab = tab;
+    
+    // Load data for the selected tab if not already loaded
+    if (tab === 'listings' && this.sellerOtherListings.length === 0 && this.selectedSellerProfile) {
+      this.loadSellerOtherListings(this.selectedSellerProfile.uploader_id);
+    } else if (tab === 'reviews' && this.sellerReviews.length === 0 && this.selectedSellerProfile) {
+      this.loadSellerReviews(this.selectedSellerProfile);
+    }
+  }
+
+  // Load seller's other listings
+  loadSellerOtherListings(uploaderId: number) {
+    this.loadingOtherListings = true;
+    
+    this.apiService.getProductsByUser(uploaderId).subscribe({
+      next: (response) => {
+        console.log('Other listings response:', response);
+        if (response && response.data) {
+          // Filter out inactive products and enrich with seller info
+          this.sellerOtherListings = response.data
+            .filter((product: any) => 
+              product.status === 'active' && product.sale_status === 'available'
+            )
+            .map((product: any) => ({
+              ...product,
+              // Ensure seller information is available
+              seller: product.seller_name || this.selectedSellerProfile?.seller_name,
+              seller_name: product.seller_name || this.selectedSellerProfile?.seller_name,
+              seller_email: product.seller_email || this.selectedSellerProfile?.email,
+              seller_profile_image: product.seller_profile_image || this.selectedSellerProfile?.seller_profile_image
+            }));
+        } else {
+          this.sellerOtherListings = [];
+        }
+        this.loadingOtherListings = false;
+      },
+      error: (error) => {
+        console.error('Error loading other listings:', error);
+        this.sellerOtherListings = [];
+        this.loadingOtherListings = false;
+      }
+    });
+  }
+
+  // View specific product from other listings
+  viewProductFromListings(product: any) {
+    console.log('Opening product from other listings:', product);
+    
+    // Enrich the product data to ensure it has all required fields for the modal
+    const enrichedProduct = {
+      ...product,
+      // Convert database field names to modal expected format
+      productImages: this.parseProductImages(product.product_images),
+      productVideos: this.parseProductVideos(product.product_videos),
+      // Ensure images and videos arrays exist for compatibility
+      images: this.parseProductImages(product.product_images),
+      videos: this.parseProductVideos(product.product_videos),
+      // Ensure seller information is complete
+      seller: product.seller_name || product.seller || 'Unknown Seller',
+      seller_name: product.seller_name || 'Unknown Seller',
+      seller_profile_image: product.seller_profile_image,
+      // Use location as fallback for missing data
+      location: product.location || 'Location not specified',
+      // Ensure proper ID field
+      id: product.product_id || product.id
+    };
+    
+    // Debug the enriched product
+    this.debugProductModal(enrichedProduct);
+    
+    this.closeProfileModal();
+    this.openProductModal(enrichedProduct);
+  }
+
+  // Contact seller about a specific listing
+  contactSellerAboutListing(product: any) {
+    this.closeProfileModal();
+    this.contactSeller(product);
+  }
+
+  // Helper method to get first image from product images
+  getFirstProductImage(productImages: string): string {
+    try {
+      const images = JSON.parse(productImages || '[]');
+      return images.length > 0 ? images[0] : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  // Helper method to get image count
+  getImageCount(productImages: string): number {
+    try {
+      const images = JSON.parse(productImages || '[]');
+      return Array.isArray(images) ? images.length : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  // Helper method to get video count
+  getVideoCount(productVideos: string): number {
+    try {
+      const videos = JSON.parse(productVideos || '[]');
+      return Array.isArray(videos) ? videos.length : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  // Helper method to parse product images
+  parseProductImages(productImages: string): string[] {
+    try {
+      const images = JSON.parse(productImages || '[]');
+      return Array.isArray(images) ? images : [];
+    } catch (error) {
+      console.error('Error parsing product images:', error);
+      return [];
+    }
+  }
+
+  // Helper method to parse product videos
+  parseProductVideos(productVideos: string): string[] {
+    try {
+      const videos = JSON.parse(productVideos || '[]');
+      return Array.isArray(videos) ? videos : [];
+    } catch (error) {
+      console.error('Error parsing product videos:', error);
+      return [];
+    }
+  }
+
+  // Quick view listing method
+  quickViewListing(listing: any) {
+    // Use the same enrichment logic as viewProductFromListings
+    this.viewProductFromListings(listing);
+  }
+
+  // Debug method to test ratings API (can be removed in production)
+  testRatingsAPI(sellerId: number) {
+    console.log('Testing ratings API for seller:', sellerId);
+    this.apiService.getUserRatings(sellerId).subscribe({
+      next: (response) => {
+        console.log('Direct API test response:', response);
+        if (response && response.data) {
+          console.log('Sample rating data:', response.data[0]);
+        }
+      },
+      error: (error) => {
+        console.error('API test error:', error);
+      }
+    });
+  }
+
+  // Debug method to log product modal data (can be removed in production)
+  debugProductModal(product: any) {
+    console.log('=== Product Modal Debug ===');
+    console.log('Product ID:', product.id || product.product_id);
+    console.log('Product Name:', product.product_name);
+    console.log('Seller Name:', product.seller || product.seller_name);
+    console.log('Seller Profile Image:', product.seller_profile_image);
+    console.log('Product Images (raw):', product.product_images);
+    console.log('Product Videos (raw):', product.product_videos);
+    console.log('Product Images (parsed):', product.productImages);
+    console.log('Product Videos (parsed):', product.productVideos);
+    console.log('Full Product Object:', product);
+    console.log('========================');
   }
 }

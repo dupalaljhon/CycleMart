@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdminSidenavComponent } from "../admin-sidenav/admin-sidenav.component";
 import { ApiService } from '../../api/api.service';
+import { ProfileImageService } from '../../services/profile-image.service';
 
 interface Product {
   product_id: number;
@@ -34,6 +35,7 @@ interface Product {
   uploader_id: number;
   seller_name?: string;
   seller_email?: string;
+  seller_profile_image?: string;
 }
 
 @Component({
@@ -104,7 +106,8 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
   constructor(
     private apiService: ApiService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private profileImageService: ProfileImageService
   ) {}
 
   ngOnInit() {
@@ -484,5 +487,15 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
       const months = Math.floor(diffInDays / 30);
       return `${months} month${months > 1 ? 's' : ''} ago`;
     }
+  }
+
+  // Get seller profile image URL
+  getSellerProfileImageUrl(profileImage: string | null | undefined): string {
+    return this.profileImageService.getUserProfileImageUrl(profileImage, 'S');
+  }
+
+  // Handle seller profile image errors
+  onSellerImageError(event: any): void {
+    this.profileImageService.onImageError(event, 'seller');
   }
 }

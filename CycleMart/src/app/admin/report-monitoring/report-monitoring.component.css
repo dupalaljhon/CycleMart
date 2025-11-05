@@ -220,3 +220,376 @@
   color: #6b7280;
   font-size: 16px;
 }
+
+/* Proof Modal Styles - Enhanced for better UI */
+.proof-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.proof-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 90vw;
+  max-height: 95vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Minimal View Button Styling */
+.minimal-view-button {
+  font-size: 13px !important;
+  padding: 6px 12px !important;
+  min-width: auto !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  color: #3b82f6 !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+}
+
+.minimal-view-button:hover {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.minimal-view-button mat-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Modal Navigation Buttons */
+.minimal-nav-button {
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  transition: all 0.2s ease !important;
+}
+
+.minimal-nav-button:hover:not([disabled]) {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+.minimal-nav-button[disabled] {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.minimal-nav-button mat-icon {
+  font-size: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Modal Action Buttons */
+.minimal-action-button {
+  padding: 8px 20px !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+}
+
+.minimal-action-button:hover {
+  background: #f9fafb !important;
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+  transform: translateY(-1px);
+}
+
+.minimal-action-button mat-icon {
+  font-size: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Enhanced Modal Content */
+.proof-modal-header {
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+}
+
+.proof-modal-content {
+  background: #f9fafb;
+  min-height: 500px;
+}
+
+.proof-modal-footer {
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+/* Enhanced Image/Video Display */
+.proof-image,
+.proof-video {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.proof-image:hover {
+  transform: scale(1.01);
+}
+
+/* File Type Icons Enhancement */
+.file-type-icon {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation Dots Enhancement */
+.nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nav-dot.active {
+  background-color: #3b82f6;
+  transform: scale(1.2);
+}
+
+.nav-dot:not(.active) {
+  background-color: #d1d5db;
+}
+
+.nav-dot:not(.active):hover {
+  background-color: #9ca3af;
+  transform: scale(1.1);
+}
+
+/* Backdrop Enhancement */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Enhanced Table Styling */
+.modern-table {
+  background: white !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.modern-header-row {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: linear-gradient(to right, #f8fafc, #f1f5f9) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.mat-mdc-header-cell {
+  padding: 16px 12px !important;
+  background: transparent !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  letter-spacing: 0.025em !important;
+}
+
+.mat-mdc-cell {
+  padding: 16px 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  vertical-align: middle !important;
+}
+
+.mat-mdc-row {
+  transition: background-color 0.2s ease !important;
+}
+
+.mat-mdc-row:hover {
+  background-color: #f9fafb !important;
+}
+
+/* Minimal Button Styling */
+.minimal-button {
+  padding: 8px 20px !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+  text-transform: none !important;
+}
+
+.minimal-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Action Buttons Enhancement */
+.mat-mdc-icon-button {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  transform: scale(1.05);
+}
+
+/* Card Enhancement */
+.mat-mdc-card {
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #f3f4f6 !important;
+}
+
+/* Chip Styling Enhancement */
+.mat-mdc-chip {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 6px 12px !important;
+  border-radius: 20px !important;
+  border: none !important;
+}
+
+/* Form Field Enhancement */
+.mat-mdc-form-field {
+  font-size: 14px !important;
+}
+
+.mat-mdc-form-field .mdc-floating-label {
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+}
+
+/* Toolbar Enhancement */
+.mat-toolbar {
+  border-bottom: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* No Data State Enhancement */
+.no-data-state {
+  padding: 60px 20px !important;
+  text-align: center !important;
+}
+
+.no-data-state mat-icon {
+  color: #d1d5db !important;
+  margin-bottom: 16px !important;
+}
+
+.no-data-state h3 {
+  color: #374151 !important;
+  margin-bottom: 8px !important;
+}
+
+.no-data-state p {
+  color: #6b7280 !important;
+}
+
+/* Responsive Modal Enhancements */
+@media (max-width: 768px) {
+  .proof-modal {
+    max-width: 95vw;
+    max-height: 90vh;
+    margin: 20px;
+    border-radius: 12px;
+  }
+  
+  .proof-modal-content {
+    padding: 16px;
+    min-height: 300px;
+  }
+  
+  .proof-modal-header {
+    padding: 16px;
+  }
+  
+  .proof-modal-footer {
+    padding: 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .minimal-nav-button,
+  .minimal-action-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .minimal-view-button {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    height: 28px !important;
+  }
+}
+
+/* Loading and Error State Enhancements */
+.loading-container,
+.error-container {
+  padding: 40px 20px;
+}
+
+/* Smooth Transitions */
+* {
+  transition: all 0.2s ease;
+}
+
+/* Focus States */
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Custom Scrollbar for Modal */
+.proof-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.proof-modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.proof-modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.proof-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

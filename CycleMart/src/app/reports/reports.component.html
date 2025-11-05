@@ -86,6 +86,26 @@
             </td>
           </ng-container>
 
+          <!-- Proof Column -->
+          <ng-container matColumnDef="proof">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Proof</th>
+            <td mat-cell *matCellDef="let report" class="text-black">
+              <div *ngIf="!report.proof || report.proof === '' || report.proof === 'null' || report.proof === '[]' || getProofFileUrls(report.proof).length === 0" 
+                   class="text-sm text-gray-600 italic">
+                No proof
+              </div>
+              <div *ngIf="report.proof && report.proof !== '' && report.proof !== 'null' && report.proof !== '[]' && getProofFileUrls(report.proof).length > 0" 
+                   class="flex flex-col items-center gap-1">
+                <button mat-button 
+                        (click)="viewProofFiles(report)"
+                        class="text-blue-600 hover:bg-blue-50 rounded px-3 py-1 text-sm">
+                  <mat-icon class="text-base mr-1">visibility</mat-icon>
+                  <span class="text-sm">View ({{ getProofFileUrls(report.proof).length }})</span>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
           <!-- Status Column -->
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef class="bg-gray-100 text-black font-bold">Status</th>
@@ -211,6 +231,85 @@
       </mat-form-field>
     </div>
 
+    <!-- Proof Upload Section -->
+    <div class="form-field-container">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Upload Proof (Optional)
+        <span class="text-xs text-gray-500 ml-1">- Images or videos that support your report</span>
+      </label>
+      
+      <!-- File Upload Area -->
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50 hover:bg-gray-100 transition-colors"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onProofFilesDrop($event)">
+        
+        <!-- Upload Icon and Text -->
+        <div class="mb-4">
+          <mat-icon class="text-4xl text-gray-400 mb-2">cloud_upload</mat-icon>
+          <p class="text-gray-600">
+            Drag and drop files here or 
+            <label class="text-blue-600 hover:text-blue-800 cursor-pointer underline">
+              browse files
+              <input type="file" 
+                     #proofFileInput
+                     multiple 
+                     accept="image/*,video/*"
+                     (change)="onProofFilesSelected($event)"
+                     class="hidden">
+            </label>
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Supported: Images (JPEG, PNG, GIF) and Videos (MP4, WebM, MOV) • Max {{maxFileSize / (1024 * 1024)}}MB per file • Up to {{maxProofFiles}} files
+          </p>
+        </div>
+      </div>
+
+      <!-- Selected Files Preview -->
+      <div *ngIf="proofPreviews.length > 0" class="mt-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Selected Proof Files ({{proofPreviews.length}}/{{maxProofFiles}}):</h4>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div *ngFor="let preview of proofPreviews; let i = index" 
+               class="relative bg-white border border-gray-200 rounded-lg p-2">
+            
+            <!-- Image Preview -->
+            <div *ngIf="preview.type === 'image'" class="aspect-square bg-gray-100 rounded overflow-hidden mb-2">
+              <img [src]="preview.url" 
+                   [alt]="preview.file.name"
+                   class="w-full h-full object-cover">
+            </div>
+            
+            <!-- Video Preview -->
+            <div *ngIf="preview.type === 'video'" class="aspect-square bg-gray-100 rounded overflow-hidden mb-2 flex items-center justify-center">
+              <video [src]="preview.url" 
+                     class="w-full h-full object-cover"
+                     controls="false"
+                     muted>
+              </video>
+              <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 rounded">
+                <mat-icon class="text-white text-2xl">play_circle</mat-icon>
+              </div>
+            </div>
+            
+            <!-- File Info -->
+            <div class="text-xs text-gray-600 truncate mb-1" [title]="preview.file.name">
+              {{ preview.file.name }}
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ (preview.file.size / 1024 / 1024).toFixed(1) }} MB
+            </div>
+            
+            <!-- Remove Button -->
+            <button type="button"
+                    (click)="removeProofFile(i)"
+                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors">
+              <mat-icon class="text-sm">close</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Submit Buttons -->
     <div class="report-form-actions">
       <button mat-button 
@@ -240,6 +339,132 @@
               class="bg-black text-white hover:bg-gray-800"
               (click)="closeModal()">
         OK
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Proof Files Viewing Modal -->
+<div *ngIf="showProofModal" 
+     class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+     style="z-index: 9999;"
+     (click)="closeProofModal()">
+  <div class="relative w-full max-w-5xl max-h-[95vh] bg-white rounded-xl shadow-xl overflow-hidden mx-4" 
+       (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-100">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+          <mat-icon class="text-blue-600 text-lg">attach_file</mat-icon>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">
+            Proof Files
+          </h3>
+          <p class="text-sm text-gray-500">
+            <!-- Report #{{ currentReportId }} • {{ currentProofIndex + 1 }} of {{ currentProofFiles.length }} -->
+              {{ currentProofIndex + 1 }} of {{ currentProofFiles.length }}
+          </p>
+        </div>
+      </div>
+      <button mat-icon-button 
+              (click)="closeProofModal()" 
+              class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="flex flex-col items-center justify-center p-8 min-h-[500px] max-h-[75vh] overflow-auto bg-gray-50">
+      <!-- Image Display -->
+      <div *ngIf="isCurrentFileImage()" class="flex flex-col items-center w-full">
+        <div class="relative bg-white rounded-lg shadow-sm p-4 max-w-full">
+          <img [src]="getCurrentProofFile()" 
+               [alt]="'Proof file ' + (currentProofIndex + 1)"
+               class="max-w-full max-h-[60vh] object-contain rounded-md"
+               (error)="onModalImageError($event)">
+        </div>
+        <p class="mt-4 text-sm text-gray-600 text-center font-medium">
+          {{ getProofFileType(getCurrentProofFile()) }} • File {{ currentProofIndex + 1 }} of {{ currentProofFiles.length }}
+        </p>
+      </div>
+
+      <!-- Video Display -->
+      <div *ngIf="isCurrentFileVideo()" class="flex flex-col items-center w-full">
+        <div class="relative bg-white rounded-lg shadow-sm p-4 max-w-full">
+          <video [src]="getCurrentProofFile()" 
+                 controls 
+                 class="max-w-full max-h-[60vh] rounded-md"
+                 preload="metadata">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <p class="mt-4 text-sm text-gray-600 text-center font-medium">
+          {{ getProofFileType(getCurrentProofFile()) }} • File {{ currentProofIndex + 1 }} of {{ currentProofFiles.length }}
+        </p>
+      </div>
+
+      <!-- Unsupported File Type -->
+      <div *ngIf="!isCurrentFileImage() && !isCurrentFileVideo()" class="flex flex-col items-center text-center">
+        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <mat-icon class="text-4xl text-gray-400">insert_drive_file</mat-icon>
+        </div>
+        <h4 class="text-lg font-medium text-gray-800 mb-2">Preview Not Available</h4>
+        <p class="text-sm text-gray-500 mb-6 max-w-md">This file type cannot be previewed in the browser.</p>
+        <button mat-raised-button 
+                color="primary" 
+                (click)="openProofFile(getCurrentProofFile())"
+                class="bg-blue-600 text-white hover:bg-blue-700">
+          <mat-icon class="mr-2">open_in_new</mat-icon>
+          Open File
+        </button>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="currentProofFiles.length === 0" class="flex flex-col items-center text-center">
+        <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
+          <mat-icon class="text-4xl text-red-400">error_outline</mat-icon>
+        </div>
+        <h4 class="text-lg font-medium text-gray-800 mb-2">No Files Available</h4>
+        <p class="text-sm text-gray-500">No proof files found for this report.</p>
+      </div>
+    </div>
+
+    <!-- Modal Footer with Navigation -->
+    <div *ngIf="currentProofFiles.length > 0" class="flex justify-between items-center px-6 py-4 bg-white border-t border-gray-100">
+      <!-- Previous Button -->
+      <button mat-button 
+              [disabled]="currentProofIndex === 0"
+              (click)="previousProofFile()"
+              class="text-gray-600 hover:bg-gray-100 rounded px-4 py-2">
+        <mat-icon class="mr-1 text-lg">chevron_left</mat-icon>
+        Previous
+      </button>
+
+      <!-- File Navigation Indicators -->
+      <div class="flex items-center space-x-4">
+        <span class="text-sm text-gray-500 font-medium">
+          {{ currentProofIndex + 1 }} / {{ currentProofFiles.length }}
+        </span>
+        <!-- Dots Navigation -->
+        <div class="flex space-x-1" *ngIf="currentProofFiles.length > 1">
+          <button *ngFor="let file of currentProofFiles; let i = index" 
+                  class="w-2 h-2 rounded-full transition-all duration-200 focus:outline-none"
+                  [class.bg-blue-600]="i === currentProofIndex"
+                  [class.bg-gray-300]="i !== currentProofIndex"
+                  [class.hover:bg-gray-400]="i !== currentProofIndex"
+                  (click)="currentProofIndex = i">
+          </button>
+        </div>
+      </div>
+
+      <!-- Next Button -->
+      <button mat-button 
+              [disabled]="currentProofIndex === currentProofFiles.length - 1"
+              (click)="nextProofFile()"
+              class="text-gray-600 hover:bg-gray-100 rounded px-4 py-2">
+        Next
+        <mat-icon class="ml-1 text-lg">chevron_right</mat-icon>
       </button>
     </div>
   </div>

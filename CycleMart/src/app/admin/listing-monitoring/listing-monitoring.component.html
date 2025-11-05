@@ -227,9 +227,10 @@
             </th>
             <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-semibold">
-                  {{ (product.seller_name || 'U').charAt(0).toUpperCase() }}
-                </div>
+                <img [src]="getSellerProfileImageUrl(product.seller_profile_image)" 
+                     [alt]="product.seller_name || 'Seller'"
+                     class="w-10 h-10 object-cover rounded-full border border-gray-200"
+                     (error)="onSellerImageError($event)">
                 <div>
                   <div class="font-medium text-gray-900">{{ product.seller_name || 'Unknown' }}</div>
                   <div class="text-sm text-gray-500">{{ product.seller_email || 'No email' }}</div>
