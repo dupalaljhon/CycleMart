@@ -143,7 +143,8 @@ export class HomeComponent implements OnInit {
               sale_status: product.sale_status,
               status: product.status,
               created_at: product.created_at || new Date().toISOString(), // Add created date for sorting
-              featured_score: Math.random() * 100 // Random score for featured scoring
+              featured_score: Math.random() * 100, // Random score for featured scoring
+              specifications: product.specifications || [] // Include specifications from backend
             };
           });
           console.log('Processed items:', this.items);
@@ -594,6 +595,8 @@ export class HomeComponent implements OnInit {
     console.log('Product Name:', product.product_name);
     console.log('Product Images:', product.productImages);
     console.log('Product Videos:', product.productVideos);
+    console.log('Product Specifications:', product.specifications);
+    console.log('Specifications count:', product.specifications?.length || 0);
     console.log('Full product object:', product);
     
     // Create a deep copy of the product to avoid reference issues

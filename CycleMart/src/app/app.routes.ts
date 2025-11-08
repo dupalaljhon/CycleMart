@@ -9,7 +9,6 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { SidenavComponent } from './sidenav/sidenav.component';
 import { HomeComponent } from './home/home.component';
 import { ListingComponent } from './listing/listing.component';
-import { MarketProductsComponent } from './listing/market-products/market-products.component';
 import { SoldItemsComponent } from './listing/sold-items/sold-items.component';
 import { AdminLoginComponent } from './admin/admin-login/admin-login.component';
 import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.component';
@@ -39,7 +38,6 @@ export const routes: Routes = [
     {path: 'login', component: LoginComponent},
     {path: 'admin-login', component: AdminLoginComponent},
     {path: 'listing', component: ListingComponent},
-    {path: 'market-products', component: MarketProductsComponent},
     {path: 'sold-items', component: SoldItemsComponent},
     {path: 'admin-monitoring', component: AdminMonitoringComponent},
     {path: 'socket-demo', component: SocketDemoComponent},

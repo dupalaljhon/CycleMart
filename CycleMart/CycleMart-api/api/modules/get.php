@@ -77,7 +77,17 @@ class Get extends GlobalMethods {
     //get all products
     public function getProductsByUser($uploader_id) {
         $sql = "SELECT * FROM products WHERE uploader_id = :uploader_id ORDER BY created_at DESC";
-        return $this->executeQuery($sql, [':uploader_id' => $uploader_id]);
+        $result = $this->executeQuery($sql, [':uploader_id' => $uploader_id]);
+        
+        // Add specifications to each product
+        if ($result['status'] === 'success' && isset($result['data'])) {
+            foreach ($result['data'] as &$product) {
+                $specs = $this->getProductSpecifications($product['product_id']);
+                $product['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+            }
+        }
+        
+        return $result;
     }
 
     // Get single product by ID
@@ -86,7 +96,15 @@ class Get extends GlobalMethods {
                 FROM products p 
                 LEFT JOIN users u ON p.uploader_id = u.id 
                 WHERE p.product_id = :product_id";
-        return $this->executeQuery($sql, [':product_id' => $product_id]);
+        $result = $this->executeQuery($sql, [':product_id' => $product_id]);
+        
+        // Add specifications to the product
+        if ($result['status'] === 'success' && isset($result['data']) && !empty($result['data'])) {
+            $specs = $this->getProductSpecifications($product_id);
+            $result['data'][0]['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+        }
+        
+        return $result;
     }
 
     // Get all active products for home page
@@ -96,7 +114,17 @@ class Get extends GlobalMethods {
                 LEFT JOIN users u ON p.uploader_id = u.id 
                 WHERE p.status = 'active' AND p.sale_status = 'available' 
                 ORDER BY p.created_at DESC";
-        return $this->executeQuery($sql);
+        $result = $this->executeQuery($sql);
+        
+        // Add specifications to each product
+        if ($result['status'] === 'success' && isset($result['data'])) {
+            foreach ($result['data'] as &$product) {
+                $specs = $this->getProductSpecifications($product['product_id']);
+                $product['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+            }
+        }
+        
+        return $result;
     }
 
     // Get all products for admin monitoring
@@ -105,7 +133,17 @@ class Get extends GlobalMethods {
                 FROM products p 
                 LEFT JOIN users u ON p.uploader_id = u.id 
                 ORDER BY p.created_at DESC";
-        return $this->executeQuery($sql);
+        $result = $this->executeQuery($sql);
+        
+        // Add specifications to each product
+        if ($result['status'] === 'success' && isset($result['data'])) {
+            foreach ($result['data'] as &$product) {
+                $specs = $this->getProductSpecifications($product['product_id']);
+                $product['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+            }
+        }
+        
+        return $result;
     }
 
     /**
@@ -546,6 +584,18 @@ class Get extends GlobalMethods {
                 ORDER BY average_stars DESC";
         
         return $this->executeQuery($sql);
+    }
+
+    /**
+     * Get product specifications by product ID
+     */
+    public function getProductSpecifications($product_id) {
+        $sql = "SELECT spec_id, spec_name, spec_value 
+                FROM product_specifications 
+                WHERE product_id = :product_id 
+                ORDER BY spec_id ASC";
+        
+        return $this->executeQuery($sql, [':product_id' => $product_id]);
     }
 
 }

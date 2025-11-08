@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Edit Product with Specifications</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        input, textarea, select, button { width: 100%; padding: 8px; margin: 5px 0; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        .spec-item { display: flex; gap: 10px; margin: 10px 0; }
+        .spec-item input { flex: 1; }
+        .remove-spec { width: auto; background: #dc3545; }
+        .result { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Edit Product with Specifications</h1>
+        
+        <div class="section">
+            <h3>Product Information</h3>
+            <input type="number" id="productId" placeholder="Product ID" value="29">
+            <input type="text" id="productName" placeholder="Product Name" value="Trek Test Edit">
+            <select id="brandName">
+                <option value="trek" selected>Trek</option>
+                <option value="giant">Giant</option>
+                <option value="specialized">Specialized</option>
+            </select>
+            <input type="number" id="price" placeholder="Price" value="25000">
+            <textarea id="description" placeholder="Description">Test description with specifications</textarea>
+            <input type="text" id="location" placeholder="Location" value="Test Location">
+            <select id="forType">
+                <option value="sale" selected>Sale</option>
+                <option value="trade">Trade</option>
+                <option value="both">Both</option>
+            </select>
+            <select id="condition">
+                <option value="second hand" selected>Second Hand</option>
+                <option value="brand new">Brand New</option>
+            </select>
+            <select id="category">
+                <option value="whole bike" selected>Whole Bike</option>
+                <option value="frame">Frame</option>
+                <option value="wheelset">Wheelset</option>
+            </select>
+            <input type="number" id="quantity" placeholder="Quantity" value="1">
+            <input type="number" id="uploaderId" placeholder="Uploader ID" value="30">
+        </div>
+
+        <div class="section">
+            <h3>Product Specifications</h3>
+            <div id="specifications">
+                <div class="spec-item">
+                    <input type="text" placeholder="Specification Name" value="Frame Material">
+                    <input type="text" placeholder="Specification Value" value="Carbon Fiber">
+                    <button type="button" class="remove-spec" onclick="removeSpec(this)">Remove</button>
+                </div>
+                <div class="spec-item">
+                    <input type="text" placeholder="Specification Name" value="Weight">
+                    <input type="text" placeholder="Specification Value" value="8.5kg">
+                    <button type="button" class="remove-spec" onclick="removeSpec(this)">Remove</button>
+                </div>
+            </div>
+            <button type="button" onclick="addSpec()">Add Specification</button>
+        </div>
+
+        <div class="section">
+            <button onclick="testUpdate()">Test Update Product</button>
+        </div>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function addSpec() {
+            const specsContainer = document.getElementById('specifications');
+            const specItem = document.createElement('div');
+            specItem.className = 'spec-item';
+            specItem.innerHTML = `
+                <input type="text" placeholder="Specification Name">
+                <input type="text" placeholder="Specification Value">
+                <button type="button" class="remove-spec" onclick="removeSpec(this)">Remove</button>
+            `;
+            specsContainer.appendChild(specItem);
+        }
+
+        function removeSpec(button) {
+            button.parentElement.remove();
+        }
+
+        function getSpecifications() {
+            const specItems = document.querySelectorAll('.spec-item');
+            const specs = [];
+            
+            specItems.forEach(item => {
+                const inputs = item.querySelectorAll('input');
+                const name = inputs[0].value.trim();
+                const value = inputs[1].value.trim();
+                
+                if (name && value) {
+                    specs.push({
+                        spec_name: name,
+                        spec_value: value
+                    });
+                }
+            });
+            
+            return specs;
+        }
+
+        async function testUpdate() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div>🔄 Testing update...</div>';
+
+            const updateData = {
+                product_id: parseInt(document.getElementById('productId').value),
+                product_name: document.getElementById('productName').value,
+                brand_name: document.getElementById('brandName').value,
+                custom_brand: '',
+                price: parseFloat(document.getElementById('price').value),
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value,
+                for_type: document.getElementById('forType').value,
+                condition: document.getElementById('condition').value,
+                category: document.getElementById('category').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                product_images: JSON.stringify([]),
+                product_videos: JSON.stringify([]),
+                specifications: getSpecifications(),
+                uploader_id: parseInt(document.getElementById('uploaderId').value)
+            };
+
+            console.log('🔍 Update Data:', updateData);
+
+            try {
+                const response = await fetch('http://localhost/CycleMart/CycleMart/CycleMart-api/api/updateProduct', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+                console.log('📋 API Response:', result);
+
+                if (result.status === 'success') {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Success!</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Error: ${result.message}</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error('Network Error:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Network Error: ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

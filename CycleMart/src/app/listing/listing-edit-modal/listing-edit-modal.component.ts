@@ -3,6 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../api/api.service';
 
+interface ProductSpecification {
+  spec_id?: number;
+  spec_name: string;
+  spec_value: string;
+}
+
 interface Product {
   product_id: number;
   product_name: string;
@@ -22,6 +28,7 @@ interface Product {
   sale_status: 'available' | 'sold' | 'reserved' | 'traded';
   created_at: string;
   uploader_id: number;
+  specifications?: ProductSpecification[];
   isEditing?: boolean;
 }
 
@@ -134,10 +141,25 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       this.editProduct = {
         ...this.productToEdit,
         product_images: [...(this.productToEdit.product_images || [])],
-        product_videos: cleanedVideos
+        product_videos: cleanedVideos,
+        specifications: this.productToEdit.specifications ? 
+          this.productToEdit.specifications.map(spec => ({
+            spec_id: spec.spec_id,
+            spec_name: spec.spec_name,
+            spec_value: spec.spec_value
+          })) : []
       };
       
       console.log('📝 Edit Modal - Edit Product:', this.editProduct);
+      console.log('🔧 Edit Modal - Specifications loaded:', this.editProduct.specifications);
+      
+      // Debug authorization information
+      this.debugAuthInfo();
+      
+      // If no specifications are loaded, try to fetch them from API
+      if ((!this.editProduct.specifications || this.editProduct.specifications.length === 0) && this.productToEdit.product_id) {
+        this.loadProductSpecifications(this.productToEdit.product_id);
+      }
     }
   }
 
@@ -154,7 +176,37 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       return;
     }
 
+    // 🔍 Authorization check
+    if (!this.editProduct.product_id) {
+      this.showError('Product ID is missing');
+      return;
+    }
+
+    if (!this.userId) {
+      this.showError('You must be logged in to edit products. Please login again.');
+      return;
+    }
+
+    if (!this.editProduct.uploader_id) {
+      this.showError('Product ownership information is missing. Cannot edit this product.');
+      return;
+    }
+
+    if (this.editProduct.uploader_id !== this.userId) {
+      this.showError('You can only edit your own products. This product belongs to another user.');
+      return;
+    }
+
     this.isProcessing = true;
+    
+    // Filter out empty specifications and prepare for API
+    const validSpecifications = (this.editProduct.specifications || [])
+      .filter(spec => spec.spec_name.trim() && spec.spec_value.trim())
+      .map(spec => ({
+        spec_name: spec.spec_name.trim(),
+        spec_value: spec.spec_value.trim()
+      }));
+
     const updateData = {
       product_id: this.editProduct.product_id,
       product_name: this.editProduct.product_name,
@@ -169,8 +221,25 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       quantity: this.editProduct.quantity,
       product_images: JSON.stringify(this.editProduct.product_images || []),
       product_videos: JSON.stringify(this.editProduct.product_videos || []),
-      uploader_id: this.userId
+      specifications: validSpecifications,
+      uploader_id: this.editProduct.uploader_id || this.userId // ✅ Use product's uploader_id first
     };
+
+    // 🔍 Debug logging
+    console.log('💾 Save Debug Info:');
+    console.log('Product ID:', this.editProduct.product_id);
+    console.log('Current User ID:', this.userId);
+    console.log('Product Uploader ID:', this.editProduct.uploader_id);
+    console.log('Using Uploader ID:', updateData.uploader_id);
+    console.log('Authorization Info:', this.getAuthInfo());
+    console.log('Specifications to save:', validSpecifications);
+    console.log('Full Update Data:', updateData);
+
+    // ⚠️ Authorization warning
+    if (!this.canEditProduct()) {
+      console.warn('⚠️ AUTHORIZATION WARNING: Current user may not be able to edit this product!');
+      console.warn('This might cause "Product not found or unauthorized" error');
+    }
 
     this.apiService.updateProduct(updateData).subscribe({
       next: (response: any) => {
@@ -484,5 +553,273 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
   // Check if custom brand input should be shown
   shouldShowCustomBrand(): boolean {
     return this.editProduct.brand_name === 'others';
+  }
+
+  // Specification Management Methods
+  addSpecification() {
+    if (!this.editProduct.specifications) {
+      this.editProduct.specifications = [];
+    }
+    this.editProduct.specifications.push({
+      spec_name: '',
+      spec_value: ''
+    });
+  }
+
+  removeSpecification(index: number) {
+    const specification = this.editProduct.specifications?.[index];
+    
+    if (!specification) return;
+
+    // If it's an existing specification (has spec_id), delete from database
+    if (specification.spec_id && this.editProduct.product_id) {
+      console.log(`🗑️ Deleting specification: ${specification.spec_name}`);
+      
+      const deleteData = {
+        spec_id: specification.spec_id,
+        uploader_id: this.userId
+      };
+
+      this.apiService.deleteProductSpecification(deleteData).subscribe({
+        next: (response) => {
+          if (response.status === 'success') {
+            console.log('✅ Specification deleted from database');
+            // Remove from local array
+            if (this.editProduct.specifications) {
+              this.editProduct.specifications.splice(index, 1);
+            }
+            this.showSuccess('Specification deleted successfully');
+          } else {
+            console.error('❌ Failed to delete specification:', response.message);
+            this.showError('Failed to delete specification: ' + response.message);
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error deleting specification:', error);
+          this.showError('Error deleting specification. Please try again.');
+        }
+      });
+    } else {
+      // It's a new specification (no spec_id), just remove from array
+      if (this.editProduct.specifications && index >= 0 && index < this.editProduct.specifications.length) {
+        this.editProduct.specifications.splice(index, 1);
+      }
+    }
+  }
+
+  // Save individual specification (for real-time saving)
+  saveSpecification(index: number) {
+    const specification = this.editProduct.specifications?.[index];
+    
+    if (!specification || !this.editProduct.product_id) return;
+
+    // Validate specification
+    if (!specification.spec_name.trim() || !specification.spec_value.trim()) {
+      this.showError('Please fill in both specification name and value');
+      return;
+    }
+
+    if (specification.spec_id) {
+      // Update existing specification
+      const updateData = {
+        spec_id: specification.spec_id,
+        spec_name: specification.spec_name.trim(),
+        spec_value: specification.spec_value.trim(),
+        uploader_id: this.userId
+      };
+
+      this.apiService.updateSingleSpecification(updateData).subscribe({
+        next: (response) => {
+          if (response.status === 'success') {
+            console.log('✅ Specification updated');
+            // Update the local specification with any changes from server
+            if (response.data && this.editProduct.specifications) {
+              this.editProduct.specifications[index] = {
+                spec_id: response.data.spec_id,
+                spec_name: response.data.spec_name,
+                spec_value: response.data.spec_value
+              };
+            }
+          } else {
+            this.showError('Failed to update specification: ' + response.message);
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error updating specification:', error);
+          this.showError('Error updating specification. Please try again.');
+        }
+      });
+    } else {
+      // Add new specification
+      const addData = {
+        product_id: this.editProduct.product_id,
+        spec_name: specification.spec_name.trim(),
+        spec_value: specification.spec_value.trim(),
+        uploader_id: this.userId
+      };
+
+      this.apiService.addProductSpecification(addData).subscribe({
+        next: (response) => {
+          if (response.status === 'success') {
+            console.log('✅ Specification added');
+            // Update the local specification with the spec_id from server
+            if (response.data && this.editProduct.specifications) {
+              this.editProduct.specifications[index] = {
+                spec_id: response.data.spec_id,
+                spec_name: response.data.spec_name,
+                spec_value: response.data.spec_value
+              };
+            }
+            this.showSuccess('Specification added successfully');
+          } else {
+            this.showError('Failed to add specification: ' + response.message);
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error adding specification:', error);
+          this.showError('Error adding specification. Please try again.');
+        }
+      });
+    }
+  }
+
+  // Save all specifications at once (for bulk operations)
+  saveAllSpecifications() {
+    if (!this.editProduct.product_id || !this.editProduct.specifications) {
+      return;
+    }
+
+    // Filter out empty specifications
+    const validSpecifications = this.editProduct.specifications
+      .filter(spec => spec.spec_name.trim() && spec.spec_value.trim())
+      .map(spec => ({
+        spec_name: spec.spec_name.trim(),
+        spec_value: spec.spec_value.trim()
+      }));
+
+    const updateData = {
+      product_id: this.editProduct.product_id,
+      specifications: validSpecifications,
+      uploader_id: this.userId
+    };
+
+    this.apiService.updateProductSpecifications(updateData).subscribe({
+      next: (response) => {
+        if (response.status === 'success') {
+          console.log('✅ All specifications updated');
+          // Reload specifications to get updated spec_ids
+          this.loadProductSpecifications(this.editProduct.product_id!);
+          this.showSuccess('All specifications updated successfully');
+        } else {
+          this.showError('Failed to update specifications: ' + response.message);
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error updating specifications:', error);
+        this.showError('Error updating specifications. Please try again.');
+      }
+    });
+  }
+
+  trackByIndex(index: number, item: any): any {
+    return index;
+  }
+
+  // Load product specifications from API
+  loadProductSpecifications(productId: number) {
+    console.log('🔍 Loading specifications for product ID:', productId);
+    
+    this.apiService.getProductSpecifications(productId).subscribe({
+      next: (response) => {
+        console.log('📋 Specifications API response:', response);
+        
+        if (response.status === 'success' && response.data) {
+          this.editProduct.specifications = response.data.map((spec: any) => ({
+            spec_id: spec.spec_id,
+            spec_name: spec.spec_name,
+            spec_value: spec.spec_value
+          }));
+          
+          console.log('✅ Specifications loaded:', this.editProduct.specifications);
+        } else {
+          console.log('ℹ️ No specifications found for this product');
+          this.editProduct.specifications = [];
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error loading specifications:', error);
+        this.editProduct.specifications = [];
+      }
+    });
+  }
+
+  // Get specifications count for display
+  getSpecificationsCount(): number {
+    return this.editProduct.specifications?.length || 0;
+  }
+
+  // Check if product has specifications
+  hasSpecifications(): boolean {
+    return !!(this.editProduct.specifications && this.editProduct.specifications.length > 0);
+  }
+
+  // Validate specification before adding/updating
+  validateSpecification(spec: ProductSpecification): boolean {
+    return spec.spec_name.trim().length > 0 && spec.spec_value.trim().length > 0;
+  }
+
+  // Clear empty specifications
+  cleanupSpecifications() {
+    if (this.editProduct.specifications) {
+      this.editProduct.specifications = this.editProduct.specifications.filter(spec => 
+        this.validateSpecification(spec)
+      );
+    }
+  }
+
+  // Update specification at index
+  updateSpecification(index: number, field: 'spec_name' | 'spec_value', value: string) {
+    if (this.editProduct.specifications && index >= 0 && index < this.editProduct.specifications.length) {
+      this.editProduct.specifications[index][field] = value;
+      console.log(`🔄 Updated specification ${index} ${field}:`, value);
+    }
+  }
+
+  // Check if current user can edit this product
+  canEditProduct(): boolean {
+    if (!this.editProduct.uploader_id || !this.userId) {
+      return false;
+    }
+    return this.editProduct.uploader_id === this.userId;
+  }
+
+  // Get authorization info for debugging
+  getAuthInfo(): string {
+    return `User ID: ${this.userId}, Product Uploader: ${this.editProduct.uploader_id}, Can Edit: ${this.canEditProduct()}`;
+  }
+
+  // Debug method to show all relevant information
+  debugAuthInfo() {
+    console.log('🔍 DETAILED AUTH DEBUG:');
+    console.log('localStorage id:', localStorage.getItem('id'));
+    console.log('localStorage email:', localStorage.getItem('email'));
+    console.log('localStorage full_name:', localStorage.getItem('full_name'));
+    console.log('Component userId:', this.userId);
+    console.log('productToEdit:', this.productToEdit);
+    console.log('editProduct:', this.editProduct);
+    console.log('editProduct.uploader_id:', this.editProduct.uploader_id);
+    console.log('Can edit product:', this.canEditProduct());
+    
+    if (!this.userId) {
+      console.error('❌ User not logged in - localStorage id is missing or invalid');
+    }
+    
+    if (!this.editProduct.uploader_id) {
+      console.error('❌ Product uploader_id is missing from product data');
+    }
+    
+    if (this.userId && this.editProduct.uploader_id && this.userId !== this.editProduct.uploader_id) {
+      console.error(`❌ Authorization mismatch: User ${this.userId} trying to edit product owned by ${this.editProduct.uploader_id}`);
+    }
   }
 }

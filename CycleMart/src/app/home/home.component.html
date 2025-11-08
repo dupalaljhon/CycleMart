@@ -740,6 +740,42 @@
               <p class="text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full word-break">{{selectedProduct.description}}</p>
             </div>
 
+            <!-- Product Specifications Table -->
+            <div *ngIf="selectedProduct.specifications && selectedProduct.specifications.length > 0" 
+                 class="bg-white p-6 rounded-xl border border-gray-300">
+              <h4 class="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                Specifications
+              </h4>
+              <!-- Specifications Table -->
+              <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                  <thead>
+                    <tr class="border-b-2 border-gray-200">
+                      <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-l-lg">Specification</th>
+                      <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-r-lg">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let spec of selectedProduct.specifications; let i = index" 
+                        [class.bg-gray-50]="i % 2 === 1"
+                        class="border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                      <td class="py-3 px-4 font-medium text-gray-800">{{spec.spec_name}}</td>
+                      <td class="py-3 px-4 text-gray-700">{{spec.spec_value}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Specifications Count Badge -->
+              <div class="mt-3 flex justify-end">
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  {{selectedProduct.specifications.length}} specification{{selectedProduct.specifications.length !== 1 ? 's' : ''}}
+                </span>
+              </div>
+            </div>
+
             <!-- Enhanced Seller Information & Action Buttons Combined -->
             <div class="flex flex-col lg:flex-row gap-6 pt-4">
               <!-- Enhanced Seller Information (Left Side - 60%) -->

@@ -39,7 +39,7 @@ export class ApiService {
 
   // 🔹 Fetch user + profile info
 getUser(id: number): Observable<any> {
-  return this.http.get<any>(`${this.baseUrl}user&id=${id}`);
+  return this.http.get<any>(`${this.baseUrl}user?id=${id}`);
 }
 
 // 🔹 Fetch all users for admin
@@ -228,6 +228,31 @@ getUserAverageRatings(userId: number): Observable<any> {
 
 getAllSellersWithRatings(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}sellers-with-ratings`);
+}
+
+// 🔹 Product Specifications Methods
+getProductSpecifications(productId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}product-specifications?product_id=${productId}`);
+}
+
+// Update all specifications for a product
+updateProductSpecifications(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}updateProductSpecifications`, data);
+}
+
+// Add a single specification
+addProductSpecification(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}addProductSpecification`, data);
+}
+
+// Update a single specification
+updateSingleSpecification(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}updateSingleSpecification`, data);
+}
+
+// Delete a single specification
+deleteProductSpecification(data: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}deleteProductSpecification`, data);
 }
 
 }

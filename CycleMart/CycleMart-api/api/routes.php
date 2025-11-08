@@ -223,6 +223,15 @@ switch ($_SERVER['REQUEST_METHOD']) {
         case 'sellers-with-ratings':
             echo json_encode($get->getAllSellersWithRatings());
             break;
+
+        case 'product-specifications':
+            if (isset($_GET['product_id'])) {
+                echo json_encode($get->getProductSpecifications((int) $_GET['product_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "Product ID is required"]);
+            }
+            break;
             
         default:
             http_response_code(403);
@@ -240,7 +249,17 @@ switch ($_SERVER['REQUEST_METHOD']) {
     
 
     case 'POST':
-        $data = json_decode(file_get_contents("php://input"));
+        $rawInput = file_get_contents("php://input");
+        $data = json_decode($rawInput);
+        
+        // 🔍 Debug logging for API calls
+        if (isset($request[0]) && $request[0] === 'updateProduct') {
+            error_log("🔍 API Debug - Raw input: " . $rawInput);
+            error_log("🔍 API Debug - Decoded data: " . json_encode($data));
+            error_log("🔍 API Debug - Product ID type: " . gettype($data->product_id ?? 'MISSING'));
+            error_log("🔍 API Debug - Uploader ID type: " . gettype($data->uploader_id ?? 'MISSING'));
+        }
+        
         switch ($request[0]) {
             case 'register':
                 echo json_encode($post->registerUser($data));
@@ -287,6 +306,22 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
             case 'updateProduct':
                 echo json_encode($post->updateProduct($data));
+                break;
+
+            case 'updateProductSpecifications':
+                echo json_encode($post->updateProductSpecifications($data));
+                break;
+
+            case 'addProductSpecification':
+                echo json_encode($post->addProductSpecification($data));
+                break;
+
+            case 'updateSingleSpecification':
+                echo json_encode($post->updateSingleSpecification($data));
+                break;
+
+            case 'deleteProductSpecification':
+                echo json_encode($post->deleteProductSpecification($data));
                 break;
 
             case 'submitForApproval':

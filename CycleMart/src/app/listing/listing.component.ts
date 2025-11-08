@@ -7,6 +7,12 @@ import { SoldItemsComponent } from './sold-items/sold-items.component';
 import { ApiService } from '../api/api.service';
 import { FormsModule } from '@angular/forms';
 
+interface ProductSpecification {
+  spec_id?: number;
+  spec_name: string;
+  spec_value: string;
+}
+
 interface Product {
   product_id: number;
   product_name: string;
@@ -26,6 +32,7 @@ interface Product {
   sale_status: 'available' | 'sold' | 'reserved' | 'traded';
   created_at: string;
   uploader_id: number;
+  specifications?: ProductSpecification[];
   isEditing?: boolean;
 }
 

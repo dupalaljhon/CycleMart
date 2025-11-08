@@ -3,6 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../api/api.service';
 
+interface ProductSpecification {
+  spec_id?: number;
+  spec_name: string;
+  spec_value: string;
+}
+
 interface NewProduct {
   product_id?: number;
   product_name: string;
@@ -17,6 +23,7 @@ interface NewProduct {
   condition: 'brand new' | 'second hand';
   category: 'whole bike' | 'frame' | 'wheelset' | 'groupset' | 'drivetrain' | 'brakes' | 'tires' | 'saddle' | 'handlebar' | 'accessories' | 'others';
   quantity: number;
+  specifications?: ProductSpecification[];
   status?: 'active' | 'archived';
   sale_status?: 'available' | 'reserved' | 'sold' | 'traded';
   created_at?: string;
@@ -60,7 +67,8 @@ export class ListingModalComponent implements OnInit {
     category: 'others',
     quantity: 1,
     product_images: [],
-    product_videos: []
+    product_videos: [],
+    specifications: []
   };
 
   // Brand options for dropdown
@@ -124,7 +132,8 @@ export class ListingModalComponent implements OnInit {
       category: 'others',
       quantity: 1,
       product_images: [],
-      product_videos: []
+      product_videos: [],
+      specifications: []
     };
   }
 
@@ -143,11 +152,21 @@ export class ListingModalComponent implements OnInit {
     }
 
     this.isProcessing = true;
+    
+    // Filter out empty specifications and prepare for API
+    const validSpecifications = (this.newProduct.specifications || [])
+      .filter(spec => spec.spec_name.trim() && spec.spec_value.trim())
+      .map(spec => ({
+        spec_name: spec.spec_name.trim(),
+        spec_value: spec.spec_value.trim()
+      }));
+
     const productData = {
       ...this.newProduct,
       uploader_id: this.userId,
       product_images: JSON.stringify(this.newProduct.product_images || []),
-      product_videos: JSON.stringify(this.newProduct.product_videos || [])
+      product_videos: JSON.stringify(this.newProduct.product_videos || []),
+      specifications: validSpecifications
     };
 
     console.log('Sending product data:', productData);
@@ -471,5 +490,26 @@ export class ListingModalComponent implements OnInit {
 
   closeErrorModal() {
     this.showErrorModal = false;
+  }
+
+  // Specification Management Methods
+  addSpecification() {
+    if (!this.newProduct.specifications) {
+      this.newProduct.specifications = [];
+    }
+    this.newProduct.specifications.push({
+      spec_name: '',
+      spec_value: ''
+    });
+  }
+
+  removeSpecification(index: number) {
+    if (this.newProduct.specifications && index >= 0 && index < this.newProduct.specifications.length) {
+      this.newProduct.specifications.splice(index, 1);
+    }
+  }
+
+  trackByIndex(index: number, item: any): any {
+    return index;
   }
 }

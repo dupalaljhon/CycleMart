@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // ðŸ”¹ CORS headers (must be first, before any output)
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -669,6 +669,7 @@ public function addProduct($data) {
     $quantity     = $data->quantity ?? 1;
     $uploader_id  = $data->uploader_id ?? null;
     $images       = $data->images ?? [];
+    $specifications = $data->specifications ?? [];
 
     if (!$product_name || !$price || !$description || !$location || !$uploader_id) {
         return $this->sendPayload(null, "error", "Missing required fields", 400);
@@ -793,6 +794,12 @@ public function addProduct($data) {
 
         $lastId = $this->pdo->lastInsertId();
 
+        // Handle product specifications if provided
+        $specifications = $data->specifications ?? [];
+        if (!empty($specifications) && is_array($specifications)) {
+            $this->saveProductSpecifications($lastId, $specifications);
+        }
+
         // Create notification for new listing
         $userName = $this->getUserNameById($uploader_id);
         $notificationTitle = "New listing uploaded";
@@ -846,6 +853,7 @@ public function updateProduct($data) {
     $uploader_id = $data->uploader_id ?? null;
     $product_images = $data->product_images ?? '[]';
     $product_videos = $data->product_videos ?? '[]';
+    $specifications = $data->specifications ?? [];
 
     if (!$product_id || !$product_name || !$price || !$description || !$location || !$uploader_id) {
         return $this->sendPayload(null, "error", "Missing required fields", 400);
@@ -949,8 +957,13 @@ public function updateProduct($data) {
             WHERE product_id = :product_id AND uploader_id = :uploader_id";
 
     try {
+        // 🔍 Debug logging - log the exact values being used
+        error_log("🔍 UpdateProduct Debug - Product ID: $product_id (type: " . gettype($product_id) . ")");
+        error_log("🔍 UpdateProduct Debug - Uploader ID: $uploader_id (type: " . gettype($uploader_id) . ")");
+        error_log("🔍 UpdateProduct Debug - Product Name: $product_name");
+        
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
+        $executeParams = [
             ':product_name' => $product_name,
             ':brand_name' => $brand_name,
             ':custom_brand' => $custom_brand,
@@ -965,15 +978,37 @@ public function updateProduct($data) {
             ':quantity' => $quantity,
             ':product_id' => $product_id,
             ':uploader_id' => $uploader_id
-        ]);
+        ];
+        
+        // 🔍 Log the exact parameters being passed
+        error_log("🔍 UpdateProduct Debug - Execute params: " . json_encode($executeParams));
+        
+        $executed = $stmt->execute($executeParams);
+        error_log("🔍 UpdateProduct Debug - Query executed: " . ($executed ? "TRUE" : "FALSE"));
+        error_log("🔍 UpdateProduct Debug - Row count: " . $stmt->rowCount());
 
         if ($stmt->rowCount() > 0) {
+            // Handle product specifications update
+            $this->saveProductSpecifications($product_id, $specifications);
+            
             return $this->sendPayload([
                 "product_id" => $product_id,
                 "message" => "Product updated successfully"
             ], "success", "Product updated successfully", 200);
         } else {
-            return $this->sendPayload(null, "error", "Product not found or unauthorized", 404);
+            // 🔍 Enhanced debugging for authorization failures
+            $debugSql = "SELECT uploader_id FROM products WHERE product_id = :product_id";
+            $debugStmt = $this->pdo->prepare($debugSql);
+            $debugStmt->execute([':product_id' => $product_id]);
+            $actualOwner = $debugStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($actualOwner) {
+                $errorMsg = "Product not found or unauthorized. Product belongs to user ID {$actualOwner['uploader_id']}, but you attempted to update as user ID {$uploader_id}.";
+            } else {
+                $errorMsg = "Product not found or unauthorized. Product ID {$product_id} does not exist.";
+            }
+            
+            return $this->sendPayload(null, "error", $errorMsg, 404);
         }
     } catch (\PDOException $e) {
         return $this->sendPayload(null, "error", $e->getMessage(), 400);
@@ -2825,6 +2860,248 @@ public function updateReportStatus($data) {
     }
 
     // 🔹 Helper Methods
+    private function saveProductSpecifications($product_id, $specifications) {
+        try {
+            // Delete existing specifications for this product
+            $deleteSql = "DELETE FROM product_specifications WHERE product_id = :product_id";
+            $deleteStmt = $this->pdo->prepare($deleteSql);
+            $deleteStmt->execute([':product_id' => $product_id]);
+            
+            // Insert new specifications
+            if (is_array($specifications) && !empty($specifications)) {
+                $insertSql = "INSERT INTO product_specifications (product_id, spec_name, spec_value) VALUES (:product_id, :spec_name, :spec_value)";
+                $insertStmt = $this->pdo->prepare($insertSql);
+                
+                foreach ($specifications as $spec) {
+                    // Handle both object notation (from Angular) and array notation
+                    $specName = '';
+                    $specValue = '';
+                    
+                    if (is_object($spec)) {
+                        $specName = $spec->spec_name ?? '';
+                        $specValue = $spec->spec_value ?? '';
+                    } elseif (is_array($spec)) {
+                        $specName = $spec['spec_name'] ?? $spec['name'] ?? '';
+                        $specValue = $spec['spec_value'] ?? $spec['value'] ?? '';
+                    }
+                    
+                    if (!empty(trim($specName)) && !empty(trim($specValue))) {
+                        $insertStmt->execute([
+                            ':product_id' => $product_id,
+                            ':spec_name' => trim($specName),
+                            ':spec_value' => trim($specValue)
+                        ]);
+                    }
+                }
+            }
+            
+            return true;
+        } catch (\PDOException $e) {
+            error_log("Error saving product specifications: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update product specifications with individual control
+     * This allows for adding, updating, or deleting individual specifications
+     */
+    public function updateProductSpecifications($data) {
+        $product_id = $data->product_id ?? null;
+        $specifications = $data->specifications ?? [];
+        $uploader_id = $data->uploader_id ?? null;
+
+        if (!$product_id || !$uploader_id) {
+            return $this->sendPayload(null, "error", "Product ID and uploader ID are required", 400);
+        }
+
+        // Verify product ownership
+        $ownershipSql = "SELECT uploader_id FROM products WHERE product_id = :product_id";
+        try {
+            $ownershipStmt = $this->pdo->prepare($ownershipSql);
+            $ownershipStmt->execute([':product_id' => $product_id]);
+            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$owner) {
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            if ($owner['uploader_id'] != $uploader_id) {
+                return $this->sendPayload(null, "error", "You can only edit specifications for your own products", 403);
+            }
+
+            // Update specifications
+            $result = $this->saveProductSpecifications($product_id, $specifications);
+            
+            if ($result) {
+                return $this->sendPayload([
+                    "product_id" => $product_id,
+                    "specifications_count" => count($specifications)
+                ], "success", "Product specifications updated successfully", 200);
+            } else {
+                return $this->sendPayload(null, "error", "Failed to update specifications", 500);
+            }
+
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Add a single specification to a product
+     */
+    public function addProductSpecification($data) {
+        $product_id = $data->product_id ?? null;
+        $spec_name = $data->spec_name ?? '';
+        $spec_value = $data->spec_value ?? '';
+        $uploader_id = $data->uploader_id ?? null;
+
+        if (!$product_id || !$spec_name || !$spec_value || !$uploader_id) {
+            return $this->sendPayload(null, "error", "Product ID, specification name, value, and uploader ID are required", 400);
+        }
+
+        // Verify product ownership
+        $ownershipSql = "SELECT uploader_id FROM products WHERE product_id = :product_id";
+        try {
+            $ownershipStmt = $this->pdo->prepare($ownershipSql);
+            $ownershipStmt->execute([':product_id' => $product_id]);
+            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$owner) {
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            if ($owner['uploader_id'] != $uploader_id) {
+                return $this->sendPayload(null, "error", "You can only add specifications to your own products", 403);
+            }
+
+            // Add specification
+            $insertSql = "INSERT INTO product_specifications (product_id, spec_name, spec_value) VALUES (:product_id, :spec_name, :spec_value)";
+            $insertStmt = $this->pdo->prepare($insertSql);
+            $insertStmt->execute([
+                ':product_id' => $product_id,
+                ':spec_name' => trim($spec_name),
+                ':spec_value' => trim($spec_value)
+            ]);
+
+            $spec_id = $this->pdo->lastInsertId();
+
+            return $this->sendPayload([
+                "spec_id" => $spec_id,
+                "product_id" => $product_id,
+                "spec_name" => trim($spec_name),
+                "spec_value" => trim($spec_value)
+            ], "success", "Specification added successfully", 201);
+
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update a single specification
+     */
+    public function updateSingleSpecification($data) {
+        $spec_id = $data->spec_id ?? null;
+        $spec_name = $data->spec_name ?? '';
+        $spec_value = $data->spec_value ?? '';
+        $uploader_id = $data->uploader_id ?? null;
+
+        if (!$spec_id || !$spec_name || !$spec_value || !$uploader_id) {
+            return $this->sendPayload(null, "error", "Specification ID, name, value, and uploader ID are required", 400);
+        }
+
+        // Verify ownership through product
+        $ownershipSql = "SELECT p.uploader_id, ps.product_id 
+                         FROM product_specifications ps 
+                         JOIN products p ON ps.product_id = p.product_id 
+                         WHERE ps.spec_id = :spec_id";
+        try {
+            $ownershipStmt = $this->pdo->prepare($ownershipSql);
+            $ownershipStmt->execute([':spec_id' => $spec_id]);
+            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$owner) {
+                return $this->sendPayload(null, "error", "Specification not found", 404);
+            }
+
+            if ($owner['uploader_id'] != $uploader_id) {
+                return $this->sendPayload(null, "error", "You can only edit specifications for your own products", 403);
+            }
+
+            // Update specification
+            $updateSql = "UPDATE product_specifications SET spec_name = :spec_name, spec_value = :spec_value WHERE spec_id = :spec_id";
+            $updateStmt = $this->pdo->prepare($updateSql);
+            $result = $updateStmt->execute([
+                ':spec_id' => $spec_id,
+                ':spec_name' => trim($spec_name),
+                ':spec_value' => trim($spec_value)
+            ]);
+
+            if ($result && $updateStmt->rowCount() > 0) {
+                return $this->sendPayload([
+                    "spec_id" => $spec_id,
+                    "product_id" => $owner['product_id'],
+                    "spec_name" => trim($spec_name),
+                    "spec_value" => trim($spec_value)
+                ], "success", "Specification updated successfully", 200);
+            } else {
+                return $this->sendPayload(null, "error", "No changes made or specification not found", 404);
+            }
+
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Delete a single specification
+     */
+    public function deleteProductSpecification($data) {
+        $spec_id = $data->spec_id ?? null;
+        $uploader_id = $data->uploader_id ?? null;
+
+        if (!$spec_id || !$uploader_id) {
+            return $this->sendPayload(null, "error", "Specification ID and uploader ID are required", 400);
+        }
+
+        // Verify ownership through product
+        $ownershipSql = "SELECT p.uploader_id, ps.product_id 
+                         FROM product_specifications ps 
+                         JOIN products p ON ps.product_id = p.product_id 
+                         WHERE ps.spec_id = :spec_id";
+        try {
+            $ownershipStmt = $this->pdo->prepare($ownershipSql);
+            $ownershipStmt->execute([':spec_id' => $spec_id]);
+            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$owner) {
+                return $this->sendPayload(null, "error", "Specification not found", 404);
+            }
+
+            if ($owner['uploader_id'] != $uploader_id) {
+                return $this->sendPayload(null, "error", "You can only delete specifications from your own products", 403);
+            }
+
+            // Delete specification
+            $deleteSql = "DELETE FROM product_specifications WHERE spec_id = :spec_id";
+            $deleteStmt = $this->pdo->prepare($deleteSql);
+            $result = $deleteStmt->execute([':spec_id' => $spec_id]);
+
+            if ($result && $deleteStmt->rowCount() > 0) {
+                return $this->sendPayload([
+                    "spec_id" => $spec_id,
+                    "product_id" => $owner['product_id']
+                ], "success", "Specification deleted successfully", 200);
+            } else {
+                return $this->sendPayload(null, "error", "Specification not found or already deleted", 404);
+            }
+
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
     private function isValidJson($string) {
         if (!is_string($string)) {
             return false;

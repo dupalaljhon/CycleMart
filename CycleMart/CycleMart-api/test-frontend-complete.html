@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Frontend Update Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .results { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Complete Frontend Update Test</h1>
+        
+        <div class="test-section">
+            <h3>1. User Authentication Test</h3>
+            <button onclick="testUserAuth()">Check User Authentication</button>
+            <div id="authResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Product Data Test</h3>
+            <input type="number" id="testProductId" placeholder="Enter Product ID to test" value="1">
+            <button onclick="testProductData()">Load Product Data</button>
+            <div id="productResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Update Test</h3>
+            <div id="updateForm" style="display: none;">
+                <input type="text" id="productName" placeholder="Product Name">
+                <input type="number" id="productPrice" placeholder="Price">
+                <textarea id="productDescription" placeholder="Description"></textarea>
+                <input type="text" id="productLocation" placeholder="Location">
+                
+                <h4>Specifications</h4>
+                <div id="specifications">
+                    <div>
+                        <input type="text" placeholder="Specification Name" class="spec-name">
+                        <input type="text" placeholder="Specification Value" class="spec-value">
+                    </div>
+                </div>
+                <button onclick="addSpecification()">Add Specification</button>
+                
+                <br><br>
+                <button onclick="testUpdate()">Test Update</button>
+            </div>
+            <div id="updateResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Complete Flow Test</h3>
+            <button onclick="testCompleteFlow()">Run Complete Flow Test</button>
+            <div id="flowResults" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost/CycleMart/CycleMart-api/api/';
+        
+        async function log(message, type = 'info') {
+            console.log(message);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            return `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        async function testUserAuth() {
+            const resultsDiv = document.getElementById('authResults');
+            let results = '';
+            
+            results += await log('🔍 Testing User Authentication...', 'info');
+            
+            // Check localStorage
+            const userId = localStorage.getItem('user_id');
+            const userEmail = localStorage.getItem('user_email');
+            
+            if (userId && userEmail) {
+                results += await log(`✅ User found in localStorage: ID ${userId}, Email: ${userEmail}`, 'success');
+                
+                // Test API call to verify user
+                try {
+                    const response = await fetch(`${API_BASE}getUser?id=${userId}`);
+                    const userData = await response.json();
+                    
+                    if (userData.status === 'success') {
+                        results += await log(`✅ User verified via API: ${userData.data.email}`, 'success');
+                    } else {
+                        results += await log(`❌ User verification failed: ${userData.message}`, 'error');
+                    }
+                } catch (error) {
+                    results += await log(`❌ API Error: ${error.message}`, 'error');
+                }
+            } else {
+                results += await log('❌ No user found in localStorage. Please log in first.', 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        async function testProductData() {
+            const resultsDiv = document.getElementById('productResults');
+            const productId = document.getElementById('testProductId').value;
+            let results = '';
+            
+            if (!productId) {
+                results += await log('❌ Please enter a Product ID', 'error');
+                resultsDiv.innerHTML = results;
+                return;
+            }
+            
+            results += await log(`🔍 Loading product data for ID: ${productId}...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}getProduct?id=${productId}`);
+                const productData = await response.json();
+                
+                if (productData.status === 'success') {
+                    results += await log(`✅ Product loaded: ${productData.data.product_name}`, 'success');
+                    results += await log(`   Owner ID: ${productData.data.uploader_id}`, 'info');
+                    results += await log(`   Price: $${productData.data.price}`, 'info');
+                    
+                    // Check if current user owns this product
+                    const userId = localStorage.getItem('user_id');
+                    if (userId == productData.data.uploader_id) {
+                        results += await log(`✅ User owns this product - can edit`, 'success');
+                        
+                        // Pre-fill the form
+                        document.getElementById('productName').value = productData.data.product_name;
+                        document.getElementById('productPrice').value = productData.data.price;
+                        document.getElementById('productDescription').value = productData.data.description;
+                        document.getElementById('productLocation').value = productData.data.location;
+                        
+                        document.getElementById('updateForm').style.display = 'block';
+                        
+                        // Load specifications
+                        loadSpecifications(productId);
+                        
+                    } else {
+                        results += await log(`❌ User does not own this product (Owner: ${productData.data.uploader_id}, Current User: ${userId})`, 'error');
+                    }
+                } else {
+                    results += await log(`❌ Failed to load product: ${productData.message}`, 'error');
+                }
+            } catch (error) {
+                results += await log(`❌ API Error: ${error.message}`, 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        async function loadSpecifications(productId) {
+            try {
+                const response = await fetch(`${API_BASE}getProductSpecifications?product_id=${productId}`);
+                const specsData = await response.json();
+                
+                if (specsData.status === 'success' && specsData.data.length > 0) {
+                    const specsDiv = document.getElementById('specifications');
+                    specsDiv.innerHTML = '';
+                    
+                    specsData.data.forEach(spec => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <input type="text" class="spec-name" value="${spec.spec_name}">
+                            <input type="text" class="spec-value" value="${spec.spec_value}">
+                            <button onclick="this.parentElement.remove()">Remove</button>
+                        `;
+                        specsDiv.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading specifications:', error);
+            }
+        }
+
+        function addSpecification() {
+            const specsDiv = document.getElementById('specifications');
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <input type="text" class="spec-name" placeholder="Specification Name">
+                <input type="text" class="spec-value" placeholder="Specification Value">
+                <button onclick="this.parentElement.remove()">Remove</button>
+            `;
+            specsDiv.appendChild(div);
+        }
+
+        async function testUpdate() {
+            const resultsDiv = document.getElementById('updateResults');
+            const productId = document.getElementById('testProductId').value;
+            const userId = localStorage.getItem('user_id');
+            let results = '';
+            
+            results += await log('🔄 Testing Product Update...', 'info');
+            
+            // Collect form data
+            const updateData = {
+                product_id: parseInt(productId),
+                product_name: document.getElementById('productName').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                description: document.getElementById('productDescription').value,
+                location: document.getElementById('productLocation').value,
+                uploader_id: parseInt(userId),
+                brand_name: 'Test Brand',
+                custom_brand: '',
+                for_type: 'sale',
+                condition: 'good',
+                category: 'bicycle',
+                quantity: 1,
+                product_images: '[]',
+                product_videos: '[]',
+                specifications: []
+            };
+            
+            // Collect specifications
+            const specNames = document.querySelectorAll('.spec-name');
+            const specValues = document.querySelectorAll('.spec-value');
+            
+            for (let i = 0; i < specNames.length; i++) {
+                if (specNames[i].value && specValues[i].value) {
+                    updateData.specifications.push({
+                        spec_name: specNames[i].value,
+                        spec_value: specValues[i].value
+                    });
+                }
+            }
+            
+            results += await log(`📊 Update data prepared: ${JSON.stringify(updateData, null, 2)}`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}updateProduct`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    results += await log(`✅ Product updated successfully: ${result.message}`, 'success');
+                } else {
+                    results += await log(`❌ Update failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                results += await log(`❌ Update Error: ${error.message}`, 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        async function testCompleteFlow() {
+            const resultsDiv = document.getElementById('flowResults');
+            let results = '';
+            
+            results += await log('🎯 Running Complete Flow Test...', 'info');
+            
+            // Step 1: Check authentication
+            results += await log('Step 1: Checking authentication...', 'info');
+            const userId = localStorage.getItem('user_id');
+            if (!userId) {
+                results += await log('❌ No user authentication found', 'error');
+                resultsDiv.innerHTML = results;
+                return;
+            }
+            results += await log(`✅ User authenticated: ${userId}`, 'success');
+            
+            // Step 2: Test API connectivity
+            results += await log('Step 2: Testing API connectivity...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}getUser?id=${userId}`);
+                const userData = await response.json();
+                if (userData.status === 'success') {
+                    results += await log(`✅ API connectivity working`, 'success');
+                } else {
+                    results += await log(`❌ API returned error: ${userData.message}`, 'error');
+                }
+            } catch (error) {
+                results += await log(`❌ API connectivity failed: ${error.message}`, 'error');
+                resultsDiv.innerHTML = results;
+                return;
+            }
+            
+            // Step 3: Find user's products
+            results += await log('Step 3: Finding user products...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}getUserProducts?user_id=${userId}`);
+                const productsData = await response.json();
+                
+                if (productsData.status === 'success' && productsData.data.length > 0) {
+                    const testProduct = productsData.data[0];
+                    results += await log(`✅ Found test product: ${testProduct.product_name} (ID: ${testProduct.product_id})`, 'success');
+                    
+                    // Step 4: Test update
+                    results += await log('Step 4: Testing update functionality...', 'info');
+                    
+                    const updateData = {
+                        product_id: parseInt(testProduct.product_id),
+                        product_name: testProduct.product_name + ' (TEST)',
+                        price: parseFloat(testProduct.price),
+                        description: testProduct.description + ' - Updated via test',
+                        location: testProduct.location,
+                        uploader_id: parseInt(userId),
+                        brand_name: testProduct.brand_name || 'Test Brand',
+                        custom_brand: testProduct.custom_brand || '',
+                        for_type: testProduct.for_type,
+                        condition: testProduct.condition,
+                        category: testProduct.category,
+                        quantity: parseInt(testProduct.quantity),
+                        product_images: testProduct.product_images || '[]',
+                        product_videos: testProduct.product_videos || '[]',
+                        specifications: [
+                            { spec_name: 'Test Spec', spec_value: 'Test Value' }
+                        ]
+                    };
+                    
+                    const updateResponse = await fetch(`${API_BASE}updateProduct`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    const updateResult = await updateResponse.json();
+                    
+                    if (updateResult.status === 'success') {
+                        results += await log(`✅ COMPLETE FLOW TEST PASSED! Update successful.`, 'success');
+                    } else {
+                        results += await log(`❌ Update failed: ${updateResult.message}`, 'error');
+                    }
+                    
+                } else {
+                    results += await log(`❌ No products found for user`, 'error');
+                }
+            } catch (error) {
+                results += await log(`❌ Error finding user products: ${error.message}`, 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        // Auto-run authentication test on page load
+        window.onload = function() {
+            testUserAuth();
+        };
+    </script>
+</body>
+</html>
