@@ -79,11 +79,10 @@ class Get extends GlobalMethods {
         $sql = "SELECT * FROM products WHERE uploader_id = :uploader_id ORDER BY created_at DESC";
         $result = $this->executeQuery($sql, [':uploader_id' => $uploader_id]);
         
-        // Add specifications to each product
+        // Parse specifications JSON for each product
         if ($result['status'] === 'success' && isset($result['data'])) {
             foreach ($result['data'] as &$product) {
-                $specs = $this->getProductSpecifications($product['product_id']);
-                $product['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+                $product['specifications'] = $this->parseSpecificationsJson($product['specifications'] ?? null);
             }
         }
         
@@ -94,14 +93,13 @@ class Get extends GlobalMethods {
     public function getProductById($product_id) {
         $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email, u.profile_image as seller_profile_image 
                 FROM products p 
-                LEFT JOIN users u ON p.uploader_id = u.id 
+                JOIN users u ON p.uploader_id = u.id 
                 WHERE p.product_id = :product_id";
         $result = $this->executeQuery($sql, [':product_id' => $product_id]);
         
-        // Add specifications to the product
+        // Parse specifications JSON for the product
         if ($result['status'] === 'success' && isset($result['data']) && !empty($result['data'])) {
-            $specs = $this->getProductSpecifications($product_id);
-            $result['data'][0]['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+            $result['data'][0]['specifications'] = $this->parseSpecificationsJson($result['data'][0]['specifications'] ?? null);
         }
         
         return $result;
@@ -111,16 +109,15 @@ class Get extends GlobalMethods {
     public function getAllActiveProducts() {
         $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email, u.profile_image as seller_profile_image 
                 FROM products p 
-                LEFT JOIN users u ON p.uploader_id = u.id 
-                WHERE p.status = 'active' AND p.sale_status = 'available' 
+                JOIN users u ON p.uploader_id = u.id 
+                WHERE p.status = 'active' AND p.sale_status = 'available'
                 ORDER BY p.created_at DESC";
         $result = $this->executeQuery($sql);
         
-        // Add specifications to each product
+        // Parse specifications JSON for each product
         if ($result['status'] === 'success' && isset($result['data'])) {
             foreach ($result['data'] as &$product) {
-                $specs = $this->getProductSpecifications($product['product_id']);
-                $product['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+                $product['specifications'] = $this->parseSpecificationsJson($product['specifications'] ?? null);
             }
         }
         
@@ -131,15 +128,14 @@ class Get extends GlobalMethods {
     public function getAllProductsForAdmin() {
         $sql = "SELECT p.*, u.full_name as seller_name, u.email as seller_email, u.profile_image as seller_profile_image 
                 FROM products p 
-                LEFT JOIN users u ON p.uploader_id = u.id 
+                JOIN users u ON p.uploader_id = u.id 
                 ORDER BY p.created_at DESC";
         $result = $this->executeQuery($sql);
         
-        // Add specifications to each product
+        // Parse specifications JSON for each product
         if ($result['status'] === 'success' && isset($result['data'])) {
             foreach ($result['data'] as &$product) {
-                $specs = $this->getProductSpecifications($product['product_id']);
-                $product['specifications'] = $specs['status'] === 'success' ? $specs['data'] : [];
+                $product['specifications'] = $this->parseSpecificationsJson($product['specifications'] ?? null);
             }
         }
         
@@ -587,15 +583,47 @@ class Get extends GlobalMethods {
     }
 
     /**
-     * Get product specifications by product ID
+     * Parse specifications JSON and convert to array format
+     */
+    private function parseSpecificationsJson($specificationsJson) {
+        if (empty($specificationsJson)) {
+            return [];
+        }
+        
+        $specs = json_decode($specificationsJson, true);
+        if (!is_array($specs)) {
+            return [];
+        }
+        
+        // Convert to the expected format with spec_name and spec_value
+        $result = [];
+        foreach ($specs as $spec) {
+            if (is_array($spec) && isset($spec['name']) && isset($spec['value'])) {
+                $result[] = [
+                    'spec_name' => $spec['name'],
+                    'spec_value' => $spec['value']
+                ];
+            }
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Get product specifications by product ID (deprecated - now using JSON column)
+     * Kept for backward compatibility
      */
     public function getProductSpecifications($product_id) {
-        $sql = "SELECT spec_id, spec_name, spec_value 
-                FROM product_specifications 
-                WHERE product_id = :product_id 
-                ORDER BY spec_id ASC";
+        // First try to get from JSON column
+        $sql = "SELECT specifications FROM products WHERE product_id = :product_id";
+        $result = $this->executeQuery($sql, [':product_id' => $product_id]);
         
-        return $this->executeQuery($sql, [':product_id' => $product_id]);
+        if ($result['status'] === 'success' && !empty($result['data'])) {
+            $specs = $this->parseSpecificationsJson($result['data'][0]['specifications'] ?? null);
+            return $this->sendPayload($specs, "success", "Specifications retrieved successfully", 200);
+        }
+        
+        return $this->sendPayload([], "success", "No specifications found", 200);
     }
 
 }

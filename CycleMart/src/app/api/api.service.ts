@@ -231,28 +231,10 @@ getAllSellersWithRatings(): Observable<any> {
 }
 
 // 🔹 Product Specifications Methods
+// Note: Individual specification management methods removed
+// Specifications are now managed as JSON through addProduct and updateProduct methods
 getProductSpecifications(productId: number): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}product-specifications?product_id=${productId}`);
-}
-
-// Update all specifications for a product
-updateProductSpecifications(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}updateProductSpecifications`, data);
-}
-
-// Add a single specification
-addProductSpecification(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}addProductSpecification`, data);
-}
-
-// Update a single specification
-updateSingleSpecification(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}updateSingleSpecification`, data);
-}
-
-// Delete a single specification
-deleteProductSpecification(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}deleteProductSpecification`, data);
 }
 
 }

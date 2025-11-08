@@ -156,10 +156,8 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       // Debug authorization information
       this.debugAuthInfo();
       
-      // If no specifications are loaded, try to fetch them from API
-      if ((!this.editProduct.specifications || this.editProduct.specifications.length === 0) && this.productToEdit.product_id) {
-        this.loadProductSpecifications(this.productToEdit.product_id);
-      }
+      // Specifications are now automatically loaded with product data
+      // No need for separate specification loading
     }
   }
 
@@ -567,191 +565,23 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
   }
 
   removeSpecification(index: number) {
-    const specification = this.editProduct.specifications?.[index];
-    
-    if (!specification) return;
-
-    // If it's an existing specification (has spec_id), delete from database
-    if (specification.spec_id && this.editProduct.product_id) {
-      console.log(`🗑️ Deleting specification: ${specification.spec_name}`);
-      
-      const deleteData = {
-        spec_id: specification.spec_id,
-        uploader_id: this.userId
-      };
-
-      this.apiService.deleteProductSpecification(deleteData).subscribe({
-        next: (response) => {
-          if (response.status === 'success') {
-            console.log('✅ Specification deleted from database');
-            // Remove from local array
-            if (this.editProduct.specifications) {
-              this.editProduct.specifications.splice(index, 1);
-            }
-            this.showSuccess('Specification deleted successfully');
-          } else {
-            console.error('❌ Failed to delete specification:', response.message);
-            this.showError('Failed to delete specification: ' + response.message);
-          }
-        },
-        error: (error) => {
-          console.error('❌ Error deleting specification:', error);
-          this.showError('Error deleting specification. Please try again.');
-        }
-      });
-    } else {
-      // It's a new specification (no spec_id), just remove from array
-      if (this.editProduct.specifications && index >= 0 && index < this.editProduct.specifications.length) {
-        this.editProduct.specifications.splice(index, 1);
-      }
+    // Simply remove from local array - will be saved when main product is updated
+    if (this.editProduct.specifications && index >= 0 && index < this.editProduct.specifications.length) {
+      this.editProduct.specifications.splice(index, 1);
     }
   }
 
-  // Save individual specification (for real-time saving)
-  saveSpecification(index: number) {
-    const specification = this.editProduct.specifications?.[index];
-    
-    if (!specification || !this.editProduct.product_id) return;
+  // Individual specification saving removed - specifications are now saved with the main product
+  // All specifications will be saved when the main "Save Changes" button is clicked
 
-    // Validate specification
-    if (!specification.spec_name.trim() || !specification.spec_value.trim()) {
-      this.showError('Please fill in both specification name and value');
-      return;
-    }
-
-    if (specification.spec_id) {
-      // Update existing specification
-      const updateData = {
-        spec_id: specification.spec_id,
-        spec_name: specification.spec_name.trim(),
-        spec_value: specification.spec_value.trim(),
-        uploader_id: this.userId
-      };
-
-      this.apiService.updateSingleSpecification(updateData).subscribe({
-        next: (response) => {
-          if (response.status === 'success') {
-            console.log('✅ Specification updated');
-            // Update the local specification with any changes from server
-            if (response.data && this.editProduct.specifications) {
-              this.editProduct.specifications[index] = {
-                spec_id: response.data.spec_id,
-                spec_name: response.data.spec_name,
-                spec_value: response.data.spec_value
-              };
-            }
-          } else {
-            this.showError('Failed to update specification: ' + response.message);
-          }
-        },
-        error: (error) => {
-          console.error('❌ Error updating specification:', error);
-          this.showError('Error updating specification. Please try again.');
-        }
-      });
-    } else {
-      // Add new specification
-      const addData = {
-        product_id: this.editProduct.product_id,
-        spec_name: specification.spec_name.trim(),
-        spec_value: specification.spec_value.trim(),
-        uploader_id: this.userId
-      };
-
-      this.apiService.addProductSpecification(addData).subscribe({
-        next: (response) => {
-          if (response.status === 'success') {
-            console.log('✅ Specification added');
-            // Update the local specification with the spec_id from server
-            if (response.data && this.editProduct.specifications) {
-              this.editProduct.specifications[index] = {
-                spec_id: response.data.spec_id,
-                spec_name: response.data.spec_name,
-                spec_value: response.data.spec_value
-              };
-            }
-            this.showSuccess('Specification added successfully');
-          } else {
-            this.showError('Failed to add specification: ' + response.message);
-          }
-        },
-        error: (error) => {
-          console.error('❌ Error adding specification:', error);
-          this.showError('Error adding specification. Please try again.');
-        }
-      });
-    }
-  }
-
-  // Save all specifications at once (for bulk operations)
-  saveAllSpecifications() {
-    if (!this.editProduct.product_id || !this.editProduct.specifications) {
-      return;
-    }
-
-    // Filter out empty specifications
-    const validSpecifications = this.editProduct.specifications
-      .filter(spec => spec.spec_name.trim() && spec.spec_value.trim())
-      .map(spec => ({
-        spec_name: spec.spec_name.trim(),
-        spec_value: spec.spec_value.trim()
-      }));
-
-    const updateData = {
-      product_id: this.editProduct.product_id,
-      specifications: validSpecifications,
-      uploader_id: this.userId
-    };
-
-    this.apiService.updateProductSpecifications(updateData).subscribe({
-      next: (response) => {
-        if (response.status === 'success') {
-          console.log('✅ All specifications updated');
-          // Reload specifications to get updated spec_ids
-          this.loadProductSpecifications(this.editProduct.product_id!);
-          this.showSuccess('All specifications updated successfully');
-        } else {
-          this.showError('Failed to update specifications: ' + response.message);
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error updating specifications:', error);
-        this.showError('Error updating specifications. Please try again.');
-      }
-    });
-  }
+  // Bulk specification saving removed - specifications are now saved with the main product
+  // Use the main "Save Changes" button to save all product data including specifications
 
   trackByIndex(index: number, item: any): any {
     return index;
   }
 
-  // Load product specifications from API
-  loadProductSpecifications(productId: number) {
-    console.log('🔍 Loading specifications for product ID:', productId);
-    
-    this.apiService.getProductSpecifications(productId).subscribe({
-      next: (response) => {
-        console.log('📋 Specifications API response:', response);
-        
-        if (response.status === 'success' && response.data) {
-          this.editProduct.specifications = response.data.map((spec: any) => ({
-            spec_id: spec.spec_id,
-            spec_name: spec.spec_name,
-            spec_value: spec.spec_value
-          }));
-          
-          console.log('✅ Specifications loaded:', this.editProduct.specifications);
-        } else {
-          console.log('ℹ️ No specifications found for this product');
-          this.editProduct.specifications = [];
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error loading specifications:', error);
-        this.editProduct.specifications = [];
-      }
-    });
-  }
+  // Specification loading removed - specifications are now included in main product data
 
   // Get specifications count for display
   getSpecificationsCount(): number {

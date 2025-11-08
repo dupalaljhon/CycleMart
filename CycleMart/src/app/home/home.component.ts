@@ -137,6 +137,7 @@ export class HomeComponent implements OnInit {
               uploader_id: product.uploader_id, // Add uploader ID for profile image path
               location: product.location,
               rating: 0, // Will be loaded separately
+              totalRatings: 0, // Will be loaded separately
               description: product.description,
               condition: product.condition,
               quantity: product.quantity,
@@ -180,12 +181,15 @@ export class HomeComponent implements OnInit {
             
             if (response.status === 'success' && response.data && response.data.length > 0) {
               const ratingData = response.data[0];
-              const averageRating = parseFloat(ratingData.average_rating) || 0;
+              // Fix: Use 'average_stars' from API response instead of 'average_rating'
+              const averageRating = parseFloat(ratingData.average_stars) || 0;
+              const totalRatings = parseInt(ratingData.total_ratings) || 0;
               
               // Update all items for this seller
               this.items.forEach(item => {
                 if (item.uploader_id === sellerId) {
                   item.rating = averageRating;
+                  item.totalRatings = totalRatings;
                 }
               });
               
@@ -193,21 +197,28 @@ export class HomeComponent implements OnInit {
               this.filteredItems.forEach(item => {
                 if (item.uploader_id === sellerId) {
                   item.rating = averageRating;
+                  item.totalRatings = totalRatings;
                 }
               });
+              
+              console.log(`✅ Updated rating for seller ${sellerId}: ${averageRating} stars (${totalRatings} reviews)`);
             } else {
               // No ratings found, set to 0 or "No ratings"
               this.items.forEach(item => {
                 if (item.uploader_id === sellerId) {
                   item.rating = 0;
+                  item.totalRatings = 0;
                 }
               });
               
               this.filteredItems.forEach(item => {
                 if (item.uploader_id === sellerId) {
                   item.rating = 0;
+                  item.totalRatings = 0;
                 }
               });
+              
+              console.log(`ℹ️ No ratings found for seller ${sellerId}`);
             }
           },
           error: (error) => {
@@ -216,12 +227,14 @@ export class HomeComponent implements OnInit {
             this.items.forEach(item => {
               if (item.uploader_id === sellerId) {
                 item.rating = 0;
+                item.totalRatings = 0;
               }
             });
             
             this.filteredItems.forEach(item => {
               if (item.uploader_id === sellerId) {
                 item.rating = 0;
+                item.totalRatings = 0;
               }
             });
           }
@@ -1434,5 +1447,66 @@ export class HomeComponent implements OnInit {
     console.log('Product Videos (parsed):', product.productVideos);
     console.log('Full Product Object:', product);
     console.log('========================');
+  }
+
+  // ===== RATING DISPLAY HELPER METHODS =====
+
+  // Generate array for star rating display
+  getStarArray(rating: number): { type: 'full' | 'half' | 'empty', index: number }[] {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    // Add full stars
+    for (let i = 0; i < fullStars; i++) {
+      stars.push({ type: 'full' as const, index: i });
+    }
+    
+    // Add half star if needed
+    if (hasHalfStar && fullStars < 5) {
+      stars.push({ type: 'half' as const, index: fullStars });
+    }
+    
+    // Add empty stars to make total of 5
+    const remainingStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < remainingStars; i++) {
+      stars.push({ type: 'empty' as const, index: fullStars + (hasHalfStar ? 1 : 0) + i });
+    }
+    
+    return stars;
+  }
+
+  // Get rating description text
+  getRatingText(rating: number, totalRatings: number): string {
+    if (rating === 0 || totalRatings === 0) {
+      return 'No ratings yet';
+    }
+    
+    if (rating >= 4.5) {
+      return 'Excellent seller';
+    } else if (rating >= 4.0) {
+      return 'Very good seller';
+    } else if (rating >= 3.5) {
+      return 'Good seller';
+    } else if (rating >= 3.0) {
+      return 'Average seller';
+    } else {
+      return 'Below average';
+    }
+  }
+
+  // Get rating color class
+  getRatingColorClass(rating: number): string {
+    if (rating === 0) {
+      return 'text-gray-400';
+    } else if (rating >= 4.5) {
+      return 'text-green-500';
+    } else if (rating >= 4.0) {
+      return 'text-yellow-500';
+    } else if (rating >= 3.0) {
+      return 'text-orange-500';
+    } else {
+      return 'text-red-500';
+    }
   }
 }

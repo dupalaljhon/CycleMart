@@ -99,7 +99,7 @@
         </div>
 
         <!-- Quick Action Buttons -->
-        <div class="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
+        <!-- <div class="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
           <button 
             (click)="clearFilters()"
             class="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-sm transition-colors">
@@ -112,7 +112,7 @@
             <mat-icon class="text-xs">refresh</mat-icon>
             Refresh Data
           </button>
-        </div>
+        </div> -->
       </div>
     </div>
 
@@ -125,7 +125,7 @@
     <!-- Enhanced Products Table -->
     <div *ngIf="!isLoading" class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
       <!-- Table Header -->
-      <div class="bg-white px-6 py-4 border-b border-gray-200">
+      <!-- <div class="bg-white px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <mat-icon class="text-black">inventory_2</mat-icon>
@@ -135,7 +135,7 @@
             {{ dataSource.filteredData.length }} products displayed
           </div>
         </div>
-      </div>
+      </div> -->
 
       <div class="overflow-x-auto">
         <table mat-table [dataSource]="dataSource" matSort class="w-full">
@@ -375,6 +375,22 @@
                   matTooltip="View Videos">
                   <mat-icon class="!text-sm">play_arrow</mat-icon>
                 </button>
+                
+                <button 
+                  mat-mini-fab
+                  (click)="viewDescriptionSpecificationsReadOnly(product)"
+                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
+                  matTooltip="View Description & Specifications">
+                  <mat-icon class="!text-sm">info</mat-icon>
+                </button>
+                
+                <!-- <button 
+                  mat-mini-fab
+                  (click)="viewDescriptionSpecifications(product)"
+                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
+                  matTooltip="Edit Description & Specifications">
+                  <mat-icon class="!text-sm">edit</mat-icon>
+                </button> -->
                 
                 <button 
                   *ngIf="product.status === 'active'"
@@ -717,6 +733,269 @@
             Restore Product
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Description & Specifications Modal -->
+  <div *ngIf="showDescriptionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+       (click)="closeDescriptionModal()">
+    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl transform transition-all"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-blue-600">
+        <div class="flex items-center gap-3">
+          <mat-icon class="text-white text-2xl">description</mat-icon>
+          <div>
+            <h3 class="text-xl font-semibold text-white">Description & Specifications</h3>
+            <p class="text-blue-100 text-sm" *ngIf="selectedDescriptionProduct">{{ selectedDescriptionProduct.product_name }}</p>
+          </div>
+        </div>
+        <button 
+          (click)="closeDescriptionModal()"
+          class="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <form *ngIf="selectedDescriptionProduct" class="space-y-6">
+          
+          <!-- Product Info Summary -->
+          <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-600">Product Name</label>
+                <p class="text-gray-900 font-semibold">{{ selectedDescriptionProduct.product_name }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Price</label>
+                <p class="text-gray-900 font-semibold">{{ formatPrice(selectedDescriptionProduct.price) }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Seller</label>
+                <p class="text-gray-900 font-semibold">{{ selectedDescriptionProduct.seller_name }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description Section -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-gray-700">
+              <mat-icon class="mr-2 text-blue-600 align-middle">subject</mat-icon>
+              Product Description
+            </label>
+            <textarea 
+              [(ngModel)]="editDescription"
+              name="description"
+              rows="5"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+              placeholder="Enter product description...">
+            </textarea>
+            <p class="text-sm text-gray-500">Provide a detailed description of the product.</p>
+          </div>
+
+          <!-- Specifications Section -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-medium text-gray-700">
+                <mat-icon class="mr-2 text-green-600 align-middle">build</mat-icon>
+                Product Specifications
+              </label>
+              <button 
+                type="button"
+                (click)="addSpecification()"
+                class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
+                <mat-icon class="text-sm">add</mat-icon>
+                Add Spec
+              </button>
+            </div>
+            
+            <div class="space-y-3">
+              <div *ngFor="let spec of editSpecifications; let i = index" 
+                   class="flex gap-3 items-center bg-gray-50 p-3 rounded-lg">
+                <div class="flex-1">
+                  <input 
+                    [(ngModel)]="spec.spec_name"
+                    name="spec_name_{{i}}"
+                    type="text"
+                    placeholder="Specification name (e.g., Frame Material)"
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex-1">
+                  <input 
+                    [(ngModel)]="spec.spec_value"
+                    name="spec_value_{{i}}"
+                    type="text"
+                    placeholder="Specification value (e.g., Carbon Fiber)"
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button 
+                  type="button"
+                  (click)="removeSpecification(i)"
+                  class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-md transition-colors">
+                  <mat-icon class="text-sm">delete</mat-icon>
+                </button>
+              </div>
+              
+              <div *ngIf="editSpecifications.length === 0" class="text-center py-8 text-gray-500">
+                <mat-icon class="text-4xl mb-2 opacity-50">build</mat-icon>
+                <p>No specifications added yet</p>
+                <p class="text-sm">Click "Add Spec" to add product specifications</p>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div class="text-sm text-gray-600">
+          <mat-icon class="mr-1 text-sm align-middle">info</mat-icon>
+          Changes will be saved to the product database
+        </div>
+        <div class="flex gap-3">
+          <button 
+            (click)="closeDescriptionModal()"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition-all duration-200 font-semibold">
+            Cancel
+          </button>
+          <button 
+            (click)="saveDescriptionSpecifications()"
+            [disabled]="isUpdatingDescription"
+            class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2">
+            <mat-icon *ngIf="isUpdatingDescription" class="animate-spin text-sm">refresh</mat-icon>
+            <span>{{ isUpdatingDescription ? 'Saving...' : 'Save Changes' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View-Only Description & Specifications Modal -->
+  <div *ngIf="showViewOnlyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+       (click)="closeViewOnlyModal()">
+    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl transform transition-all"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-500 to-green-600">
+        <div class="flex items-center gap-3">
+          <mat-icon class="text-white text-2xl">info</mat-icon>
+          <div>
+            <h3 class="text-xl font-semibold text-white">Product Details</h3>
+            <p class="text-green-100 text-sm" *ngIf="selectedViewProduct">{{ selectedViewProduct.product_name }}</p>
+          </div>
+        </div>
+        <button 
+          (click)="closeViewOnlyModal()"
+          class="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-150px)]">
+        <div *ngIf="selectedViewProduct" class="space-y-6">
+          
+          <!-- Product Info Summary -->
+          <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <mat-icon class="mr-2 text-blue-600">inventory_2</mat-icon>
+              Product Information
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-600">Product Name</label>
+                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.product_name }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Price</label>
+                <p class="text-gray-900 font-semibold">{{ formatPrice(selectedViewProduct.price) }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Seller</label>
+                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.seller_name }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Brand</label>
+                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.brand_name || 'No Brand' }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Condition</label>
+                <p class="text-gray-900 font-semibold capitalize">{{ selectedViewProduct.condition.replace('_', ' ') }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Category</label>
+                <p class="text-gray-900 font-semibold capitalize">{{ selectedViewProduct.category.replace('_', ' ') }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">For Type</label>
+                <p class="text-gray-900 font-semibold capitalize">{{ getForTypeText(selectedViewProduct.for_type) }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Quantity</label>
+                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.quantity }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-600">Location</label>
+                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.location }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description Section -->
+          <div class="space-y-3">
+            <h4 class="text-lg font-semibold text-gray-800 flex items-center">
+              <mat-icon class="mr-2 text-blue-600">subject</mat-icon>
+              Product Description
+            </h4>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <p class="text-gray-700 whitespace-pre-wrap" [innerHTML]="selectedViewProduct.description || 'No description provided.'"></p>
+            </div>
+          </div>
+
+          <!-- Specifications Section -->
+          <div class="space-y-4">
+            <h4 class="text-lg font-semibold text-gray-800 flex items-center">
+              <mat-icon class="mr-2 text-green-600">build</mat-icon>
+              Product Specifications
+            </h4>
+            
+            <div *ngIf="selectedViewProduct.specifications && selectedViewProduct.specifications.length > 0; else noSpecs">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div *ngFor="let spec of selectedViewProduct.specifications" 
+                     class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div class="flex flex-col space-y-2">
+                    <label class="text-sm font-medium text-gray-600">{{ spec.spec_name || spec.name }}</label>
+                    <p class="text-gray-900 font-semibold">{{ spec.spec_value || spec.value }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <ng-template #noSpecs>
+              <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+                <mat-icon class="text-4xl mb-2 opacity-50">build</mat-icon>
+                <p class="text-lg font-medium">No specifications available</p>
+                <p class="text-sm">This product doesn't have any specifications listed.</p>
+              </div>
+            </ng-template>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end p-6 border-t border-gray-200 bg-gray-50">
+        <button 
+          (click)="closeViewOnlyModal()"
+          class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-all duration-200 font-semibold">
+          Close
+        </button>
       </div>
     </div>
   </div>

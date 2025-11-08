@@ -161,18 +161,6 @@
               <p class="text-xs text-gray-500 mt-1">Add technical details, features, or specific information about your product</p>
             </div>
             <div class="flex gap-2">
-              <!-- Save All Specifications Button -->
-              <button 
-                *ngIf="editProduct.specifications && editProduct.specifications.length > 0"
-                type="button"
-                (click)="saveAllSpecifications()"
-                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                Save All
-              </button>
-              
               <!-- Add Specification Button -->
               <button 
                 type="button"
@@ -219,18 +207,6 @@
                 
                 <!-- Action Buttons -->
                 <div class="flex items-end gap-2">
-                  <!-- Save Individual Specification Button -->
-                  <button 
-                    type="button"
-                    (click)="saveSpecification(i)"
-                    [disabled]="!spec.spec_name.trim() || !spec.spec_value.trim()"
-                    class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Save this specification">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                  </button>
-                  
                   <!-- Remove Button -->
                   <button 
                     type="button"

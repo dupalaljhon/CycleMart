@@ -225,6 +225,8 @@ switch ($_SERVER['REQUEST_METHOD']) {
             break;
 
         case 'product-specifications':
+            // Note: Specifications are now included in product data as JSON
+            // Use the regular products endpoint to get specifications
             if (isset($_GET['product_id'])) {
                 echo json_encode($get->getProductSpecifications((int) $_GET['product_id']));
             } else {
@@ -308,21 +310,8 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->updateProduct($data));
                 break;
 
-            case 'updateProductSpecifications':
-                echo json_encode($post->updateProductSpecifications($data));
-                break;
-
-            case 'addProductSpecification':
-                echo json_encode($post->addProductSpecification($data));
-                break;
-
-            case 'updateSingleSpecification':
-                echo json_encode($post->updateSingleSpecification($data));
-                break;
-
-            case 'deleteProductSpecification':
-                echo json_encode($post->deleteProductSpecification($data));
-                break;
+            // Note: Individual specification endpoints removed
+            // Specifications are now managed through updateProduct endpoint as JSON
 
             case 'submitForApproval':
                 echo json_encode($post->submitForApproval($data));

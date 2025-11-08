@@ -414,12 +414,56 @@
 
             <!-- Actions Section -->
             <div class="flex items-center justify-between">
-              <div class="flex items-center" [ngClass]="item.rating > 0 ? 'text-yellow-500' : 'text-gray-400'">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                </svg>
-                <span class="text-sm font-medium" *ngIf="item.rating > 0">{{ item.rating | number:'1.1-1' }}</span>
-                <span class="text-sm font-medium" *ngIf="item.rating === 0">No ratings</span>
+              <!-- Enhanced Rating Display with Visual Stars -->
+              <div class="flex flex-col space-y-1">
+                <!-- Star Rating -->
+                <div class="flex items-center gap-1">
+                  <!-- Visual Stars -->
+                  <div class="flex items-center" *ngIf="item.rating > 0">
+                    <ng-container *ngFor="let star of getStarArray(item.rating)">
+                      <!-- Full Star -->
+                      <svg *ngIf="star.type === 'full'" class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                      </svg>
+                      <!-- Half Star -->
+                      <div *ngIf="star.type === 'half'" class="relative w-4 h-4">
+                        <svg class="absolute w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        </svg>
+                        <svg class="absolute w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24" style="clip-path: inset(0 50% 0 0);">
+                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        </svg>
+                      </div>
+                      <!-- Empty Star -->
+                      <svg *ngIf="star.type === 'empty'" class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                      </svg>
+                    </ng-container>
+                  </div>
+                  
+                  <!-- No Rating Display -->
+                  <div class="flex items-center text-gray-400" *ngIf="item.rating === 0">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                    </svg>
+                    <span class="text-xs">No ratings</span>
+                  </div>
+                  
+                  <!-- Rating Value -->
+                  <span *ngIf="item.rating > 0" [ngClass]="getRatingColorClass(item.rating)" class="text-sm font-medium ml-1">
+                    {{ item.rating | number:'1.1-1' }}
+                  </span>
+                </div>
+                
+                <!-- Review Count and Description -->
+                <div class="flex flex-col" *ngIf="item.rating > 0">
+                  <div class="text-xs text-gray-500">
+                    {{ item.totalRatings || 0 }} review{{ (item.totalRatings || 0) !== 1 ? 's' : '' }}
+                  </div>
+                  <div class="text-xs" [ngClass]="getRatingColorClass(item.rating)">
+                    {{ getRatingText(item.rating, item.totalRatings || 0) }}
+                  </div>
+                </div>
               </div>
               
               <div class="flex items-center space-x-2">
@@ -794,9 +838,53 @@
                       class="w-10 h-10 rounded-full object-cover border-2 border-gray-300 shadow-md"
                       (error)="$any($event.target).src = getProfileImageUrl(null, selectedProduct.seller)"
                     />
-                    <div>
+                    <div class="flex-1">
                       <p class="font-semibold text-black">{{selectedProduct.seller}}</p>
                       <p class="text-sm text-gray-600">Verified Seller</p>
+                      
+                      <!-- Seller Rating in Modal -->
+                      <div class="flex items-center gap-2 mt-1">
+                        <!-- Star Rating Display -->
+                        <div class="flex items-center gap-1" *ngIf="selectedProduct.rating > 0">
+                          <ng-container *ngFor="let star of getStarArray(selectedProduct.rating)">
+                            <!-- Full Star -->
+                            <svg *ngIf="star.type === 'full'" class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                            </svg>
+                            <!-- Half Star -->
+                            <div *ngIf="star.type === 'half'" class="relative w-3 h-3">
+                              <svg class="absolute w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                              </svg>
+                              <svg class="absolute w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24" style="clip-path: inset(0 50% 0 0);">
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                              </svg>
+                            </div>
+                            <!-- Empty Star -->
+                            <svg *ngIf="star.type === 'empty'" class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                            </svg>
+                          </ng-container>
+                        </div>
+                        
+                        <!-- No Rating Display -->
+                        <div class="flex items-center text-gray-400" *ngIf="selectedProduct.rating === 0">
+                          <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                          </svg>
+                          <span class="text-xs">No ratings</span>
+                        </div>
+                        
+                        <!-- Rating Value and Count -->
+                        <div class="flex items-center gap-1" *ngIf="selectedProduct.rating > 0">
+                          <span [ngClass]="getRatingColorClass(selectedProduct.rating)" class="text-xs font-medium">
+                            {{ selectedProduct.rating | number:'1.1-1' }}
+                          </span>
+                          <span class="text-xs text-gray-500">
+                            ({{ selectedProduct.totalRatings || 0 }} review{{ (selectedProduct.totalRatings || 0) !== 1 ? 's' : '' }})
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div class="flex items-center gap-3">
@@ -805,17 +893,11 @@
                     </svg>
                     <span class="text-gray-700 font-medium">{{selectedProduct.location}}</span>
                   </div>
-                  <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                    </svg>
-                    <span class="text-gray-700 font-medium">{{selectedProduct.rating}} star rating</span>
-                  </div>
                 </div>
               </div>
 
               <!-- Enhanced Action Buttons (Right Side - 40%) -->
-              <div class="w-full lg:w-2/5 flex flex-col gap-4 justify-center">
+              <div class="w-full lg:w-2/5 flex flex-col gap-3 justify-center">
                 <!-- Contact Seller Button (Primary) -->
                 <button 
                   (click)="contactSeller(selectedProduct)"
@@ -829,10 +911,23 @@
                   </div>
                 </button>
 
+                <!-- View Seller Profile Button -->
+                <button 
+                  (click)="openProfileModal(selectedProduct)"
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  <div class="text-center leading-tight">
+                    <div class="text-sm font-semibold">View Profile</div>
+                    <div class="text-xs opacity-75">Ratings & reviews</div>
+                  </div>
+                </button>
+
                 <!-- Report Button (Secondary) -->
                 <button 
                   (click)="openReportModal(selectedProduct, $event)"
-                  class="w-full bg-gray-600 hover:bg-gray-700 text-white py-4 px-6 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                  class="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"/>

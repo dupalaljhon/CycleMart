@@ -20,6 +20,8 @@ import { ProfileImageService } from '../../services/profile-image.service';
 interface Product {
   product_id: number;
   product_name: string;
+  brand_name?: string;
+  custom_brand?: string;
   product_images: string[];
   product_videos: string[];
   price: number;
@@ -36,6 +38,7 @@ interface Product {
   seller_name?: string;
   seller_email?: string;
   seller_profile_image?: string;
+  specifications?: any[];
 }
 
 @Component({
@@ -103,6 +106,17 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   restoreReason = '';
   productToArchive: Product | null = null;
   productToRestore: Product | null = null;
+
+  // Description & Specifications modal
+  showDescriptionModal = false;
+  selectedDescriptionProduct: Product | null = null;
+  editDescription = '';
+  editSpecifications: any[] = [];
+  isUpdatingDescription = false;
+
+  // View-only modal
+  showViewOnlyModal = false;
+  selectedViewProduct: Product | null = null;
 
   constructor(
     private apiService: ApiService,
@@ -497,5 +511,109 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   // Handle seller profile image errors
   onSellerImageError(event: any): void {
     this.profileImageService.onImageError(event, 'seller');
+  }
+
+  // Description & Specifications Modal Methods
+  viewDescriptionSpecifications(product: Product): void {
+    this.selectedDescriptionProduct = product;
+    this.editDescription = product.description || '';
+    
+    // Parse specifications if they exist
+    if (product.specifications && Array.isArray(product.specifications)) {
+      this.editSpecifications = [...product.specifications];
+    } else {
+      this.editSpecifications = [];
+    }
+    
+    this.showDescriptionModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeDescriptionModal(): void {
+    this.showDescriptionModal = false;
+    this.selectedDescriptionProduct = null;
+    this.editDescription = '';
+    this.editSpecifications = [];
+    this.isUpdatingDescription = false;
+    document.body.style.overflow = 'auto';
+  }
+
+  addSpecification(): void {
+    this.editSpecifications.push({
+      spec_name: '',
+      spec_value: ''
+    });
+  }
+
+  removeSpecification(index: number): void {
+    this.editSpecifications.splice(index, 1);
+  }
+
+  saveDescriptionSpecifications(): void {
+    if (!this.selectedDescriptionProduct) return;
+
+    this.isUpdatingDescription = true;
+
+    // Prepare the update data
+    const updateData = {
+      product_id: this.selectedDescriptionProduct.product_id,
+      uploader_id: this.selectedDescriptionProduct.uploader_id,
+      product_name: this.selectedDescriptionProduct.product_name,
+      brand_name: this.selectedDescriptionProduct.brand_name || 'no brand',
+      custom_brand: this.selectedDescriptionProduct.custom_brand || null,
+      price: this.selectedDescriptionProduct.price,
+      description: this.editDescription,
+      location: this.selectedDescriptionProduct.location,
+      for_type: this.selectedDescriptionProduct.for_type,
+      condition: this.selectedDescriptionProduct.condition,
+      category: this.selectedDescriptionProduct.category,
+      quantity: this.selectedDescriptionProduct.quantity,
+      product_images: JSON.stringify(this.selectedDescriptionProduct.product_images || []),
+      product_videos: JSON.stringify(this.selectedDescriptionProduct.product_videos || []),
+      specifications: this.editSpecifications.filter(spec => 
+        spec.spec_name.trim() !== '' && spec.spec_value.trim() !== ''
+      )
+    };
+
+    this.apiService.updateProduct(updateData).subscribe({
+      next: (response) => {
+        if (response.status === 'success') {
+          // Update the product in the local array
+          const productIndex = this.products.findIndex(p => p.product_id === this.selectedDescriptionProduct!.product_id);
+          if (productIndex !== -1) {
+            this.products[productIndex].description = this.editDescription;
+            this.products[productIndex].specifications = updateData.specifications;
+          }
+          
+          // Refresh the table data
+          this.dataSource.data = [...this.products];
+          
+          // Show success message (you might want to add a snackbar service)
+          console.log('Description and specifications updated successfully');
+          
+          this.closeDescriptionModal();
+        } else {
+          console.error('Failed to update product:', response.message);
+          this.isUpdatingDescription = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error updating product:', error);
+        this.isUpdatingDescription = false;
+      }
+    });
+  }
+
+  // View-Only Modal Methods
+  viewDescriptionSpecificationsReadOnly(product: Product): void {
+    this.selectedViewProduct = product;
+    this.showViewOnlyModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeViewOnlyModal(): void {
+    this.showViewOnlyModal = false;
+    this.selectedViewProduct = null;
+    document.body.style.overflow = 'auto';
   }
 }

@@ -1,6 +1,0 @@
-[08-Nov-2025 10:41:04 Asia/Manila] 🔍 UpdateProduct Debug - Product ID: 59 (type: integer)
-[08-Nov-2025 10:41:04 Asia/Manila] 🔍 UpdateProduct Debug - Uploader ID: 28 (type: integer)
-[08-Nov-2025 10:41:04 Asia/Manila] 🔍 UpdateProduct Debug - Product Name: BMX (DIRECT TEST)
-[08-Nov-2025 10:41:04 Asia/Manila] 🔍 UpdateProduct Debug - Execute params: {":product_name":"BMX (DIRECT TEST)",":brand_name":"no brand",":custom_brand":null,":product_images":"[\"uploads\\\/prod_690e9a6b6b058.jpeg\"]",":product_videos":"[\"uploads\\\/videos\\\/video_690e9a6b7e6c9.mp4\"]",":price":123,":description":"test test - Updated via direct test",":location":"Olongapo City",":for_type":"sale",":condition":"second hand",":category":"whole bike",":quantity":1,":product_id":59,":uploader_id":28}
-[08-Nov-2025 10:41:04 Asia/Manila] 🔍 UpdateProduct Debug - Query executed: TRUE
-[08-Nov-2025 10:41:04 Asia/Manila] 🔍 UpdateProduct Debug - Row count: 1

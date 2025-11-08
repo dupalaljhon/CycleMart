@@ -770,9 +770,36 @@ public function addProduct($data) {
 
     $jsonImages = json_encode($savedPaths);
     $jsonVideos = json_encode($savedVideoPaths);
+    
+    // Process specifications - convert to JSON format
+    $jsonSpecifications = null;
+    if (!empty($specifications) && is_array($specifications)) {
+        $processedSpecs = [];
+        foreach ($specifications as $spec) {
+            // Handle both object notation (from Angular) and array notation
+            $specName = '';
+            $specValue = '';
+            
+            if (is_object($spec)) {
+                $specName = $spec->spec_name ?? $spec->name ?? '';
+                $specValue = $spec->spec_value ?? $spec->value ?? '';
+            } elseif (is_array($spec)) {
+                $specName = $spec['spec_name'] ?? $spec['name'] ?? '';
+                $specValue = $spec['spec_value'] ?? $spec['value'] ?? '';
+            }
+            
+            if (!empty(trim($specName)) && !empty(trim($specValue))) {
+                $processedSpecs[] = [
+                    'name' => trim($specName),
+                    'value' => trim($specValue)
+                ];
+            }
+        }
+        $jsonSpecifications = json_encode($processedSpecs);
+    }
 
-    $sql = "INSERT INTO products (product_name, brand_name, custom_brand, product_images, product_videos, price, description, location, for_type, `condition`, category, quantity, status, sale_status, uploader_id) 
-            VALUES (:product_name, :brand_name, :custom_brand, :product_images, :product_videos, :price, :description, :location, :for_type, :condition, :category, :quantity, 'active', 'available', :uploader_id)";
+    $sql = "INSERT INTO products (product_name, brand_name, custom_brand, product_images, product_videos, price, description, location, for_type, `condition`, category, quantity, status, sale_status, uploader_id, specifications) 
+            VALUES (:product_name, :brand_name, :custom_brand, :product_images, :product_videos, :price, :description, :location, :for_type, :condition, :category, :quantity, 'active', 'available', :uploader_id, :specifications)";
 
     try {
         $stmt = $this->pdo->prepare($sql);
@@ -789,16 +816,11 @@ public function addProduct($data) {
             'condition'       => $condition,
             'category'        => $category,
             'quantity'        => $quantity,
-            'uploader_id'     => $uploader_id
+            'uploader_id'     => $uploader_id,
+            'specifications'  => $jsonSpecifications
         ]);
 
         $lastId = $this->pdo->lastInsertId();
-
-        // Handle product specifications if provided
-        $specifications = $data->specifications ?? [];
-        if (!empty($specifications) && is_array($specifications)) {
-            $this->saveProductSpecifications($lastId, $specifications);
-        }
 
         // Create notification for new listing
         $userName = $this->getUserNameById($uploader_id);
@@ -940,6 +962,33 @@ public function updateProduct($data) {
 
     $finalImages = json_encode($savedPaths);
     $finalVideos = json_encode($savedVideoPaths);
+    
+    // Process specifications - convert to JSON format
+    $jsonSpecifications = null;
+    if (!empty($specifications) && is_array($specifications)) {
+        $processedSpecs = [];
+        foreach ($specifications as $spec) {
+            // Handle both object notation (from Angular) and array notation
+            $specName = '';
+            $specValue = '';
+            
+            if (is_object($spec)) {
+                $specName = $spec->spec_name ?? $spec->name ?? '';
+                $specValue = $spec->spec_value ?? $spec->value ?? '';
+            } elseif (is_array($spec)) {
+                $specName = $spec['spec_name'] ?? $spec['name'] ?? '';
+                $specValue = $spec['spec_value'] ?? $spec['value'] ?? '';
+            }
+            
+            if (!empty(trim($specName)) && !empty(trim($specValue))) {
+                $processedSpecs[] = [
+                    'name' => trim($specName),
+                    'value' => trim($specValue)
+                ];
+            }
+        }
+        $jsonSpecifications = json_encode($processedSpecs);
+    }
 
     $sql = "UPDATE products SET 
                 product_name = :product_name,
@@ -953,7 +1002,8 @@ public function updateProduct($data) {
                 for_type = :for_type,
                 `condition` = :condition,
                 category = :category,
-                quantity = :quantity
+                quantity = :quantity,
+                specifications = :specifications
             WHERE product_id = :product_id AND uploader_id = :uploader_id";
 
     try {
@@ -976,6 +1026,7 @@ public function updateProduct($data) {
             ':condition' => $condition,
             ':category' => $category,
             ':quantity' => $quantity,
+            ':specifications' => $jsonSpecifications,
             ':product_id' => $product_id,
             ':uploader_id' => $uploader_id
         ];
@@ -988,9 +1039,6 @@ public function updateProduct($data) {
         error_log("🔍 UpdateProduct Debug - Row count: " . $stmt->rowCount());
 
         if ($stmt->rowCount() > 0) {
-            // Handle product specifications update
-            $this->saveProductSpecifications($product_id, $specifications);
-            
             return $this->sendPayload([
                 "product_id" => $product_id,
                 "message" => "Product updated successfully"
@@ -2860,247 +2908,17 @@ public function updateReportStatus($data) {
     }
 
     // 🔹 Helper Methods
-    private function saveProductSpecifications($product_id, $specifications) {
-        try {
-            // Delete existing specifications for this product
-            $deleteSql = "DELETE FROM product_specifications WHERE product_id = :product_id";
-            $deleteStmt = $this->pdo->prepare($deleteSql);
-            $deleteStmt->execute([':product_id' => $product_id]);
-            
-            // Insert new specifications
-            if (is_array($specifications) && !empty($specifications)) {
-                $insertSql = "INSERT INTO product_specifications (product_id, spec_name, spec_value) VALUES (:product_id, :spec_name, :spec_value)";
-                $insertStmt = $this->pdo->prepare($insertSql);
-                
-                foreach ($specifications as $spec) {
-                    // Handle both object notation (from Angular) and array notation
-                    $specName = '';
-                    $specValue = '';
-                    
-                    if (is_object($spec)) {
-                        $specName = $spec->spec_name ?? '';
-                        $specValue = $spec->spec_value ?? '';
-                    } elseif (is_array($spec)) {
-                        $specName = $spec['spec_name'] ?? $spec['name'] ?? '';
-                        $specValue = $spec['spec_value'] ?? $spec['value'] ?? '';
-                    }
-                    
-                    if (!empty(trim($specName)) && !empty(trim($specValue))) {
-                        $insertStmt->execute([
-                            ':product_id' => $product_id,
-                            ':spec_name' => trim($specName),
-                            ':spec_value' => trim($specValue)
-                        ]);
-                    }
-                }
-            }
-            
-            return true;
-        } catch (\PDOException $e) {
-            error_log("Error saving product specifications: " . $e->getMessage());
-            return false;
-        }
-    }
+    // Note: saveProductSpecifications method removed - specifications are now stored as JSON in products table
 
     /**
-     * Update product specifications with individual control
-     * This allows for adding, updating, or deleting individual specifications
+     * Note: updateProductSpecifications method removed
+     * Specifications are now stored as JSON in the products table
+     * Use updateProduct method to update specifications along with other product data
      */
-    public function updateProductSpecifications($data) {
-        $product_id = $data->product_id ?? null;
-        $specifications = $data->specifications ?? [];
-        $uploader_id = $data->uploader_id ?? null;
 
-        if (!$product_id || !$uploader_id) {
-            return $this->sendPayload(null, "error", "Product ID and uploader ID are required", 400);
-        }
-
-        // Verify product ownership
-        $ownershipSql = "SELECT uploader_id FROM products WHERE product_id = :product_id";
-        try {
-            $ownershipStmt = $this->pdo->prepare($ownershipSql);
-            $ownershipStmt->execute([':product_id' => $product_id]);
-            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$owner) {
-                return $this->sendPayload(null, "error", "Product not found", 404);
-            }
-
-            if ($owner['uploader_id'] != $uploader_id) {
-                return $this->sendPayload(null, "error", "You can only edit specifications for your own products", 403);
-            }
-
-            // Update specifications
-            $result = $this->saveProductSpecifications($product_id, $specifications);
-            
-            if ($result) {
-                return $this->sendPayload([
-                    "product_id" => $product_id,
-                    "specifications_count" => count($specifications)
-                ], "success", "Product specifications updated successfully", 200);
-            } else {
-                return $this->sendPayload(null, "error", "Failed to update specifications", 500);
-            }
-
-        } catch (\PDOException $e) {
-            return $this->sendPayload(null, "error", $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Add a single specification to a product
-     */
-    public function addProductSpecification($data) {
-        $product_id = $data->product_id ?? null;
-        $spec_name = $data->spec_name ?? '';
-        $spec_value = $data->spec_value ?? '';
-        $uploader_id = $data->uploader_id ?? null;
-
-        if (!$product_id || !$spec_name || !$spec_value || !$uploader_id) {
-            return $this->sendPayload(null, "error", "Product ID, specification name, value, and uploader ID are required", 400);
-        }
-
-        // Verify product ownership
-        $ownershipSql = "SELECT uploader_id FROM products WHERE product_id = :product_id";
-        try {
-            $ownershipStmt = $this->pdo->prepare($ownershipSql);
-            $ownershipStmt->execute([':product_id' => $product_id]);
-            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$owner) {
-                return $this->sendPayload(null, "error", "Product not found", 404);
-            }
-
-            if ($owner['uploader_id'] != $uploader_id) {
-                return $this->sendPayload(null, "error", "You can only add specifications to your own products", 403);
-            }
-
-            // Add specification
-            $insertSql = "INSERT INTO product_specifications (product_id, spec_name, spec_value) VALUES (:product_id, :spec_name, :spec_value)";
-            $insertStmt = $this->pdo->prepare($insertSql);
-            $insertStmt->execute([
-                ':product_id' => $product_id,
-                ':spec_name' => trim($spec_name),
-                ':spec_value' => trim($spec_value)
-            ]);
-
-            $spec_id = $this->pdo->lastInsertId();
-
-            return $this->sendPayload([
-                "spec_id" => $spec_id,
-                "product_id" => $product_id,
-                "spec_name" => trim($spec_name),
-                "spec_value" => trim($spec_value)
-            ], "success", "Specification added successfully", 201);
-
-        } catch (\PDOException $e) {
-            return $this->sendPayload(null, "error", $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Update a single specification
-     */
-    public function updateSingleSpecification($data) {
-        $spec_id = $data->spec_id ?? null;
-        $spec_name = $data->spec_name ?? '';
-        $spec_value = $data->spec_value ?? '';
-        $uploader_id = $data->uploader_id ?? null;
-
-        if (!$spec_id || !$spec_name || !$spec_value || !$uploader_id) {
-            return $this->sendPayload(null, "error", "Specification ID, name, value, and uploader ID are required", 400);
-        }
-
-        // Verify ownership through product
-        $ownershipSql = "SELECT p.uploader_id, ps.product_id 
-                         FROM product_specifications ps 
-                         JOIN products p ON ps.product_id = p.product_id 
-                         WHERE ps.spec_id = :spec_id";
-        try {
-            $ownershipStmt = $this->pdo->prepare($ownershipSql);
-            $ownershipStmt->execute([':spec_id' => $spec_id]);
-            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$owner) {
-                return $this->sendPayload(null, "error", "Specification not found", 404);
-            }
-
-            if ($owner['uploader_id'] != $uploader_id) {
-                return $this->sendPayload(null, "error", "You can only edit specifications for your own products", 403);
-            }
-
-            // Update specification
-            $updateSql = "UPDATE product_specifications SET spec_name = :spec_name, spec_value = :spec_value WHERE spec_id = :spec_id";
-            $updateStmt = $this->pdo->prepare($updateSql);
-            $result = $updateStmt->execute([
-                ':spec_id' => $spec_id,
-                ':spec_name' => trim($spec_name),
-                ':spec_value' => trim($spec_value)
-            ]);
-
-            if ($result && $updateStmt->rowCount() > 0) {
-                return $this->sendPayload([
-                    "spec_id" => $spec_id,
-                    "product_id" => $owner['product_id'],
-                    "spec_name" => trim($spec_name),
-                    "spec_value" => trim($spec_value)
-                ], "success", "Specification updated successfully", 200);
-            } else {
-                return $this->sendPayload(null, "error", "No changes made or specification not found", 404);
-            }
-
-        } catch (\PDOException $e) {
-            return $this->sendPayload(null, "error", $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Delete a single specification
-     */
-    public function deleteProductSpecification($data) {
-        $spec_id = $data->spec_id ?? null;
-        $uploader_id = $data->uploader_id ?? null;
-
-        if (!$spec_id || !$uploader_id) {
-            return $this->sendPayload(null, "error", "Specification ID and uploader ID are required", 400);
-        }
-
-        // Verify ownership through product
-        $ownershipSql = "SELECT p.uploader_id, ps.product_id 
-                         FROM product_specifications ps 
-                         JOIN products p ON ps.product_id = p.product_id 
-                         WHERE ps.spec_id = :spec_id";
-        try {
-            $ownershipStmt = $this->pdo->prepare($ownershipSql);
-            $ownershipStmt->execute([':spec_id' => $spec_id]);
-            $owner = $ownershipStmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$owner) {
-                return $this->sendPayload(null, "error", "Specification not found", 404);
-            }
-
-            if ($owner['uploader_id'] != $uploader_id) {
-                return $this->sendPayload(null, "error", "You can only delete specifications from your own products", 403);
-            }
-
-            // Delete specification
-            $deleteSql = "DELETE FROM product_specifications WHERE spec_id = :spec_id";
-            $deleteStmt = $this->pdo->prepare($deleteSql);
-            $result = $deleteStmt->execute([':spec_id' => $spec_id]);
-
-            if ($result && $deleteStmt->rowCount() > 0) {
-                return $this->sendPayload([
-                    "spec_id" => $spec_id,
-                    "product_id" => $owner['product_id']
-                ], "success", "Specification deleted successfully", 200);
-            } else {
-                return $this->sendPayload(null, "error", "Specification not found or already deleted", 404);
-            }
-
-        } catch (\PDOException $e) {
-            return $this->sendPayload(null, "error", $e->getMessage(), 500);
-        }
-    }
+    // Note: Individual specification methods (addProductSpecification, updateSingleSpecification, deleteProductSpecification) 
+    // have been removed as specifications are now stored as JSON in the products table.
+    // Use addProduct and updateProduct methods to manage specifications.
 
     private function isValidJson($string) {
         if (!is_string($string)) {
