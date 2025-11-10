@@ -1075,6 +1075,8 @@ export class HomeComponent implements OnInit {
       this.loadSellerDetails(product.uploader_id);
       // Load reviews by default since Reviews tab is active
       this.loadSellerReviews(this.selectedSellerProfile);
+      // Also pre-load other listings for better UX
+      this.loadSellerOtherListings(product.uploader_id);
     } else {
       console.error('No uploader_id found in product data');
       this.selectedSellerProfile.loading = false;
@@ -1182,18 +1184,27 @@ export class HomeComponent implements OnInit {
           if (response && response.data && Array.isArray(response.data)) {
             console.log('Raw review data:', response.data);
             this.sellerReviews = response.data.map((review: any) => ({
-              buyer_name: review.buyer_name || 'Anonymous',
-              buyer_profile_image: review.buyer_profile_image || null,
-              // Use the calculated average stars from the API
-              stars: parseFloat(review.average_stars) || 0,
-              // Use 'feedback' field from the actual database schema
-              review_text: review.feedback || '',
-              product_name: review.product_name || '',
-              created_at: review.created_at || new Date().toISOString(),
-              // Include individual ratings for detailed display
+              // Reviewer information
+              reviewer_name: review.buyer_name || review.reviewer_name || 'Anonymous',
+              reviewer_profile_image: review.buyer_profile_image || review.reviewer_profile_image || null,
+              
+              // Rating information - calculate overall rating from individual ratings
+              overall_rating: this.calculateOverallRating(review),
               communication_rating: parseInt(review.communication_rating) || 0,
               product_rating: parseInt(review.product_rating) || 0,
               app_help_rating: parseInt(review.app_help_rating) || 0,
+              
+              // Review content
+              review_comment: review.feedback || review.review_comment || '',
+              product_name: review.product_name || 'Product',
+              created_at: review.created_at || new Date().toISOString(),
+              
+              // Product information
+              product_images: review.product_images || '[]',
+              product_price: review.product_price || 0,
+              product_description: review.product_description || '',
+              product_id: review.product_id || null,
+              
               // Keep original data for any additional fields
               ...review
             }));
@@ -1283,9 +1294,9 @@ export class HomeComponent implements OnInit {
     this.profileModalActiveTab = tab;
     
     // Load data for the selected tab if not already loaded
-    if (tab === 'listings' && this.sellerOtherListings.length === 0 && this.selectedSellerProfile) {
+    if (tab === 'listings' && this.sellerOtherListings.length === 0 && this.selectedSellerProfile && !this.loadingOtherListings) {
       this.loadSellerOtherListings(this.selectedSellerProfile.uploader_id);
-    } else if (tab === 'reviews' && this.sellerReviews.length === 0 && this.selectedSellerProfile) {
+    } else if (tab === 'reviews' && this.sellerReviews.length === 0 && this.selectedSellerProfile && !this.loadingReviews) {
       this.loadSellerReviews(this.selectedSellerProfile);
     }
   }
@@ -1508,5 +1519,46 @@ export class HomeComponent implements OnInit {
     } else {
       return 'text-red-500';
     }
+  }
+
+  // Calculate overall rating from individual rating components
+  calculateOverallRating(review: any): number {
+    const communication = parseInt(review.communication_rating) || 0;
+    const product = parseInt(review.product_rating) || 0;
+    const appHelp = parseInt(review.app_help_rating) || 0;
+    
+    if (communication === 0 && product === 0 && appHelp === 0) {
+      // Try to use average_stars if available
+      return parseFloat(review.average_stars) || 0;
+    }
+    
+    // Calculate average of non-zero ratings
+    const ratings = [communication, product, appHelp].filter(r => r > 0);
+    if (ratings.length === 0) {
+      return 0;
+    }
+    
+    const average = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+    return Math.round(average * 10) / 10; // Round to 1 decimal place
+  }
+
+  // Get the first product image from review data
+  getReviewProductImage(productImages: string): string {
+    if (!productImages || productImages === '[]') {
+      return 'https://via.placeholder.com/150x150/f3f4f6/9ca3af?text=No+Image'; // fallback image
+    }
+    
+    try {
+      const images = JSON.parse(productImages);
+      if (Array.isArray(images) && images.length > 0) {
+        // Get the first image and format the URL
+        const firstImage = images[0];
+        return this.getImageUrl(firstImage);
+      }
+    } catch (error) {
+      console.error('Error parsing product images:', error);
+    }
+    
+    return 'https://via.placeholder.com/150x150/f3f4f6/9ca3af?text=No+Image'; // fallback image
   }
 }

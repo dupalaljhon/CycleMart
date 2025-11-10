@@ -433,9 +433,9 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           }
         }
         
-        // Show rating button for this conversation (buyer only)
+        // Show rating button for this conversation (both buyer and seller can rate)
         this.showRatingButton = true;
-        console.log('⭐ Rating button is now visible for buyer');
+        console.log('⭐ Rating button is now visible for user in completed transaction');
         
         // Automatically open rating modal after a short delay
         setTimeout(() => {
@@ -1107,6 +1107,20 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
                 // Try to reconnect socket
                 this.socketService.connect();
               }
+              
+              // ✅ FIX: Immediately show rating button after marking as sold/traded
+              // Simple approach - just show the rating button for completed transactions
+              console.log('✅ Product marked as', newStatus, '- showing rating button immediately');
+              
+              // Show rating button immediately for completed transactions
+              this.showRatingButton = true;
+              console.log('⭐ Rating button now visible - transaction completed');
+              
+              // Show notification that rating is now available
+              this.notificationService.showInfo(
+                'Rate Your Experience',
+                'You can now rate your experience with this transaction. Click the star button to rate.'
+              );
             }
           } else {
             this.notificationService.showError(
@@ -1367,7 +1381,24 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Open rating modal
+   * Open rating modal directly - simple one-click experience
+   */
+  openRatingModalDirectly() {
+    if (!this.selectedChat) {
+      console.log('❌ No chat selected for rating');
+      return;
+    }
+    
+    console.log('⭐ Opening rating modal directly for conversation:', this.selectedChat.conversation_id);
+    console.log('👤 Rating user:', this.selectedChat.other_user_name);
+    
+    // Open modal immediately without checks
+    this.showRatingModal = true;
+    console.log('✅ Rating modal opened directly');
+  }
+
+  /**
+   * Open rating modal (original method with checks)
    */
   openRatingModal() {
     if (!this.selectedChat) {
@@ -1516,26 +1547,18 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * This should be called when a conversation is selected
    */
   checkForRatingOpportunity() {
-    if (!this.selectedChat) return;
+    if (!this.selectedChat) {
+      console.log('❌ No selected chat - cannot check rating opportunity');
+      return;
+    }
 
-    // Check if there's already a rating for this conversation
-    this.apiService.getConversationRating(this.selectedChat.conversation_id, this.currentUserId).subscribe({
-      next: (response) => {
-        if (response.status === 'success' && response.data && response.data.length === 0) {
-          // No rating exists yet, check if product was sold/traded recently
-          this.checkProductStatus();
-        } else {
-          console.log('Rating already exists for this conversation');
-          // Hide rating button if rating already exists
-          this.showRatingButton = false;
-        }
-      },
-      error: (error) => {
-        console.error('Error checking conversation rating:', error);
-        // Continue to check product status even if rating check fails
-        this.checkProductStatus();
-      }
-    });
+    console.log('🔍 Checking rating opportunity for conversation:', this.selectedChat.conversation_id);
+    
+    // Reset rating button state first
+    this.showRatingButton = false;
+    
+    // Directly call checkProductStatus which now handles both product status and rating checks
+    this.checkProductStatus();
   }
 
   /**
@@ -1563,10 +1586,16 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Check product status and show rating modal if appropriate
+   * Check product status and show rating button if appropriate
+   * Simplified version - just show button for sold/traded products
    */
   private checkProductStatus() {
-    if (!this.selectedChat) return;
+    if (!this.selectedChat) {
+      console.log('❌ No selected chat - cannot check product status');
+      return;
+    }
+
+    console.log('🔍 Checking product status for conversation:', this.selectedChat.conversation_id);
 
     // Get product details to check current status
     this.apiService.getProductById(this.selectedChat.product_id).subscribe({
@@ -1574,27 +1603,23 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         if (response.status === 'success' && response.data && response.data.length > 0) {
           const product = response.data[0];
           
-          // Check if product is sold or traded and current user is not the seller (i.e., is the buyer)
-          if ((product.sale_status === 'sold' || product.sale_status === 'traded') && 
-              product.uploader_id !== this.currentUserId) {
-            
-            // Show rating button for buyer
+          console.log('📦 Product data retrieved:', {
+            product_id: product.product_id,
+            sale_status: product.sale_status,
+            uploader_id: product.uploader_id,
+            current_user_id: this.currentUserId
+          });
+          
+          // Simple check: if product is sold or traded, show rating button
+          if (product.sale_status === 'sold' || product.sale_status === 'traded') {
             this.showRatingButton = true;
-            
-            console.log('⭐ Product is sold/traded and user is buyer - rating star button available');
-            console.log('📊 Product details:', {
-              sale_status: product.sale_status,
-              uploader_id: product.uploader_id,
-              current_user_id: this.currentUserId,
-              is_buyer: product.uploader_id !== this.currentUserId
-            });
+            const userRole = product.uploader_id === this.currentUserId ? 'seller' : 'buyer';
+            console.log('⭐ Rating button visible - product is', product.sale_status, '(user is', userRole + ')');
           } else {
-            // Hide rating button if not applicable
             this.showRatingButton = false;
-            console.log('❌ Rating button hidden - user is seller or product not sold/traded');
+            console.log('❌ Rating button hidden - product status is:', product.sale_status);
           }
         } else {
-          // Hide rating button if product not found
           this.showRatingButton = false;
           console.log('❌ Rating button hidden - product not found');
         }
@@ -1605,6 +1630,8 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       }
     });
   }
+
+
 
   /**
    * Debug socket connection for troubleshooting
