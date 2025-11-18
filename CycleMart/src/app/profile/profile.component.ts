@@ -93,9 +93,9 @@ export class ProfileComponent implements OnInit {
           this.created_at = user.created_at || '';
           this.updated_at = user.updated_at || '';
           
-          // Set image preview if profile image exists
+          // Set image preview if profile image exists (use images subdomain)
           this.imagePreview = user.profile_image
-            ? this.api.baseUrl.replace('/api/', '/') + user.profile_image
+            ? this.toImagesCdnUrl(user.profile_image)
             : null;
             
           // Load user ratings
@@ -256,8 +256,8 @@ export class ProfileComponent implements OnInit {
             this.profile_image = res.data.profile_image;
             console.log('Profile image updated on server:', this.profile_image);
             
-            // Update imagePreview to use the server path for consistency
-            this.imagePreview = this.api.baseUrl.replace('/api/', '/') + res.data.profile_image;
+            // Update imagePreview to use the images subdomain for consistency
+            this.imagePreview = this.toImagesCdnUrl(res.data.profile_image);
             console.log('Updated imagePreview to server path:', this.imagePreview);
           } else {
             // Keep the base64 imagePreview if server doesn't return path
@@ -283,7 +283,7 @@ export class ProfileComponent implements OnInit {
     // If we don't have a current imagePreview or it's not valid, set it from profile_image
     if (!this.imagePreview || (!this.imagePreview.toString().startsWith('data:image') && !this.imagePreview.toString().startsWith('http'))) {
       if (this.profile_image) {
-        this.imagePreview = this.api.baseUrl.replace('/api/', '/') + this.profile_image;
+        this.imagePreview = this.toImagesCdnUrl(this.profile_image);
       }
     }
     
@@ -300,7 +300,7 @@ export class ProfileComponent implements OnInit {
     // Reset imagePreview to current server profile image only if needed
     // This ensures that any uploaded but unsaved images are discarded
     if (this.profile_image) {
-      this.imagePreview = this.api.baseUrl.replace('/api/', '/') + this.profile_image;
+      this.imagePreview = this.toImagesCdnUrl(this.profile_image);
       console.log('Modal closed - reset imagePreview to server image:', this.imagePreview);
     } else {
       this.imagePreview = null;
@@ -410,7 +410,7 @@ export class ProfileComponent implements OnInit {
             if (res.data && res.data.profile_image) {
               this.profile_image = res.data.profile_image;
               // Update image preview to use server path
-              this.imagePreview = this.api.baseUrl.replace('/api/', '/') + res.data.profile_image;
+              this.imagePreview = this.toImagesCdnUrl(res.data.profile_image);
               console.log('Profile image updated from server:', this.profile_image);
             }
             
@@ -470,7 +470,8 @@ export class ProfileComponent implements OnInit {
         if (productImages.startsWith('http')) {
           return productImages;
         }
-        const directPath = this.api.baseUrl + productImages;
+        const cleanPath = productImages.startsWith('/') ? productImages : '/' + productImages;
+        const directPath = this.api.baseUrl + cleanPath;
         return directPath;
       }
       
@@ -491,14 +492,8 @@ export class ProfileComponent implements OnInit {
         }
         
         // If it's a relative path, prepend the correct base URL
-        let fullPath;
-        if (firstImage.startsWith('/')) {
-          // For absolute paths starting with /
-          fullPath = this.api.baseUrl + firstImage.substring(1);
-        } else {
-          // For uploads/ path, keep the CycleMart-api/api/ path since that's where uploads are stored
-          fullPath = this.api.baseUrl + firstImage;
-        }
+        const cleanPath = firstImage.startsWith('/') ? firstImage : '/' + firstImage;
+        const fullPath = this.api.baseUrl + cleanPath;
         
         return fullPath;
       }
@@ -508,7 +503,8 @@ export class ProfileComponent implements OnInit {
         if (productImages.startsWith('http')) {
           return productImages;
         }
-        const fallbackPath = this.api.baseUrl + productImages;
+        const cleanPath = productImages.startsWith('/') ? productImages : '/' + productImages;
+        const fallbackPath = this.api.baseUrl + cleanPath;
         return fallbackPath;
       }
     }
@@ -523,8 +519,8 @@ export class ProfileComponent implements OnInit {
       if (profileImage.startsWith('http')) {
         return profileImage;
       }
-      // If it's a relative path, prepend the API base URL
-      return this.api.baseUrl.replace('/api/', '/') + profileImage;
+      // If it's a relative path, route through images subdomain (uploads root)
+      return this.toImagesCdnUrl(profileImage);
     }
     
     // Generate avatar using UI Avatars with black background
@@ -613,7 +609,7 @@ export class ProfileComponent implements OnInit {
     
     // If we have a profile_image path from server
     if (this.profile_image) {
-      const serverUrl = this.api.baseUrl.replace('/api/', '/') + this.profile_image;
+      const serverUrl = this.toImagesCdnUrl(this.profile_image);
       console.log('Using server profile_image:', serverUrl);
       return serverUrl;
     }
@@ -622,6 +618,12 @@ export class ProfileComponent implements OnInit {
     const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(this.full_name)}&background=000000&color=fff&size=128`;
     console.log('Using fallback avatar:', fallbackUrl);
     return fallbackUrl;
+  }
+
+  // Convert a stored profile image path to the images subdomain URL
+  private toImagesCdnUrl(path: string): string {
+    const stripped = (path || '').replace(/^\/?uploads[\/]/, '');
+    return `http://images.cyclemart.shop/${stripped}`;
   }
 
 

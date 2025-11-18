@@ -29,12 +29,14 @@ export class ProfileImageService {
 
     // If it's already a full URL, return as is
     if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
+      // If it already points to images domain, use directly; otherwise keep as-is
+      // (Some legacy URLs may still work). Prefer not to transform full URLs.
       imageUrl = profileImage;
     } else {
-      // Use the same method as the original user-list component
-      // The apiService.baseUrl includes '/api/' but uploads is at parent level
-      const baseWithoutApi = this.apiService.baseUrl.replace('/api/', '/');
-      imageUrl = `${baseWithoutApi}${profileImage}`;
+      // Hardcode to images CDN/subdomain for profile images only
+      // Subdomain root maps to the 'uploads' directory, so strip any leading 'uploads/'
+      const stripped = profileImage.replace(/^\/?uploads[\/]/, '');
+      imageUrl = `http://images.cyclemart.shop/${stripped}`;
     }
 
     // Cache the result

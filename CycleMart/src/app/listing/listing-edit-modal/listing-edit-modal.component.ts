@@ -441,7 +441,7 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     if (videoPath.startsWith('data:')) {
       return videoPath; // Base64 video
     }
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${videoPath}`;
+    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
   }
 
   // Video Drag and Drop for Reordering
@@ -527,7 +527,8 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     if (imagePath.startsWith('data:')) {
       return imagePath; // Base64 image
     }
-    return `${this.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    return `${this.apiService.baseUrl}${cleanPath}`;
   }
 
   onModalClick(event: Event) {

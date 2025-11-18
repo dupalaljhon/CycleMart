@@ -1,14 +1,51 @@
 
 
-<IfModule mod_rewrite.c>
+# <IfModule mod_rewrite.c>
   
-    RewriteEngine On
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^(.*)$ routes.php?request=$1 [L,QSA]
+#     RewriteEngine On
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteRule ^(.*)$ routes.php?request=$1 [L,QSA]
 
     
-    RewriteCond %{REQUEST_METHOD} DELETE
-    RewriteRule ^images/([0-9]+)$ post.php?delete_id=$1 [L,QSA]
+#     RewriteCond %{REQUEST_METHOD} DELETE
+#     RewriteRule ^images/([0-9]+)$ post.php?delete_id=$1 [L,QSA]
+# </IfModule>
+
+
+
+
+
+
+# Allow access to all files in this directory
+Options +FollowSymLinks
+Options -Indexes
+
+# Allow .php files to be executed
+<FilesMatch "\.php$">
+    Require all granted
+</FilesMatch>
+
+# Enable CORS
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header set Access-Control-Allow-Credentials "true"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Allow direct access to specific test/utility files
+    RewriteCond %{REQUEST_URI} (test-routing|test-db-connection|health|simple-test)\.php$ [NC]
+    RewriteRule ^ - [L]
+    
+    # Don't rewrite if file or directory exists
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    
+    # Route all other requests to routes.php (which handles OPTIONS properly)
+    RewriteRule ^(.*)$ routes.php?request=$1 [L,QSA]
 </IfModule>
 

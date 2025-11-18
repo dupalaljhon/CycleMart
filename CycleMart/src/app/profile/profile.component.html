@@ -59,9 +59,10 @@
             <div class="mt-3 flex items-center gap-2">
               <span 
                 *ngIf="is_verified; else notVerified"
-                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-black border border-black"
+                class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-white text-black border border-black"
               >
-                ✓ Verified Account
+                <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
+                <span>Verified Account</span>
               </span>
               <ng-template #notVerified>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-black border border-gray-400">
@@ -179,9 +180,10 @@
               <div class="bg-gray-100 p-3 rounded-lg border border-gray-300">
                 <span 
                   *ngIf="is_verified; else notVerifiedStatus"
-                  class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-black border border-black"
+                  class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-white text-black border border-black"
                 >
-                  ✓ Verified
+                  <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
+                  <span>Verified</span>
                 </span>
                 <ng-template #notVerifiedStatus>
                   <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-black border border-gray-400">

@@ -3,42 +3,41 @@
   <app-admin-sidenav></app-admin-sidenav>
 
   <!-- Main Content -->
-  <div class="flex-1 p-3 overflow-y-auto bg-theme-background">
-    <!-- Ultra Compact Header -->
-    <div class="mb-2">
-      <div class="bg-white rounded-md p-2 mb-2 text-black shadow-sm border border-gray-200">
+  <div class="flex-1 p-6 overflow-y-auto bg-theme-background">
+    <!-- Header Section -->
+    <div class="mb-6">
+      <div class="bg-white rounded-lg p-6 mb-4 text-black shadow-sm border border-gray-200">
         <div class="flex justify-between items-center">
           <div>
-            <h1 class="text-lg font-bold flex items-center gap-1">
-              <mat-icon class="text-xl">inventory_2</mat-icon>
+            <h1 class="text-2xl font-bold flex items-center gap-2 text-gray-900">
+              <mat-icon class="text-3xl">inventory_2</mat-icon>
               Listing Monitoring
             </h1>
-            <p class="text-gray-600 text-xs">Monitor and manage all product listings</p>
+            <p class="text-gray-600 text-sm mt-1 font-normal">Monitor and manage all product listings</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-4">
             <div class="text-right">
-              <div class="text-base font-bold">{{ dataSource.data.length }}</div>
-              <div class="text-xs opacity-90">Total Products</div>
+              <div class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Products</div>
+              <div class="text-3xl font-bold text-gray-900 mt-1">{{ dataSource.data.length }}</div>
             </div>
             <button 
               (click)="refreshProducts()"
-              class="bg-black bg-opacity-10 text-black px-3 py-1 rounded-sm hover:bg-gray-200 transition-all duration-200 flex items-center gap-1 border border-gray-300">
-              <mat-icon class="text-xs">refresh</mat-icon>
-              <span class="text-xs">Refresh</span>
+              class="p-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
+              <mat-icon class="text-xl">refresh</mat-icon>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 🔍 Search and Filters Section -->
-      <div class="bg-white rounded-md shadow-sm p-3 mb-2 border border-gray-100">
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-2 items-end">
+      <!-- Search and Filters Section -->
+      <div class="bg-white rounded-lg shadow-sm p-5 mb-4 border border-gray-200">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 items-end">
           
           <!-- Section Header -->
-          <div class="lg:col-span-5 mb-1">
-            <div class="flex items-center gap-1">
-              <mat-icon class="text-black text-xs">filter_list</mat-icon>
-              <h3 class="text-sm font-semibold text-gray-800">Search & Filters</h3>
+          <div class="lg:col-span-5 mb-2">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-gray-700 text-xl">filter_list</mat-icon>
+              <h3 class="text-base font-semibold text-gray-900">Search & Filters</h3>
             </div>
           </div>
 
@@ -117,9 +116,9 @@
     </div>
 
     <!-- Loading State -->
-    <div *ngIf="isLoading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-      <p class="mt-4 text-theme-secondary">Loading products...</p>
+    <div *ngIf="isLoading" class="text-center py-16">
+      <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-gray-900 mx-auto"></div>
+      <p class="mt-6 text-gray-600 text-base font-medium">Loading products...</p>
     </div>
 
     <!-- Enhanced Products Table -->
@@ -140,78 +139,36 @@
       <div class="overflow-x-auto">
         <table mat-table [dataSource]="dataSource" matSort class="w-full">
           
-          <!-- Product Name Column -->
+          <!-- Product Name Column with Thumbnail -->
           <ng-container matColumnDef="product_name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">inventory_2</mat-icon>
-                Product Details
-              </div>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+              Product
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="flex items-center gap-4">
-                <!-- Media Section -->
-                <div class="flex gap-2">
-                  <!-- Main Product Image -->
-                  <div class="relative">
-                    <img 
-                      *ngIf="product.product_images && product.product_images.length > 0"
-                      [src]="getImageUrl(product.product_images[0])" 
-                      class="w-16 h-16 object-cover rounded-xl cursor-pointer hover:opacity-80 transition-all duration-200 shadow-md"
-                      (click)="viewImages(product)"
-                      alt="Product image">
-                    <div 
-                      *ngIf="!product.product_images || product.product_images.length === 0"
-                      class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-md">
-                      <mat-icon class="text-gray-400">image</mat-icon>
-                    </div>
-                    <div *ngIf="product.product_images && product.product_images.length > 1" 
-                         class="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {{ product.product_images.length }}
-                    </div>
-                  </div>
-                  
-                  <!-- Video Thumbnail -->
-                  <div class="relative" *ngIf="product.product_videos && product.product_videos.length > 0">
-                    <div class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-md cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105"
-                         (click)="viewVideos(product)"
-                         matTooltip="Click to view {{ product.product_videos.length }} video{{ product.product_videos.length > 1 ? 's' : '' }}"
-                         matTooltipPosition="above">
-                      <mat-icon class="text-black text-2xl">play_circle</mat-icon>
-                    </div>
-                    <div class="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {{ product.product_videos.length }}
-                    </div>
-                    <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-1 rounded">
-                      🎥
-                    </div>
+            <td mat-cell *matCellDef="let product" class="px-6 py-4">
+              <div class="flex items-center space-x-3">
+                <!-- Product Thumbnail -->
+                <div class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                  <img 
+                    *ngIf="product.product_images && product.product_images.length > 0"
+                    [src]="getImageUrl(product.product_images[0])"
+                    [alt]="product.product_name"
+                    class="w-full h-full object-cover cursor-pointer hover:opacity-75 transition-opacity"
+                    (click)="viewImages(product)"
+                    (error)="onImageError($event)">
+                  <div *ngIf="!product.product_images || product.product_images.length === 0" 
+                       class="w-full h-full flex items-center justify-center text-gray-400">
+                    <mat-icon>image_not_supported</mat-icon>
                   </div>
                 </div>
                 
-                <!-- Product Info -->
+                <!-- Product Name -->
                 <div class="flex-1 min-w-0">
-                  <div class="font-semibold text-gray-900 truncate">{{ product.product_name }}</div>
-                  <div class="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                    <mat-icon class="text-xs">inventory</mat-icon>
-                    <span>{{ product.quantity }} available</span>
-                    <span class="text-gray-300">•</span>
-                    <span class="capitalize">{{ product.category }}</span>
-                  </div>
-                  
-                  <!-- Media Info -->
-                  <div class="text-xs text-gray-400 flex items-center gap-3 mt-1">
-                    <span *ngIf="product.product_images && product.product_images.length > 0" class="flex items-center gap-1">
-                      <mat-icon class="text-xs">image</mat-icon>
-                      {{ product.product_images.length }} image{{ product.product_images.length > 1 ? 's' : '' }}
-                    </span>
-                    <span *ngIf="product.product_videos && product.product_videos.length > 0" class="flex items-center gap-1">
-                      <mat-icon class="text-xs">videocam</mat-icon>
-                      {{ product.product_videos.length }} video{{ product.product_videos.length > 1 ? 's' : '' }}
-                    </span>
-                    <span *ngIf="hasMediaContent(product)" class="text-green-600 font-medium">
-                      {{ getTotalMediaCount(product) }} total media files
-                    </span>
-                  </div>
+                  <p class="text-sm font-semibold text-gray-900 truncate" [matTooltip]="product.product_name">
+                    {{ product.product_name }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    ID: #{{ product.product_id }}
+                  </p>
                 </div>
               </div>
             </td>
@@ -219,232 +176,157 @@
 
           <!-- Seller Column -->
           <ng-container matColumnDef="seller">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">person</mat-icon>
-                Seller Info
-              </div>
+            <th mat-header-cell *matHeaderCellDef class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+              Seller
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="flex items-center gap-3">
-                <img [src]="getSellerProfileImageUrl(product.seller_profile_image)" 
-                     [alt]="product.seller_name || 'Seller'"
-                     class="w-10 h-10 object-cover rounded-full border border-gray-200"
-                     (error)="onSellerImageError($event)">
+            <td mat-cell *matCellDef="let product" class="px-6 py-4">
+              <div class="flex items-center space-x-3">
+                <img 
+                  [src]="getSellerProfileImageUrl(product.seller_profile_image)"
+                  (error)="onSellerImageError($event)"
+                  [alt]="product.seller_name"
+                  class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
                 <div>
-                  <div class="font-medium text-gray-900">{{ product.seller_name || 'Unknown' }}</div>
-                  <div class="text-sm text-gray-500">{{ product.seller_email || 'No email' }}</div>
+                  <p class="text-sm font-medium text-gray-900">{{ product.seller_name }}</p>
+                  <p class="text-xs text-gray-500">{{ product.seller_email }}</p>
                 </div>
               </div>
             </td>
           </ng-container>
 
-          <!-- Price Column -->
-          <ng-container matColumnDef="price">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">attach_money</mat-icon>
-                Price
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="text-xl font-bold text-black">{{ formatPrice(product.price) }}</div>
-              <div class="text-xs text-gray-500">{{ getForTypeText(product.for_type) }}</div>
-            </td>
-          </ng-container>
-
-          <!-- Product Type Column -->
-          <ng-container matColumnDef="for_type">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">swap_horiz</mat-icon>
-                Product Type
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="flex items-center gap-2">
-                <div 
-                  [class]="product.for_type === 'sale' ? 'bg-white text-black border-gray-300' : 
-                           product.for_type === 'trade' ? 'bg-gray-200 text-black border-gray-400' : 
-                           'bg-gray-400 text-black border-gray-500'"
-                  class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1">
-                  <mat-icon class="text-xs">
-                    {{ product.for_type === 'sale' ? 'attach_money' : 
-                       product.for_type === 'trade' ? 'swap_horiz' : 
-                       'compare_arrows' }}
-                  </mat-icon>
-                  {{ getForTypeText(product.for_type) }}
-                </div>
-              </div>
-            </td>
-          </ng-container>
-
-          <!-- Condition & Type Column -->
-          <ng-container matColumnDef="condition">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">verified</mat-icon>
-                Condition
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <div 
-                    [class]="product.condition === 'brand new' ? 'bg-white text-black border-gray-400' : 'bg-gray-200 text-black border-gray-400'"
-                    class="px-3 py-1 rounded-full text-xs font-medium border">
-                    {{ product.condition === 'brand new' ? 'Brand New' : 'Second Hand' }}
-                  </div>
-                </div>
-              </div>
-            </td>
-          </ng-container>
-
-          <!-- Status Column -->
+          <!-- Archive/Active Status Column -->
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">radio_button_checked</mat-icon>
-                Status
-              </div>
+            <th mat-header-cell *matHeaderCellDef class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+              Archive Status
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <div 
-                    [class]="product.status === 'active' ? 'bg-white text-black border-gray-300' : 'bg-gray-800 text-white border-gray-500'"
-                    class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1">
-                    <mat-icon class="text-xs">
-                      {{ product.status === 'active' ? 'check_circle' : 'archive' }}
-                    </mat-icon>
-                    {{ product.status | titlecase }}
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div 
-                    [class]="product.sale_status === 'available' ? 'bg-white text-black border-gray-300' : 'bg-gray-600 text-white border-gray-500'"
-                    class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1">
-                    <mat-icon class="text-xs">
-                      {{ product.sale_status === 'available' ? 'shopping_cart' : 'done' }}
-                    </mat-icon>
-                    {{ getSaleStatusText(product) }}
-                  </div>
-                </div>
-              </div>
+            <td mat-cell *matCellDef="let product" class="px-6 py-4">
+              <span *ngIf="product.status === 'archived'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                <mat-icon class="text-xs mr-1" style="font-size: 14px; width: 14px; height: 14px;">archive</mat-icon>
+                Archived
+              </span>
+              <span *ngIf="product.status === 'active'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300">
+                <mat-icon class="text-xs mr-1" style="font-size: 14px; width: 14px; height: 14px;">check_circle</mat-icon>
+                Active
+              </span>
             </td>
           </ng-container>
 
-          <!-- Created At Column -->
-          <ng-container matColumnDef="created_at">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">schedule</mat-icon>
-                Created
-              </div>
+          <!-- Sale Status Column -->
+          <ng-container matColumnDef="sale_status">
+            <th mat-header-cell *matHeaderCellDef class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+              Sale Status
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="text-sm text-gray-600">{{ formatDate(product.created_at) }}</div>
-              <div class="text-xs text-gray-400">{{ getTimeAgo(product.created_at) }}</div>
+            <td mat-cell *matCellDef="let product" class="px-6 py-4">
+              <span *ngIf="product.sale_status === 'sold'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300">
+                <mat-icon class="text-xs mr-1" style="font-size: 14px; width: 14px; height: 14px;">sell</mat-icon>
+                Sold
+              </span>
+              <span *ngIf="product.sale_status === 'available'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-300">
+                <mat-icon class="text-xs mr-1" style="font-size: 14px; width: 14px; height: 14px;">local_offer</mat-icon>
+                Available
+              </span>
+              <span *ngIf="product.sale_status === 'reserved'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
+                <mat-icon class="text-xs mr-1" style="font-size: 14px; width: 14px; height: 14px;">schedule</mat-icon>
+                Reserved
+              </span>
+              <span *ngIf="product.sale_status === 'traded'" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-300">
+                <mat-icon class="text-xs mr-1" style="font-size: 14px; width: 14px; height: 14px;">swap_horiz</mat-icon>
+                Traded
+              </span>
             </td>
           </ng-container>
 
           <!-- Actions Column -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="bg-gray-50 text-gray-700 font-semibold p-4 border-b-2 border-gray-200">
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-sm text-black">settings</mat-icon>
-                Actions
-              </div>
+            <th mat-header-cell *matHeaderCellDef class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+              Actions
             </th>
-            <td mat-cell *matCellDef="let product" class="p-4 border-b border-gray-100">
-              <div class="flex gap-2">
-                <button 
-                  *ngIf="product.product_images && product.product_images.length > 0"
-                  mat-mini-fab
-                  (click)="viewImages(product)"
-                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
-                  matTooltip="View Images">
-                  <mat-icon class="!text-sm">visibility</mat-icon>
+            <td mat-cell *matCellDef="let product" class="px-6 py-4">
+              <div class="flex items-center space-x-2">
+                <!-- View Details Button -->
+                <button mat-icon-button 
+                        [matTooltip]="'View Details'"
+                        (click)="viewDescriptionSpecificationsReadOnly(product)"
+                        class="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                  <mat-icon>visibility</mat-icon>
                 </button>
-                
-                <button 
-                  *ngIf="product.product_videos && product.product_videos.length > 0"
-                  mat-mini-fab
-                  (click)="viewVideos(product)"
-                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
-                  matTooltip="View Videos">
-                  <mat-icon class="!text-sm">play_arrow</mat-icon>
-                </button>
-                
-                <button 
-                  mat-mini-fab
-                  (click)="viewDescriptionSpecificationsReadOnly(product)"
-                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
-                  matTooltip="View Description & Specifications">
-                  <mat-icon class="!text-sm">info</mat-icon>
-                </button>
-                
-                <!-- <button 
-                  mat-mini-fab
-                  (click)="viewDescriptionSpecifications(product)"
-                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
-                  matTooltip="Edit Description & Specifications">
-                  <mat-icon class="!text-sm">edit</mat-icon>
+
+                <!-- View Images Button -->
+                <!-- <button mat-icon-button 
+                        *ngIf="product.product_images && product.product_images.length > 0"
+                        [matTooltip]="'View Images (' + product.product_images.length + ')'"
+                        (click)="viewImages(product)"
+                        class="text-purple-600 hover:text-purple-800 hover:bg-purple-50">
+                  <mat-icon [matBadge]="product.product_images.length" matBadgeSize="small" matBadgeColor="accent">photo_library</mat-icon>
                 </button> -->
-                
-                <button 
-                  *ngIf="product.status === 'active'"
-                  mat-mini-fab
-                  (click)="archiveProduct(product)"
-                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
-                  matTooltip="Archive Product">
-                  <mat-icon class="!text-sm">archive</mat-icon>
+
+                <!-- View Videos Button -->
+                <!-- <button mat-icon-button 
+                        *ngIf="product.product_videos && product.product_videos.length > 0"
+                        [matTooltip]="'View Videos (' + product.product_videos.length + ')'"
+                        (click)="viewVideos(product)"
+                        class="text-pink-600 hover:text-pink-800 hover:bg-pink-50">
+                  <mat-icon [matBadge]="product.product_videos.length" matBadgeSize="small" matBadgeColor="warn">videocam</mat-icon>
+                </button> -->
+
+                <!-- Archive/Restore Button -->
+                <button mat-icon-button 
+                        *ngIf="product.status === 'active'"
+                        [matTooltip]="'Archive Product'"
+                        (click)="archiveProduct(product)"
+                        class="text-orange-600 hover:text-orange-800 hover:bg-orange-50">
+                  <mat-icon>archive</mat-icon>
                 </button>
-                
-                <button 
-                  *ngIf="product.status === 'archived'"
-                  mat-mini-fab
-                  (click)="restoreProduct(product)"
-                  class="!bg-white !text-black hover:!bg-gray-100 transition-colors !w-8 !h-8 !border !border-gray-300"
-                  matTooltip="Restore Product">
-                  <mat-icon class="!text-sm">unarchive</mat-icon>
+                <button mat-icon-button 
+                        *ngIf="product.status === 'archived'"
+                        [matTooltip]="'Restore Product'"
+                        (click)="restoreProduct(product)"
+                        class="text-green-600 hover:text-green-800 hover:bg-green-50">
+                  <mat-icon>unarchive</mat-icon>
                 </button>
               </div>
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
-              class="hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-50"></tr>
+              class="hover:bg-gray-50 transition-colors cursor-pointer"
+              (click)="viewDescriptionSpecificationsReadOnly(row)"></tr>
         </table>
       </div>
 
       <!-- Enhanced Paginator -->
       <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
         <mat-paginator 
-          [pageSizeOptions]="[10, 25, 50, 100]" 
-          [pageSize]="25"
+          [pageSizeOptions]="pageSizeOptions" 
+          [pageSize]="pageSize"
           showFirstLastButtons
           class="!bg-transparent">
         </mat-paginator>
       </div>
 
       <!-- Enhanced No Data State -->
-      <div *ngIf="dataSource.filteredData.length === 0 && !isLoading" class="text-center py-16 bg-gray-50">
+      <div *ngIf="dataSource.filteredData.length === 0 && !isLoading" class="text-center py-20 bg-gray-50">
         <div class="max-w-md mx-auto">
-          <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-            <mat-icon class="text-4xl text-gray-400">search_off</mat-icon>
+          <div class="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <mat-icon class="text-5xl text-gray-400">search_off</mat-icon>
           </div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
-          <p class="text-gray-500 mb-6" *ngIf="searchTerm || statusFilter !== 'all' || saleStatusFilter !== 'all'">
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">No products found</h3>
+          <p class="text-gray-600 text-base mb-8 font-normal" *ngIf="searchTerm || statusFilter !== 'all' || saleStatusFilter !== 'all'">
             Try adjusting your filters or search terms to find what you're looking for.
           </p>
-          <p class="text-gray-500 mb-6" *ngIf="!searchTerm && statusFilter === 'all' && saleStatusFilter === 'all'">
+          <p class="text-gray-600 text-base mb-8 font-normal" *ngIf="!searchTerm && statusFilter === 'all' && saleStatusFilter === 'all'">
             No products have been posted yet. Check back later for new listings.
           </p>
           <button 
             (click)="clearFilters()"
-            class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+            class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-semibold text-sm">
             Clear All Filters
           </button>
         </div>
@@ -598,17 +480,17 @@
          (click)="$event.stopPropagation()">
       
       <!-- Modal Header -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-red-500 to-red-600">
-        <div class="flex items-center gap-2">
-          <div class="p-1.5 bg-white/20 rounded-lg">
-            <mat-icon class="text-white">archive</mat-icon>
+      <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-red-600">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-white/20 rounded-lg">
+            <mat-icon class="text-white text-xl">archive</mat-icon>
           </div>
-          <h2 class="text-lg font-bold text-white">Archive Product</h2>
+          <h2 class="text-xl font-bold text-white">Archive Product</h2>
         </div>
         <button 
           (click)="closeArchiveModal()"
-          class="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
-          <mat-icon>close</mat-icon>
+          class="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+          <mat-icon class="text-xl">close</mat-icon>
         </button>
       </div>
 
@@ -671,17 +553,17 @@
          (click)="$event.stopPropagation()">
       
       <!-- Modal Header -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-green-500 to-green-600">
-        <div class="flex items-center gap-2">
-          <div class="p-1.5 bg-white/20 rounded-lg">
-            <mat-icon class="text-white">unarchive</mat-icon>
+      <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-green-600">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-white/20 rounded-lg">
+            <mat-icon class="text-white text-xl">unarchive</mat-icon>
           </div>
-          <h2 class="text-lg font-bold text-white">Restore Product</h2>
+          <h2 class="text-xl font-bold text-white">Restore Product</h2>
         </div>
         <button 
           (click)="closeRestoreModal()"
-          class="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
-          <mat-icon>close</mat-icon>
+          class="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+          <mat-icon class="text-xl">close</mat-icon>
         </button>
       </div>
 
@@ -875,115 +757,370 @@
     </div>
   </div>
 
-  <!-- View-Only Description & Specifications Modal -->
-  <div *ngIf="showViewOnlyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
-       (click)="closeViewOnlyModal()">
-    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl transform transition-all"
+  <!-- Success Modal -->
+  <div *ngIf="showSuccessModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+       (click)="closeSuccessModal()">
+    <div class="bg-white rounded-xl max-w-md w-full overflow-hidden shadow-2xl transform transition-all"
          (click)="$event.stopPropagation()">
       
       <!-- Modal Header -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-500 to-green-600">
+      <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-green-600">
         <div class="flex items-center gap-3">
-          <mat-icon class="text-white text-2xl">info</mat-icon>
-          <div>
-            <h3 class="text-xl font-semibold text-white">Product Details</h3>
-            <p class="text-green-100 text-sm" *ngIf="selectedViewProduct">{{ selectedViewProduct.product_name }}</p>
-          </div>
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h2 class="text-2xl font-bold text-white">{{ successTitle }}</h2>
         </div>
         <button 
-          (click)="closeViewOnlyModal()"
+          (click)="closeSuccessModal()" 
           class="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
-          <mat-icon>close</mat-icon>
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
         </button>
       </div>
 
       <!-- Modal Content -->
-      <div class="p-6 overflow-y-auto max-h-[calc(90vh-150px)]">
-        <div *ngIf="selectedViewProduct" class="space-y-6">
+      <div class="p-6 text-center">
+        <div class="mb-4">
+          <svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <p class="text-gray-700">{{ successMessage }}</p>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex justify-center p-4 border-t border-gray-200 bg-gray-50">
+        <button 
+          (click)="closeSuccessModal()"
+          class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View-Only Description & Specifications Modal -->
+  <div *ngIf="showViewOnlyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+       (click)="closeViewOnlyModal()">
+    <div class="bg-white rounded-3xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl transform transition-all"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-300 bg-black">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-white/20 rounded-lg">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-white">Product Details</h2>
+        </div>
+        <button 
+          (click)="closeViewOnlyModal()"
+          class="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+        <div *ngIf="selectedViewProduct" class="grid grid-cols-1 xl:grid-cols-2 gap-8">
           
-          <!-- Product Info Summary -->
-          <div class="bg-gray-50 rounded-lg p-4 mb-6">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <mat-icon class="mr-2 text-blue-600">inventory_2</mat-icon>
-              Product Information
-            </h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label class="text-sm font-medium text-gray-600">Product Name</label>
-                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.product_name }}</p>
+          <!-- Enhanced Product Media Section (Images & Videos) -->
+          <div class="space-y-6">
+            <!-- Media Type Tabs -->
+            <div *ngIf="selectedViewProduct && ((selectedViewProduct.product_images && selectedViewProduct.product_images.length > 0) || (selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 0))" 
+                 class="flex gap-1 bg-gray-100 p-1 rounded-xl">
+              <button 
+                *ngIf="selectedViewProduct && selectedViewProduct.product_images && selectedViewProduct.product_images.length > 0"
+                (click)="currentMediaType = 'image'"
+                [class.bg-white]="currentMediaType === 'image'"
+                [class.shadow-sm]="currentMediaType === 'image'"
+                [class.text-black]="currentMediaType === 'image'"
+                [class.text-gray-600]="currentMediaType !== 'image'"
+                class="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2">
+                <mat-icon class="text-sm">photo_library</mat-icon>
+                Images ({{selectedViewProduct.product_images.length}})
+              </button>
+              <button 
+                *ngIf="selectedViewProduct && selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 0"
+                (click)="currentMediaType = 'video'"
+                [class.bg-white]="currentMediaType === 'video'"
+                [class.shadow-sm]="currentMediaType === 'video'"
+                [class.text-black]="currentMediaType === 'video'"
+                [class.text-gray-600]="currentMediaType !== 'video'"
+                class="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2">
+                <mat-icon class="text-sm">videocam</mat-icon>
+                Videos ({{selectedViewProduct.product_videos.length}})
+              </button>
+            </div>
+
+            <!-- Image Display -->
+            <div *ngIf="selectedViewProduct && currentMediaType === 'image' && selectedViewProduct.product_images && selectedViewProduct.product_images.length > 0" class="space-y-6">
+              <!-- Main Image -->
+              <div class="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden shadow-lg">
+                <img 
+                  [src]="getImageUrl(selectedViewProduct.product_images[currentImageIndex])" 
+                  [alt]="selectedViewProduct.product_name"
+                  (error)="onImageError($event)"
+                  class="w-full h-full object-contain p-4">
+                
+                <!-- Navigation Arrows -->
+                <button 
+                  *ngIf="selectedViewProduct.product_images && selectedViewProduct.product_images.length > 1"
+                  (click)="prevModalImage()"
+                  class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full w-12 h-12 flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-200 shadow-lg">
+                  <mat-icon>chevron_left</mat-icon>
+                </button>
+                
+                <button 
+                  *ngIf="selectedViewProduct.product_images && selectedViewProduct.product_images.length > 1"
+                  (click)="nextModalImage()"
+                  class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full w-12 h-12 flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-200 shadow-lg">
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+
+                <!-- Image Counter -->
+                <div *ngIf="selectedViewProduct.product_images && selectedViewProduct.product_images.length > 1" 
+                     class="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
+                  {{currentImageIndex + 1}} / {{selectedViewProduct.product_images.length}}
+                </div>
               </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Price</label>
-                <p class="text-gray-900 font-semibold">{{ formatPrice(selectedViewProduct.price) }}</p>
+
+              <!-- Thumbnail Strip -->
+              <div *ngIf="selectedViewProduct.product_images && selectedViewProduct.product_images.length > 1" 
+                   class="flex gap-3 overflow-x-auto pb-2">
+                <button 
+                  *ngFor="let image of selectedViewProduct.product_images; let i = index"
+                  (click)="currentImageIndex = i"
+                  [class.ring-4]="currentImageIndex === i"
+                  [class.ring-blue-500]="currentImageIndex === i"
+                  [class.scale-110]="currentImageIndex === i"
+                  class="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all duration-200 shadow-md hover:shadow-lg">
+                  <img [src]="getImageUrl(image)" class="w-full h-full object-cover" (error)="onImageError($event)">
+                </button>
               </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Seller</label>
-                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.seller_name }}</p>
+            </div>
+
+            <!-- Video Display -->
+            <div *ngIf="selectedViewProduct && currentMediaType === 'video' && selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 0" class="space-y-6">
+              <!-- Main Video -->
+              <div class="relative aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden shadow-lg">
+                <video 
+                  [src]="getVideoUrl(selectedViewProduct.product_videos[currentVideoIndex])" 
+                  class="w-full h-full object-contain"
+                  controls
+                  preload="metadata">
+                  Your browser does not support the video tag.
+                </video>
+                
+                <!-- Video Navigation Arrows -->
+                <button 
+                  *ngIf="selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 1"
+                  (click)="prevModalVideo()"
+                  class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/90 hover:scale-110 transition-all duration-200 shadow-lg">
+                  <mat-icon>chevron_left</mat-icon>
+                </button>
+                
+                <button 
+                  *ngIf="selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 1"
+                  (click)="nextModalVideo()"
+                  class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/90 hover:scale-110 transition-all duration-200 shadow-lg">
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+
+                <!-- Video Counter -->
+                <div *ngIf="selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 1" 
+                     class="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
+                  {{currentVideoIndex + 1}} / {{selectedViewProduct.product_videos.length}}
+                </div>
               </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Brand</label>
-                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.brand_name || 'No Brand' }}</p>
+
+              <!-- Video Thumbnail Strip -->
+              <div *ngIf="selectedViewProduct.product_videos && selectedViewProduct.product_videos.length > 1" 
+                   class="flex gap-3 overflow-x-auto pb-2">
+                <button 
+                  *ngFor="let video of selectedViewProduct.product_videos; let i = index"
+                  (click)="currentVideoIndex = i"
+                  [class.ring-4]="currentVideoIndex === i"
+                  [class.ring-purple-500]="currentVideoIndex === i"
+                  [class.scale-110]="currentVideoIndex === i"
+                  class="flex-shrink-0 w-24 h-16 rounded-xl overflow-hidden border-2 border-transparent hover:border-purple-300 transition-all duration-200 shadow-md hover:shadow-lg bg-gray-100 flex items-center justify-center">
+                  <mat-icon class="text-purple-500">play_circle</mat-icon>
+                </button>
               </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Condition</label>
-                <p class="text-gray-900 font-semibold capitalize">{{ selectedViewProduct.condition.replace('_', ' ') }}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Category</label>
-                <p class="text-gray-900 font-semibold capitalize">{{ selectedViewProduct.category.replace('_', ' ') }}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">For Type</label>
-                <p class="text-gray-900 font-semibold capitalize">{{ getForTypeText(selectedViewProduct.for_type) }}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Quantity</label>
-                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.quantity }}</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-600">Location</label>
-                <p class="text-gray-900 font-semibold">{{ selectedViewProduct.location }}</p>
+            </div>
+
+            <!-- Fallback when no media -->
+            <div *ngIf="selectedViewProduct && ((!selectedViewProduct.product_images || selectedViewProduct.product_images.length === 0) && (!selectedViewProduct.product_videos || selectedViewProduct.product_videos.length === 0))" 
+                 class="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center">
+              <div class="text-center text-gray-400">
+                <mat-icon class="text-6xl mb-4">image_not_supported</mat-icon>
+                <p class="text-lg font-medium">No media available</p>
+                <p class="text-sm">This product has no images or videos</p>
               </div>
             </div>
           </div>
 
-          <!-- Description Section -->
-          <div class="space-y-3">
-            <h4 class="text-lg font-semibold text-gray-800 flex items-center">
-              <mat-icon class="mr-2 text-blue-600">subject</mat-icon>
-              Product Description
-            </h4>
-            <div class="bg-white border border-gray-200 rounded-lg p-4">
-              <p class="text-gray-700 whitespace-pre-wrap" [innerHTML]="selectedViewProduct.description || 'No description provided.'"></p>
-            </div>
-          </div>
-
-          <!-- Specifications Section -->
-          <div class="space-y-4">
-            <h4 class="text-lg font-semibold text-gray-800 flex items-center">
-              <mat-icon class="mr-2 text-green-600">build</mat-icon>
-              Product Specifications
-            </h4>
-            
-            <div *ngIf="selectedViewProduct.specifications && selectedViewProduct.specifications.length > 0; else noSpecs">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div *ngFor="let spec of selectedViewProduct.specifications" 
-                     class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div class="flex flex-col space-y-2">
-                    <label class="text-sm font-medium text-gray-600">{{ spec.spec_name || spec.name }}</label>
-                    <p class="text-gray-900 font-semibold">{{ spec.spec_value || spec.value }}</p>
+          <!-- Enhanced Product Details Section -->
+          <div class="space-y-6">
+            <!-- Product Header -->
+            <div class="border-b border-gray-200 pb-6">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <h3 class="text-3xl font-bold text-black leading-tight mb-2">{{selectedViewProduct.product_name}}</h3>
+                  <!-- Brand Display -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 font-medium">Brand:</span>
+                    <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full font-medium">
+                      {{ selectedViewProduct.brand_name === 'others' ? selectedViewProduct.custom_brand : (selectedViewProduct.brand_name || 'No Brand') }}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <ng-template #noSpecs>
-              <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-                <mat-icon class="text-4xl mb-2 opacity-50">build</mat-icon>
-                <p class="text-lg font-medium">No specifications available</p>
-                <p class="text-sm">This product doesn't have any specifications listed.</p>
+              <div class="flex items-center justify-between">
+                <p class="text-4xl font-bold text-black">₱{{formatPrice(selectedViewProduct.price)}}</p>
+                <span class="bg-purple-600 text-white text-sm px-4 py-2 rounded-full font-semibold shadow-lg">
+                  {{getForTypeText(selectedViewProduct.for_type)}}
+                </span>
               </div>
-            </ng-template>
+            </div>
+
+            <!-- Enhanced Product Info Grid -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-white p-4 rounded-xl border border-gray-300">
+                <p class="text-xs text-gray-600 font-medium uppercase tracking-wide">Category</p>
+                <p class="font-bold text-black mt-1">{{selectedViewProduct.category}}</p>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-gray-300">
+                <p class="text-xs text-gray-600 font-medium uppercase tracking-wide">Condition</p>
+                <p class="font-bold text-black mt-1">{{selectedViewProduct.condition | titlecase}}</p>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-gray-300">
+                <p class="text-xs text-gray-600 font-medium uppercase tracking-wide">Quantity</p>
+                <p class="font-bold text-black mt-1">{{selectedViewProduct.quantity}} {{selectedViewProduct.quantity === 1 ? 'item' : 'items'}}</p>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-gray-300">
+                <p class="text-xs text-gray-600 font-medium uppercase tracking-wide">Location</p>
+                <p class="font-bold text-black mt-1">{{selectedViewProduct.location}}</p>
+              </div>
+            </div>
+
+            <!-- Status Badges Section -->
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-300">
+              <h4 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide flex items-center gap-2">
+                <mat-icon class="text-lg">info</mat-icon>
+                Product Status
+              </h4>
+              <div class="flex flex-wrap gap-2">
+                <span *ngIf="selectedViewProduct.status === 'archived'" 
+                      class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                  <mat-icon class="text-sm mr-1">archive</mat-icon>
+                  Archived
+                </span>
+                <span *ngIf="selectedViewProduct.status === 'active'" 
+                      class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300">
+                  <mat-icon class="text-sm mr-1">check_circle</mat-icon>
+                  Active
+                </span>
+                <span *ngIf="selectedViewProduct.sale_status === 'sold'" 
+                      class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300">
+                  <mat-icon class="text-sm mr-1">sell</mat-icon>
+                  Sold
+                </span>
+                <span *ngIf="selectedViewProduct.sale_status === 'available'" 
+                      class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-300">
+                  <mat-icon class="text-sm mr-1">local_offer</mat-icon>
+                  Available
+                </span>
+                <span *ngIf="selectedViewProduct.sale_status === 'reserved'" 
+                      class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
+                  <mat-icon class="text-sm mr-1">schedule</mat-icon>
+                  Reserved
+                </span>
+                <span *ngIf="selectedViewProduct.sale_status === 'traded'" 
+                      class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-300">
+                  <mat-icon class="text-sm mr-1">swap_horiz</mat-icon>
+                  Traded
+                </span>
+              </div>
+            </div>
+
+            <!-- Enhanced Description -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-300">
+              <h4 class="text-lg font-semibold text-black mb-3 flex items-center gap-2">
+                <mat-icon class="text-gray-600">description</mat-icon>
+                Description
+              </h4>
+              <p class="text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere max-w-full word-break">
+                {{selectedViewProduct.description || 'No description provided.'}}
+              </p>
+            </div>
+
+            <!-- Product Specifications Table -->
+            <div *ngIf="selectedViewProduct.specifications && selectedViewProduct.specifications.length > 0" 
+                 class="bg-white p-6 rounded-xl border border-gray-300">
+              <h4 class="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                <mat-icon class="text-blue-600">assignment</mat-icon>
+                Specifications
+              </h4>
+              <!-- Specifications Table -->
+              <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                  <thead>
+                    <tr class="border-b-2 border-gray-200">
+                      <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-l-lg">Specification</th>
+                      <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-r-lg">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let spec of selectedViewProduct.specifications; let i = index" 
+                        [class.bg-gray-50]="i % 2 === 1"
+                        class="border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                      <td class="py-3 px-4 font-medium text-gray-800">{{spec.spec_name || spec.name}}</td>
+                      <td class="py-3 px-4 text-gray-700">{{spec.spec_value || spec.value}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Specifications Count Badge -->
+              <div class="mt-3 flex justify-end">
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  {{selectedViewProduct.specifications.length}} specification{{selectedViewProduct.specifications.length !== 1 ? 's' : ''}}
+                </span>
+              </div>
+            </div>
+
+            <!-- Seller Information -->
+            <div class="bg-white p-6 rounded-xl border border-gray-300">
+              <h4 class="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                <mat-icon class="text-black">person</mat-icon>
+                Seller Information
+              </h4>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <img 
+                    [src]="getSellerProfileImageUrl(selectedViewProduct.seller_profile_image)" 
+                    [alt]="selectedViewProduct.seller_name || 'Seller'"
+                    class="w-12 h-12 rounded-full object-cover border-2 border-gray-300 shadow-md"
+                    (error)="onSellerImageError($event)">
+                  <div class="flex-1">
+                    <p class="font-semibold text-black">{{selectedViewProduct.seller_name || 'Unknown'}}</p>
+                    <p class="text-sm text-gray-600">{{selectedViewProduct.seller_email || 'No email'}}</p>
+                    <p class="text-xs text-gray-500">Product ID: #{{selectedViewProduct.product_id}}</p>
+                  </div>
+                </div>
+                <div class="pt-3 border-t border-gray-200">
+                  <p class="text-xs text-gray-500 mb-1">Listed on</p>
+                  <p class="text-sm font-medium text-gray-700">{{formatDate(selectedViewProduct.created_at)}}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>

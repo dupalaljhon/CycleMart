@@ -1,0 +1,94 @@
+/* User Reports Component Styles */
+
+/* Loading animation */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Card hover effects */
+.hover\:shadow-md:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Status badge transitions */
+.transition-shadow {
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 768px) {
+  .grid-cols-1.md\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  .px-4.sm\:px-6.lg\:px-8 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Custom scrollbar for overflow areas */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Evidence files grid */
+.flex-wrap {
+  gap: 0.75rem;
+}
+
+/* Status-specific styling */
+.bg-yellow-100 {
+  background-color: #fef3c7;
+}
+
+.bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+.bg-green-100 {
+  background-color: #dcfce7;
+}
+
+.bg-gray-100 {
+  background-color: #f3f4f6;
+}
+
+.text-yellow-800 {
+  color: #92400e;
+}
+
+.text-blue-800 {
+  color: #1e40af;
+}
+
+.text-green-800 {
+  color: #166534;
+}
+
+.text-gray-800 {
+  color: #1f2937;
+}

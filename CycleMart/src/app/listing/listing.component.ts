@@ -5,6 +5,7 @@ import { ListingModalComponent } from './listing-modal/listing-modal.component';
 import { ListingEditModalComponent } from './listing-edit-modal/listing-edit-modal.component';
 import { SoldItemsComponent } from './sold-items/sold-items.component';
 import { ApiService } from '../api/api.service';
+import { AccountStatusService } from '../services/account-status.service';
 import { FormsModule } from '@angular/forms';
 
 interface ProductSpecification {
@@ -117,7 +118,10 @@ export class ListingComponent implements OnInit, OnDestroy {
     { value: 'others', label: 'Others' }
   ];
 
-  constructor(private apiService: ApiService) {
+  constructor(
+    private apiService: ApiService,
+    public accountStatusService: AccountStatusService
+  ) {
     // Get user ID from localStorage
     const storedId = localStorage.getItem('id');
     this.userId = storedId ? parseInt(storedId) : 0;
@@ -573,14 +577,15 @@ export class ListingComponent implements OnInit, OnDestroy {
     if (imagePath.startsWith('data:')) {
       return imagePath; // Base64 image
     }
-    return `${this.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    return `${this.apiService.baseUrl}${cleanPath}`;
   }
 
   getVideoUrl(videoPath: string): string {
     if (videoPath.startsWith('data:')) {
       return videoPath; // Base64 video
     }
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${videoPath}`;
+    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
   }
 
   removeImage(index: number, product: Product) {

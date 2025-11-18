@@ -3,27 +3,29 @@
   <app-sidenav></app-sidenav>
 
   <!-- Page content -->
-  <div class="flex-1 p-6 overflow-y-auto">
-    
-    <!-- Simple Header -->
-    <div class="mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h1 class="text-3xl font-bold text-gray-800">Notifications</h1>
-        
-        <!-- Unread Count -->
-        <div class="bg-white rounded-lg px-3 py-1 shadow-sm border">
-          <span class="text-sm text-gray-600">{{ getUnreadCount() }} unread</span>
+  <div class="flex-1 overflow-y-auto">
+    <!-- Mobile spacing to avoid hamburger button -->
+    <div class="p-4 sm:p-6 pt-16 md:pt-6">
+      
+      <!-- Simple Header -->
+      <div class="mb-4 sm:mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Notifications</h1>
+          
+          <!-- Unread Count -->
+          <div class="bg-white rounded-lg px-3 py-1.5 sm:py-1 shadow-sm border w-fit">
+            <span class="text-xs sm:text-sm text-gray-600">{{ getUnreadCount() }} unread</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Simple Action Button -->
-      <button 
-        (click)="markAllAsRead()"
-        [disabled]="getUnreadCount() === 0"
-        class="px-4 py-2 bg-[#6BA3BE] text-white rounded-lg hover:bg-[#5a8fa4] disabled:bg-gray-300 transition-colors">
-        Mark All Read
-      </button>
-    </div>
+        <!-- Simple Action Button -->
+        <button 
+          (click)="markAllAsRead()"
+          [disabled]="getUnreadCount() === 0"
+          class="w-full sm:w-auto px-4 py-2 bg-[#6BA3BE] text-white rounded-lg hover:bg-[#5a8fa4] disabled:bg-gray-300 transition-colors text-sm sm:text-base">
+          Mark All Read
+        </button>
+      </div>
 
     <!-- Loading State -->
     <div *ngIf="isLoading" class="text-center py-8">
@@ -38,47 +40,202 @@
     </div>
 
     <!-- Simple Notifications List -->
-    <div *ngIf="notifications.length > 0 && !isLoading" class="space-y-3">
-      <div *ngFor="let notif of notifications; let i = index" 
-           [ngClass]="notif.isRead ? 'bg-gray-50' : 'bg-white border-l-4 border-[#6BA3BE]'"
-           class="p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+    <div *ngIf="notifications.length > 0 && !isLoading" class="space-y-2 sm:space-y-3">
+      <div *ngFor="let notif of paginatedNotifications" 
+           [ngClass]="notif.is_read === 0 ? 'bg-white border-l-4 border-[#6BA3BE]' : 'bg-gray-50'"
+           class="p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+           (click)="viewNotificationDetails(notif)">
         
         <div class="flex items-start justify-between">
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <!-- Content -->
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="font-semibold text-gray-800">{{ notif.title }}</h3>
-              <span class="text-xs text-gray-500">{{ notif.time }}</span>
+            <div class="flex items-start gap-2 mb-2">
+              <span class="text-xl sm:text-2xl flex-shrink-0">{{ getNotificationIcon(notif.type) }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                  <h3 class="font-semibold text-gray-800 text-sm sm:text-base truncate">{{ notif.title }}</h3>
+                  <span class="text-xs text-gray-500 flex-shrink-0">{{ getTimeAgo(notif.created_at) }}</span>
+                </div>
+              </div>
             </div>
             
-            <p class="text-gray-600 text-sm mb-3">
-              <span class="font-medium text-[#6BA3BE]">{{ notif.user }}</span>
+            <p class="text-gray-600 text-xs sm:text-sm mb-3 ml-7 sm:ml-10 line-clamp-2">
               {{ notif.message }}
             </p>
 
             <!-- Simple Actions -->
-            <div class="flex items-center justify-between">
-              <button 
-                *ngIf="!notif.isRead"
-                (click)="markAsRead(i)"
-                class="text-xs px-3 py-1 bg-[#6BA3BE] text-white rounded hover:bg-[#5a8fa4] transition-colors">
-                Mark Read
-              </button>
-              
-              <span *ngIf="notif.isRead" 
-                    class="text-xs px-3 py-1 bg-green-100 text-green-700 rounded">
-                Read
-              </span>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ml-7 sm:ml-10">
+              <div class="flex items-center gap-2 flex-wrap">
+                <button 
+                  *ngIf="notif.is_read === 0"
+                  (click)="markAsRead(notif); $event.stopPropagation()"
+                  class="text-xs px-2 sm:px-3 py-1 bg-[#6BA3BE] text-white rounded hover:bg-[#5a8fa4] transition-colors whitespace-nowrap">
+                  Mark Read
+                </button>
+                
+                <span *ngIf="notif.is_read === 1" 
+                      class="text-xs px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded whitespace-nowrap">
+                  Read
+                </span>
+
+                <span class="hidden sm:inline-block text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded whitespace-nowrap">
+                  Click to view details
+                </span>
+              </div>
 
               <button 
-                (click)="removeNotification(i)" 
-                class="text-xs text-red-500 hover:text-red-700 transition-colors">
-                Remove
+                (click)="deleteNotification(notif, $event)" 
+                class="text-xs px-2 sm:px-3 py-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors whitespace-nowrap">
+                🗑️ Delete
               </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Custom Pagination Controls -->
+    <div *ngIf="notifications.length > 0 && !isLoading" class="mt-4 sm:mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <!-- Items per page selector -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Items per page:</label>
+          <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" 
+                  class="px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#6BA3BE]">
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+
+        <!-- Page info -->
+        <div class="text-xs sm:text-sm text-gray-600">
+          Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, filteredNotifications.length) }} of {{ filteredNotifications.length }}
+        </div>
+
+        <!-- Page navigation -->
+        <div class="flex items-center gap-1 sm:gap-2">
+          <button (click)="goToPage(1)" [disabled]="currentPage === 1"
+                  class="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            First
+          </button>
+          <button (click)="previousPage()" [disabled]="currentPage === 1"
+                  class="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Previous
+          </button>
+          
+          <div class="flex gap-1">
+            <button *ngFor="let page of getPageNumbers()" 
+                    (click)="goToPage(page)"
+                    [class.bg-[#6BA3BE]]="page === currentPage"
+                    [class.text-white]="page === currentPage"
+                    [class.hover:bg-gray-100]="page !== currentPage"
+                    class="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded transition-colors">
+              {{ page }}
+            </button>
+          </div>
+
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages"
+                  class="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Next
+          </button>
+          <button (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages"
+                  class="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Last
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    </div>
   </div>
-</div>
+
+    <!-- Notification Detail Modal -->
+    <div *ngIf="showDetailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+         (click)="closeDetailModal()">
+      <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl transform transition-all"
+           (click)="$event.stopPropagation()">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#6BA3BE] to-[#5a8fa4]">
+          <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <span class="text-2xl sm:text-3xl flex-shrink-0">{{ getNotificationIcon(selectedNotification?.type || '') }}</span>
+            <h2 class="text-lg sm:text-2xl font-bold text-white truncate">{{ selectedNotification?.title }}</h2>
+          </div>
+          <button 
+            (click)="closeDetailModal()" 
+            class="text-white hover:bg-white/20 rounded-full p-2 transition-colors flex-shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Content - Scrollable -->
+        <div class="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <!-- Notification Info -->
+          <div class="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs sm:text-sm font-semibold text-gray-600">Type:</span>
+              <span class="text-xs sm:text-sm text-gray-800 break-all">{{ selectedNotification?.type }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs sm:text-sm font-semibold text-gray-600">Time:</span>
+              <span class="text-xs sm:text-sm text-gray-800">{{ getTimeAgo(selectedNotification?.created_at || '') }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs sm:text-sm font-semibold text-gray-600">Status:</span>
+              <span class="text-xs sm:text-sm" [ngClass]="selectedNotification?.is_read === 1 ? 'text-green-600' : 'text-blue-600'">
+                <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm" style="font-size: 16px;" *ngIf="selectedNotification?.is_read === 1">done</span>
+                <span class="material-symbols-outlined text-sm" style="font-size: 16px;" *ngIf="selectedNotification?.is_read !== 1">circle</span>
+                {{ selectedNotification?.is_read === 1 ? 'Read' : 'Unread' }}
+              </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Message -->
+          <div class="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+            <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-2">Message:</h3>
+            <p class="text-sm sm:text-base text-gray-800 break-words">{{ selectedNotification?.message }}</p>
+          </div>
+
+          <!-- Archive Reason (if product_archived) -->
+          <div *ngIf="selectedNotification?.type === 'Product Archived' && selectedNotification?.archive_reason" 
+               class="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+            <h3 class="text-xs sm:text-sm font-semibold text-red-800 mb-2">📋 Archive Reason:</h3>
+            <p class="text-sm sm:text-base text-red-900 break-words">{{ selectedNotification?.archive_reason }}</p>
+          </div>
+
+          <!-- Product Name (if available) -->
+          <div *ngIf="selectedNotification?.product_name" 
+               class="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+            <h3 class="text-xs sm:text-sm font-semibold text-blue-800 mb-2">📦 Product:</h3>
+            <p class="text-sm sm:text-base text-blue-900 break-words">{{ selectedNotification?.product_name }}</p>
+          </div>
+
+          <!-- Reference ID -->
+          <div *ngIf="selectedNotification?.reference_id" class="text-xs text-gray-500">
+            Reference ID: #{{ selectedNotification?.reference_id }}
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-0 p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+          <button 
+            *ngIf="selectedNotification?.is_read === 0"
+            (click)="markAsRead(selectedNotification!)"
+            class="w-full sm:w-auto px-4 py-2 bg-[#6BA3BE] text-white rounded-lg hover:bg-[#5a8fa4] transition-colors text-sm sm:text-base">
+            ✓ Mark as Read
+          </button>
+          <div *ngIf="selectedNotification?.is_read === 1" class="text-green-600 font-medium text-sm sm:text-base text-center sm:text-left">
+            ✓ Already Read
+          </div>
+          <button 
+            (click)="closeDetailModal()" 
+            class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+

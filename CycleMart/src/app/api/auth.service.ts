@@ -9,7 +9,8 @@ import { of, Observable } from 'rxjs';
 })
 export class AuthService {
 
-  private baseUrl = 'http://localhost/CycleMart/CycleMart/CycleMart-api/api';
+  // private baseUrl = 'http://api.cyclemart.shop/CycleMart-api/api';
+  public baseUrl = 'http://api.cyclemart.shop/CycleMart-api/api';
 
   constructor(private http: HttpClient, private router: Router) { }
 
@@ -70,9 +71,39 @@ login(email: string, password: string): Observable<any> {
     .pipe(
       map(response => {
         if (response.status === 'success') {
-          this.saveToken(response.data?.token);
+          // Save authentication data
+          if (response.data?.token) {
+            this.saveToken(response.data.token);
+          }
+          if (response.data?.userID) {
+            localStorage.setItem('id', response.data.userID);
+          }
           localStorage.setItem('email', email);
-          this.router.navigate(['/home']);
+            // Persist profile information for avatar usage in messaging
+            if (response.data?.full_name) {
+              localStorage.setItem('full_name', response.data.full_name);
+            }
+            if (response.data?.profile_image) {
+              localStorage.setItem('profile_image', response.data.profile_image);
+            } else {
+              // Ensure key exists to avoid repeated null checks
+              localStorage.setItem('profile_image', '');
+            }
+          
+          // Save account status information
+          if (response.data?.account_status) {
+            localStorage.setItem('account_status', response.data.account_status);
+          }
+          if (response.data?.violation_count !== undefined && response.data?.violation_count !== null) {
+            localStorage.setItem('violation_count', response.data.violation_count.toString());
+          } else {
+            localStorage.setItem('violation_count', '0');
+          }
+          
+          // Check for return URL
+          const returnUrl = localStorage.getItem('returnUrl') || '/home';
+          localStorage.removeItem('returnUrl');
+          this.router.navigate([returnUrl]);
         }
         return response;
       }),
@@ -131,9 +162,16 @@ adminLogin(username: string, password: string): Observable<any> {
   }
 
   logout(): void {
+    // Clear all authentication data
     localStorage.removeItem('authToken');
+    localStorage.removeItem('id');
     localStorage.removeItem('userID');
     localStorage.removeItem('email');
+    localStorage.removeItem('returnUrl');
+    localStorage.removeItem('account_status');
+    localStorage.removeItem('violation_count');
+    
+    console.log('User logged out successfully');
     this.router.navigate(['/login']);
   }
 

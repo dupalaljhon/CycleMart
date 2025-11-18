@@ -1,33 +1,53 @@
 <?php
-// Allow Angular dev server
+// CORS headers - must be first
 header("Access-Control-Allow-Origin: *"); 
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Access-Control-Allow-Credentials: true");
+header("Content-Type: application/json; charset=UTF-8");
 
-// ✅ Handle preflight OPTIONS requests
+// Handle preflight OPTIONS requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
+// Enable error logging (can be disabled in production)
+error_log("=== API Request ===");
+error_log("Method: " . $_SERVER['REQUEST_METHOD']);
+error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+error_log("Request: " . ($_REQUEST['request'] ?? 'NONE'));
 
+try {
+    require_once "./modules/get.php";
+    require_once "./modules/post.php";
+    require_once "./modules/global.php";
+    require_once "./config/database.php";
 
-require_once "./modules/get.php";
-require_once "./modules/post.php";
-require_once "./config/database.php";
+    $con = new Connection();
+    $pdo = $con->connect();
 
-$con = new Connection();
-$pdo = $con->connect();
+    $get = new Get($pdo);
+    $post = new Post($pdo);
+    $global = new GlobalMethods();
 
-$get = new Get($pdo);
-$post = new Post($pdo);
+    if (isset($_REQUEST['request'])) {
+        $request = explode('/', $_REQUEST['request']);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Not Found", "debug" => "No request parameter"]);
+        http_response_code(404);
+        exit();
+    }
 
-if (isset($_REQUEST['request'])) {
-    $request = explode('/', $_REQUEST['request']);
-} else {
-    echo json_encode(["status" => "error", "message" => "Not Found"]);
-    http_response_code(404);
+    error_log("Request endpoint: " . $request[0]);
+} catch (Exception $e) {
+    error_log("Fatal error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        "status" => "error", 
+        "message" => "Server initialization failed",
+        "error" => $e->getMessage()
+    ]);
     exit();
 }
 
@@ -162,7 +182,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
         case 'user-reports':
             if (isset($_GET['user_id'])) {
-                echo json_encode($post->getUserReports((int) $_GET['user_id']));
+                echo json_encode($get->getUserReports((int) $_GET['user_id']));
             } else {
                 http_response_code(400);
                 echo json_encode([
@@ -176,6 +196,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
         case 'all-reports':
             echo json_encode($post->getAllReports());
+            break;
+
+        case 'all-user-reports':
+            echo json_encode($get->getAllUserReports());
             break;
 
         case 'user-ratings':
@@ -234,6 +258,29 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode(["status" => "error", "message" => "Product ID is required"]);
             }
             break;
+
+        case 'user-notifications':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserNotifications((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "User ID is required"]);
+            }
+            break;
+
+        case 'unread-counts':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUnreadCounts((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "User ID is required"]);
+            }
+            break;
+
+        case 'recent-activities':
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+            echo json_encode($get->getRecentActivities($limit));
+            break;
             
         default:
             http_response_code(403);
@@ -252,22 +299,37 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
     case 'POST':
         $rawInput = file_get_contents("php://input");
+        error_log("POST Raw Input: " . substr($rawInput, 0, 200));
+        
         $data = json_decode($rawInput);
         
-        // 🔍 Debug logging for API calls
-        if (isset($request[0]) && $request[0] === 'updateProduct') {
-            error_log("🔍 API Debug - Raw input: " . $rawInput);
-            error_log("🔍 API Debug - Decoded data: " . json_encode($data));
-            error_log("🔍 API Debug - Product ID type: " . gettype($data->product_id ?? 'MISSING'));
-            error_log("🔍 API Debug - Uploader ID type: " . gettype($data->uploader_id ?? 'MISSING'));
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("JSON decode error: " . json_last_error_msg());
+            http_response_code(400);
+            echo json_encode([
+                "status" => "error", 
+                "message" => "Invalid JSON",
+                "error" => json_last_error_msg()
+            ]);
+            break;
+        }
+        
+        error_log("POST Endpoint: " . ($request[0] ?? 'NONE'));
+        
+        // Debug logging for specific endpoints
+        if (isset($request[0]) && in_array($request[0], ['login', 'register', 'updateProduct'])) {
+            error_log("API Call - Endpoint: " . $request[0]);
+            error_log("API Call - Data keys: " . implode(', ', array_keys((array)$data)));
         }
         
         switch ($request[0]) {
             case 'register':
+                error_log("Calling registerUser");
                 echo json_encode($post->registerUser($data));
                 break;
 
             case 'login':
+                error_log("Calling loginUser");
                 echo json_encode($post->loginUser($data));
                 break;
 
@@ -303,6 +365,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 break;
             
             case 'addProduct':
+                // Check account status
+                if (isset($data->uploader_id)) {
+                    $statusCheck = $global->checkAccountStatus($pdo, $data->uploader_id, 'addProduct');
+                    if ($statusCheck !== null) {
+                        echo json_encode($statusCheck);
+                        break;
+                    }
+                }
                 echo json_encode($post->addProduct($data));
                 break;
 
@@ -329,6 +399,22 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->archiveProduct($data));
                 break;
 
+            case 'submit-user-report':
+                // Check account status
+                if (isset($data->reporter_id)) {
+                    $statusCheck = $global->checkAccountStatus($pdo, $data->reporter_id, 'submit-user-report');
+                    if ($statusCheck !== null) {
+                        echo json_encode($statusCheck);
+                        break;
+                    }
+                }
+                echo json_encode($post->submitUserReport($data));
+                break;
+
+            case 'update-user-report-status':
+                echo json_encode($post->updateUserReportStatus($data));
+                break;
+
             case 'markNotificationAsRead':
                 echo json_encode($post->markNotificationAsRead($data->notification_id, $data->admin_id));
                 break;
@@ -338,6 +424,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 break;
 
             case 'send-message':
+                // Check account status
+                if (isset($data->sender_id)) {
+                    $statusCheck = $global->checkAccountStatus($pdo, $data->sender_id, 'send-message');
+                    if ($statusCheck !== null) {
+                        echo json_encode($statusCheck);
+                        break;
+                    }
+                }
                 echo json_encode($post->sendMessage($data));
                 break;
 
@@ -346,6 +440,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 break;
 
             case 'submit-report':
+                // Check account status
+                if (isset($data->reporter_id)) {
+                    $statusCheck = $global->checkAccountStatus($pdo, $data->reporter_id, 'submit-report');
+                    if ($statusCheck !== null) {
+                        echo json_encode($statusCheck);
+                        break;
+                    }
+                }
                 echo json_encode($post->submitReport($data));
                 break;
 
@@ -369,14 +471,46 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 echo json_encode($post->restoreConversation($data));
                 break;
 
+            case 'markUserNotificationAsRead':
+                echo json_encode($post->markUserNotificationAsRead($data));
+                break;
+
+            case 'markAllUserNotificationsAsRead':
+                echo json_encode($post->markAllUserNotificationsAsRead($data));
+                break;
+
+            case 'deleteUserNotification':
+                echo json_encode($post->deleteUserNotification($data));
+                break;
+
             case 'delete-conversation':
                 echo json_encode($post->deleteConversation($data));
                 break;
 
+            case 'mark-user-violation':
+                echo json_encode($post->markUserViolation($data));
+                break;
+
             default:
-                echo json_encode(["status" => "error", "message" => "Forbidden"]);
-                http_response_code(403);
+                error_log("POST endpoint not found: " . ($request[0] ?? 'NONE'));
+                echo json_encode([
+                    "status" => "error", 
+                    "message" => "Endpoint not found",
+                    "endpoint" => $request[0] ?? 'unknown',
+                    "method" => "POST"
+                ]);
+                http_response_code(404);
                 break;
         }
+        break;
+
+    default:
+        error_log("Method not allowed: " . $_SERVER['REQUEST_METHOD']);
+        http_response_code(405);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Method not allowed",
+            "method" => $_SERVER['REQUEST_METHOD']
+        ]);
         break;
 }

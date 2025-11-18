@@ -23,10 +23,10 @@
             <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
           
-          <button mat-raised-button color="primary" class="h-12">
+          <!-- <button mat-raised-button color="primary" class="h-12">
             <mat-icon>add</mat-icon>
             Add User
-          </button>
+          </button> -->
         </div>
       </div>
 
@@ -167,7 +167,7 @@
             <th mat-header-cell *matHeaderCellDef class="font-semibold text-gray-700 bg-gray-50 px-6 py-4">
               <div class="flex items-center space-x-2">
                 <mat-icon class="text-gray-500">verified_user</mat-icon>
-                <span>Status</span>
+                <span>Verified</span>
               </div>
             </th>
             <td mat-cell *matCellDef="let user" class="px-6 py-4">
@@ -185,6 +185,52 @@
                   </mat-chip>
                 </mat-chip-set>
               </div>
+            </td>
+          </ng-container>
+
+          <!-- Account Status Column -->
+          <ng-container matColumnDef="account_status">
+            <th mat-header-cell *matHeaderCellDef class="font-semibold text-gray-700 bg-gray-50 px-6 py-4">
+              <div class="flex items-center space-x-2">
+                <mat-icon class="text-gray-500">security</mat-icon>
+                <span>Account Status</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let user" class="px-6 py-4">
+              <mat-chip-set>
+                <mat-chip 
+                  [class]="{
+                    'bg-green-100 text-green-800 border border-green-200': user.account_status === 'active',
+                    'bg-orange-100 text-orange-800 border border-orange-200': user.account_status === 'restricted',
+                    'bg-red-100 text-red-800 border border-red-200': user.account_status === 'suspended',
+                    'bg-gray-900 text-white border border-gray-900': user.account_status === 'banned'
+                  }"
+                  class="px-3 py-1 rounded-full text-xs font-semibold uppercase">
+                  {{ user.account_status }}
+                </mat-chip>
+              </mat-chip-set>
+            </td>
+          </ng-container>
+
+          <!-- Violation Count Column -->
+          <ng-container matColumnDef="violation_count">
+            <th mat-header-cell *matHeaderCellDef class="font-semibold text-gray-700 bg-gray-50 px-6 py-4 text-center">
+              <div class="flex items-center justify-center space-x-2">
+                <mat-icon class="text-gray-500">warning</mat-icon>
+                <span>Violations</span>
+              </div>
+            </th>
+            <td mat-cell *matCellDef="let user" class="px-6 py-4 text-center">
+              <span 
+                [class]="{
+                  'text-gray-600 bg-gray-100': user.violation_count === 0,
+                  'text-yellow-700 bg-yellow-100': user.violation_count === 1,
+                  'text-orange-700 bg-orange-100': user.violation_count === 2,
+                  'text-red-700 bg-red-100': user.violation_count >= 3
+                }"
+                class="px-3 py-1 rounded-full text-sm font-bold inline-block min-w-[40px]">
+                {{ user.violation_count }}
+              </span>
             </td>
           </ng-container>
 
@@ -223,15 +269,23 @@
                   <mat-icon class="text-blue-600">visibility</mat-icon>
                 </button>
                 
-             
                 <button mat-icon-button 
+                        color="warn"
+                        (click)="markViolation(user); $event.stopPropagation()"
+                        matTooltip="Mark Violation"
+                        matTooltipPosition="above"
+                        class="hover:bg-orange-50 transition-colors duration-200">
+                  <mat-icon class="text-orange-600">gavel</mat-icon>
+                </button>
+                
+                <!-- <button mat-icon-button 
                         color="warn"
                         (click)="deleteUser(user); $event.stopPropagation()"
                         matTooltip="Delete User"
                         matTooltipPosition="above"
                         class="hover:bg-red-50 transition-colors duration-200">
                   <mat-icon class="text-red-600">delete</mat-icon>
-                </button>
+                </button> -->
               </div>
             </td>
           </ng-container>
@@ -271,8 +325,8 @@
       <div *ngIf="!isLoading && dataSource.filteredData.length > 0" 
            class="border-t border-gray-200 bg-gray-50">
         <mat-paginator 
-          [pageSizeOptions]="[10, 25, 50, 100]"
-          [pageSize]="25"
+          [pageSizeOptions]="pageSizeOptions"
+          [pageSize]="pageSize"
           showFirstLastButtons
           class="bg-transparent">
         </mat-paginator>

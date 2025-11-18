@@ -1,0 +1,126 @@
+/* User Report Monitoring Styles */
+.nav-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-button:hover {
+  transform: translateX(2px);
+}
+
+.active-nav {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 100%);
+  box-shadow: inset 4px 0 0 #000;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .max-w-24 {
+    max-width: 4rem;
+  }
+  
+  .max-w-32 {
+    max-width: 6rem;
+  }
+  
+  table {
+    font-size: 0.75rem;
+  }
+  
+  .statistics-card {
+    min-height: 80px;
+  }
+}
+
+/* Compact table styling */
+.table-compact td {
+  padding: 0.5rem 0.75rem;
+}
+
+.table-compact th {
+  padding: 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* Modal animations */
+.modal-enter {
+  animation: modalEnter 0.3s ease-out;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Custom scrollbar for tables */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Hover effects for table rows */
+tbody tr:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+/* Status badges hover effects */
+.inline-flex:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Modal responsive improvements */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 1rem;
+    max-height: 85vh;
+  }
+  
+  .modal-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Action button improvements */
+.action-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-buttons button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Statistics card hover effect */
+.stats-card:hover {
+  transform: translateY(-2px);
+}

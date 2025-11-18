@@ -141,13 +141,13 @@
               </ng-container>
 
               <!-- Reason Type Column -->
-              <ng-container matColumnDef="reason_type">
+              <ng-container matColumnDef="reason_info">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-bold">Reason</th>
                 <td mat-cell *matCellDef="let report">
                   <mat-chip-set>
-                    <mat-chip [class]="'reason-' + report.reason_type.replace(' ', '-')">
-                      <mat-icon matChipAvatar>{{ getReasonTypeIcon(report.reason_type) }}</mat-icon>
-                      {{ report.reason_type | titlecase }}
+                    <mat-chip [class]="getReasonTypeClass(report)">
+                      <mat-icon matChipAvatar>{{ getReasonTypeIcon(getReasonType(report)) }}</mat-icon>
+                      {{ getReasonType(report) | titlecase }}
                     </mat-chip>
                   </mat-chip-set>
                 </td>
@@ -357,8 +357,8 @@
                 color="primary" 
                 (click)="openProofFile(getCurrentProofFile())"
                 class="minimal-button">
-          <mat-icon class="mr-2">open_in_new</mat-icon>
-          Open File
+          <mat-icon class="mr-2">{{ getCurrentProofFile().startsWith('data:') ? 'download' : 'open_in_new' }}</mat-icon>
+          {{ getCurrentProofFile().startsWith('data:') ? 'Download File' : 'Open File' }}
         </button>
       </div>
 

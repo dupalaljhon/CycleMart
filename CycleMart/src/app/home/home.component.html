@@ -5,7 +5,22 @@
   <!-- Page content -->
   <div class="flex-1 p-4 md:p-6 bg-white overflow-y-auto">
     
-   
+    <!-- Account Restriction Banner -->
+    <div *ngIf="accountStatusService.isRestricted()" 
+         class="mb-4 bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500 rounded-lg shadow-md p-4 ">
+      <div class="flex items-start">
+        <svg class="w-6 h-6 text-orange-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="flex-1">
+          <h3 class="text-orange-900 font-semibold text-lg mb-1">Account Restricted</h3>
+          <p class="text-orange-800 text-sm mb-2">{{ accountStatusService.getRestrictionMessage() }}</p>
+          <p class="text-orange-700 text-xs">
+            ⚠️ You cannot list products, send messages, or submit reports while your account is restricted.
+          </p>
+        </div>
+      </div>
+    </div>
 
     <!-- Enhanced Combined Header & Search Section -->
     <div class="mb-5">
@@ -926,13 +941,17 @@
 
                 <!-- Report Button (Secondary) -->
                 <button 
-                  (click)="openReportModal(selectedProduct, $event)"
-                  class="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                  (click)="openReportModalFromProductModal()"
+                  [disabled]="!accountStatusService.canPerformAction('submit_report')"
+                  [class]="accountStatusService.canPerformAction('submit_report') 
+                    ? 'w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2'
+                    : 'w-full bg-gray-300 text-gray-500 py-3 px-6 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2 opacity-60'"
+                  [title]="!accountStatusService.canPerformAction('submit_report') ? 'Reporting is disabled due to account restrictions' : ''">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"/>
                     </svg>
-                    Report Product
+                    <span>{{ accountStatusService.canPerformAction('submit_report') ? 'Report Product' : 'Report Disabled' }}</span>
                   </button>
               </div>
             </div>
@@ -943,7 +962,7 @@
   </div>
 
   <!-- Report Modal -->
-  <div *ngIf="showReportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+  <div *ngIf="showReportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
        (click)="closeReportModal()">
     <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
          (click)="$event.stopPropagation()">

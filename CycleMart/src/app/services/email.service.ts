@@ -28,7 +28,8 @@ export interface VerificationEmailRequest {
 export class EmailService {
   
   // API base URL - adjust this based on your environment
-  private readonly API_BASE_URL = 'http://localhost/CycleMart/CycleMart/CycleMart-api';
+  // private readonly API_BASE_URL = 'http://localhost/CycleMart/CycleMart/CycleMart-api';
+  private readonly API_BASE_URL = 'http://api.cyclemart.shop/CycleMart-api';
   
   // HTTP headers for JSON requests
   private readonly httpOptions = {

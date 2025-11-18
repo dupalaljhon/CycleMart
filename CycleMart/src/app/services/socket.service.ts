@@ -12,6 +12,7 @@ export class SocketService {
 
   // Default socket server URL - you can change this to match your backend
   private readonly SERVER_URL = 'http://localhost:3000';
+  private authenticated = false;
 
   constructor() {
     this.initializeSocket();
@@ -23,12 +24,12 @@ export class SocketService {
   private initializeSocket(): void {
     try {
       this.socket = io(this.SERVER_URL, {
-        autoConnect: false, // Don't auto-connect, we'll connect manually
+        autoConnect: false,
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        timeout: 10000,
-        transports: ['polling', 'websocket'], // Start with polling, then upgrade to websocket
+        reconnectionAttempts: 10,
+        reconnectionDelay: 800,
+        timeout: 12000,
+        transports: ['websocket', 'polling'], // Prefer websocket first
         upgrade: true,
         forceNew: true
       });
@@ -48,6 +49,14 @@ export class SocketService {
     this.socket.on('connect', () => {
       console.log('✅ Socket connected:', this.socket?.id);
       this.isConnectedSubject.next(true);
+      // Re-authenticate automatically if we previously authenticated
+      if (!this.authenticated) {
+        const id = localStorage.getItem('id');
+        if (id) {
+          const username = localStorage.getItem('username') || 'User';
+          this.authenticate(id, username, 'user');
+        }
+      }
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -87,6 +96,24 @@ export class SocketService {
     if (this.socket && this.socket.connected) {
       this.socket.disconnect();
     }
+  }
+
+  /**
+   * Authenticate a user (join their personal room)
+   */
+  authenticate(userId: string | number, username: string, role: string = 'user') {
+    if (!this.socket) return;
+    if (!this.socket.connected) {
+      this.connect();
+    }
+    const authPayload = {
+      userId: String(userId),
+      username,
+      role
+    };
+    this.socket.emit('authenticate', authPayload);
+    this.authenticated = true;
+    console.log('🔐 Sent authenticate payload:', authPayload);
   }
 
   /**
@@ -216,6 +243,13 @@ export class SocketService {
    */
   onPrivateMessage(): Observable<any> {
     return this.on('private_message');
+  }
+
+  /**
+   * Listen for new chat messages (real-time)
+   */
+  onNewMessage(): Observable<any> {
+    return this.on('new_message');
   }
 
   /**

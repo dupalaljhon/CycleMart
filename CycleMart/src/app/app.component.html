@@ -1,5 +1,8 @@
 <router-outlet></router-outlet>
 
+<!-- PWA Install Prompt -->
+<app-pwa-prompt></app-pwa-prompt>
+
 <!-- Enhanced Modal-Style Toast Notifications -->
 <div class="fixed inset-0 pointer-events-none z-50" *ngIf="notifications$ | async as notifications">
   <!-- Changed positioning: moved to upper right corner and reduced size by 30% -->

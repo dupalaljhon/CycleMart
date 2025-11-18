@@ -1,0 +1,142 @@
+<div class="modal-container">
+  <!-- Header -->
+  <div class="modal-header bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <mat-icon class="text-3xl">gavel</mat-icon>
+        <div>
+          <h2 class="text-2xl font-bold">Mark Violation</h2>
+          <p class="text-red-100 text-sm mt-1">User: {{ data.user.full_name }}</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="onCancel()" class="text-white hover:bg-red-800 rounded-full">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="modal-content p-6 space-y-6">
+    
+    <!-- User Info Card -->
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span class="text-gray-600 font-medium">User ID:</span>
+          <span class="ml-2 text-gray-800">{{ data.user.id }}</span>
+        </div>
+        <div>
+          <span class="text-gray-600 font-medium">Email:</span>
+          <span class="ml-2 text-gray-800">{{ data.user.email }}</span>
+        </div>
+        <div>
+          <span class="text-gray-600 font-medium">Current Violations:</span>
+          <span class="ml-2 text-gray-800 font-semibold">{{ data.user.violation_count }}</span>
+        </div>
+        <div>
+          <span class="text-gray-600 font-medium">Current Status:</span>
+          <span class="ml-2 px-2 py-1 rounded text-xs font-semibold"
+                [ngClass]="{
+                  'bg-green-100 text-green-800': data.user.account_status === 'active',
+                  'bg-orange-100 text-orange-800': data.user.account_status === 'restricted',
+                  'bg-red-100 text-red-800': data.user.account_status === 'suspended',
+                  'bg-gray-800 text-white': data.user.account_status === 'banned'
+                }">
+            {{ data.user.account_status | uppercase }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warning Notice -->
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+      <div class="flex items-start gap-3">
+        <mat-icon class="text-red-600 mt-0.5">warning</mat-icon>
+        <div>
+          <p class="text-red-800 font-semibold">Important Notice</p>
+          <p class="text-red-700 text-sm mt-1">
+            This action will update the user's violation count and account status. 
+            The user will receive a notification about this violation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+      <div class="flex items-center gap-2">
+        <mat-icon class="text-red-600">error</mat-icon>
+        <span>{{ errorMessage }}</span>
+      </div>
+    </div>
+
+    <!-- Violation Level Dropdown -->
+    <mat-form-field appearance="fill" class="w-full">
+      <mat-label>Violation Level</mat-label>
+      <mat-select [(ngModel)]="violationLevel" [disabled]="isSubmitting">
+        <mat-option *ngFor="let level of violationLevels" [value]="level.value">
+          <div class="flex items-center gap-2 py-1">
+            <!-- <mat-icon [class]="getViolationColor(level.value)">{{ getViolationIcon(level.value) }}</mat-icon> -->
+            <div>
+              <div class="font-semibold">{{ level.label }}</div>
+              <div class="text-xs text-gray-600">{{ level.description }}</div>
+            </div>
+          </div>
+        </mat-option>
+      </mat-select>
+      <mat-hint>Select the severity level of the violation</mat-hint>
+    </mat-form-field>
+
+    <!-- Selected Level Preview -->
+    <div *ngIf="getSelectedLevelInfo()" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="flex items-start gap-3">
+        <!-- <mat-icon [class]="getViolationColor(violationLevel)" class="text-2xl">
+          {{ getViolationIcon(violationLevel) }}
+        </mat-icon> -->
+        <div class="flex-1">
+          <p class="font-semibold text-gray-800">{{ getSelectedLevelInfo()?.label }}</p>
+          <p class="text-sm text-gray-600 mt-1">{{ getSelectedLevelInfo()?.description }}</p>
+          <p class="text-xs text-gray-500 mt-2">
+            New Status: <span class="font-semibold uppercase">{{ getSelectedLevelInfo()?.status }}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reason Textarea -->
+    <mat-form-field appearance="fill" class="w-full">
+      <mat-label>Reason for Violation</mat-label>
+      <textarea 
+        matInput 
+        [(ngModel)]="reason"
+        [disabled]="isSubmitting"
+        rows="4"
+        placeholder="Provide a detailed reason for this violation (minimum 10 characters)"
+        maxlength="500"></textarea>
+      <mat-hint align="start">Minimum 10 characters</mat-hint>
+      <mat-hint align="end">{{ reason.length }}/500</mat-hint>
+    </mat-form-field>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+    <button 
+      mat-stroked-button 
+      (click)="onCancel()"
+      [disabled]="isSubmitting"
+      class="px-6">
+      Cancel
+    </button>
+    <button 
+      mat-raised-button 
+      color="warn"
+      (click)="onSubmit()"
+      [disabled]="isSubmitting || !reason || reason.trim().length < 10"
+      class="px-6 flex items-center gap-2">
+      <mat-spinner *ngIf="isSubmitting" diameter="20" class="mr-2"></mat-spinner>
+      <mat-icon *ngIf="!isSubmitting">gavel</mat-icon>
+      <span>{{ isSubmitting ? 'Submitting...' : 'Mark Violation' }}</span>
+    </button>
+  </div>
+</div>

@@ -275,13 +275,13 @@ export class ListingModalComponent implements OnInit {
       console.log('Processing video file:', file.name, 'Type:', file.type, 'Size:', file.size);
       
       // Validate file type - more specific validation
-      const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg'];
+      const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg', 'video/x-matroska'];
       const fileExtension = file.name.toLowerCase().split('.').pop();
-      const allowedExtensions = ['mp4', 'mov', 'avi', 'webm', 'ogg'];
+      const allowedExtensions = ['mp4', 'mov', 'avi', 'webm', 'ogg', 'mkv'];
       
       if (!file.type.startsWith('video/') || (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || ''))) {
         console.error('Invalid video type:', file.type, 'Extension:', fileExtension);
-        this.showError(`${file.name} is not a supported video format. Please use MP4, MOV, AVI, WebM, or OGG files.`);
+        this.showError(`${file.name} is not a supported video format. Please use MP4, MOV, AVI, WebM, OGG, or MKV files.`);
         return;
       }
 
@@ -314,7 +314,7 @@ export class ListingModalComponent implements OnInit {
     if (videoPath.startsWith('data:')) {
       return videoPath; // Base64 video
     }
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${videoPath}`;
+    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
   }
 
   // Drag and Drop for Image Reordering
@@ -438,7 +438,8 @@ export class ListingModalComponent implements OnInit {
     if (imagePath.startsWith('data:')) {
       return imagePath; // Base64 image
     }
-    return `${this.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    return `${this.apiService.baseUrl}${cleanPath}`;
   }
 
   onModalClick(event: Event) {

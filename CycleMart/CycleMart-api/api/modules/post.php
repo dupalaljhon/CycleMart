@@ -94,7 +94,7 @@ class Post extends GlobalMethods {
                 $email, 
                 $full_name, 
                 $verificationToken, 
-                'http://localhost:4200'
+                'https://cyclemart.shop'
             );
 
             $responseData = [
@@ -218,7 +218,7 @@ class Post extends GlobalMethods {
                 $email, 
                 $user['full_name'], 
                 $verificationToken, 
-                'http://localhost:4200'
+                'https://cyclemart.shop'
             );
 
             if ($emailResult['status'] === 'success') {
@@ -259,6 +259,15 @@ public function loginUser($data) {
                 ], "error", "Please verify your email address before logging in. Check your inbox for the verification email.", 403);
             }
 
+            // Check if account is banned
+            if ($user['account_status'] === 'banned') {
+                return $this->sendPayload([
+                    'banned' => true,
+                    'account_status' => 'banned',
+                    'violation_count' => $user['violation_count']
+                ], "error", "Your account has been permanently banned due to multiple violations. Please contact support.", 403);
+            }
+
             $payload = [
                 'iss' => "http://example.org", 
                 'aud' => "http://example.com", 
@@ -279,7 +288,9 @@ public function loginUser($data) {
                 'city' => $user['city'],
                 'province' => $user['province'],
                 'profile_image' => $user['profile_image'],
-                'is_verified' => $user['is_verified']
+                'is_verified' => $user['is_verified'],
+                'account_status' => $user['account_status'],
+                'violation_count' => $user['violation_count']
             ], "success", "Login successful", 200);
         } else {
             return $this->sendPayload(null, "error", "Invalid credentials", 401);
@@ -501,7 +512,8 @@ public function editProfile($data) {
             }
         }
         
-        $imageName = uniqid('profile_') . '.' . $ext;
+        // $imageName = uniqid('profile_') . '.' . $ext;
+        $imageName = uniqid('profile_image') . '.' . $ext;
         $imagePath = 'uploads/' . $imageName;
         $fullImagePath = __DIR__ . '/../../' . $imagePath;
         
@@ -552,7 +564,7 @@ public function editProfile($data) {
             // Include sendMail.php for email functionality
             require_once __DIR__ . '/../../sendMail.php';
             
-            $emailResult = sendEmailChangeVerificationEmail($email, $full_name, $verificationToken, 'http://localhost:4200');
+            $emailResult = sendEmailChangeVerificationEmail($email, $full_name, $verificationToken, 'https://cyclemart.shop');
             
             if ($emailResult['status'] !== 'success') {
                 // Email sending failed, but profile was updated - log this
@@ -1164,6 +1176,136 @@ public function updateSaleStatus($data) {
         ]);
 
         if ($stmt->rowCount() > 0) {
+            // 🧾 AUTOMATICALLY SEND SYSTEM MESSAGE FOR SOLD/TRADED STATUS
+            if ($sale_status === 'sold' || $sale_status === 'traded') {
+                error_log("🟢🟢🟢 PRODUCT MARKED AS " . strtoupper($sale_status) . " - SENDING SYSTEM MESSAGE 🟢🟢🟢");
+                
+                // Find the conversation for this product where the seller (uploader) is involved
+                $conversationSql = "SELECT c.conversation_id, c.buyer_id, c.seller_id, 
+                                          u.full_name as buyer_name, 
+                                          p.product_name, p.price, p.product_images, p.category, 
+                                          p.brand_name, p.custom_brand, p.`condition`, p.for_type
+                                   FROM conversations c
+                                   JOIN users u ON c.buyer_id = u.id
+                                   JOIN products p ON c.product_id = p.product_id
+                                   WHERE c.product_id = :product_id AND c.seller_id = :uploader_id
+                                   ORDER BY c.created_at DESC LIMIT 1";
+                
+                $conversationStmt = $this->pdo->prepare($conversationSql);
+                $conversationStmt->execute([
+                    ':product_id' => $product_id,
+                    ':uploader_id' => $uploader_id
+                ]);
+                
+                $conversation = $conversationStmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if ($conversation) {
+                    error_log("📋 Found conversation for system message: " . $conversation['conversation_id']);
+                    error_log("👤 Buyer: " . $conversation['buyer_name'] . " (ID: " . $conversation['buyer_id'] . ")");
+                    error_log("📦 Product: " . $conversation['product_name'] . " - ₱" . $conversation['price']);
+                    
+                    // Build special details
+                    $specialDetails = [];
+                    
+                    // Add category
+                    if (!empty($conversation['category'])) {
+                        $specialDetails[] = "Category: " . $conversation['category'];
+                    }
+                    
+                    // Add brand
+                    if (!empty($conversation['brand_name']) && $conversation['brand_name'] !== 'no brand') {
+                        if ($conversation['brand_name'] === 'others' && !empty($conversation['custom_brand'])) {
+                            $specialDetails[] = "Brand: " . $conversation['custom_brand'];
+                        } else {
+                            $specialDetails[] = "Brand: " . $conversation['brand_name'];
+                        }
+                    }
+                    
+                    // Add condition
+                    if (!empty($conversation['condition'])) {
+                        $specialDetails[] = "Condition: " . ucfirst($conversation['condition']);
+                    }
+                    
+                    // Add listing type
+                    if (!empty($conversation['for_type'])) {
+                        $specialDetails[] = "Type: " . ucfirst($conversation['for_type']);
+                    }
+                    
+                    // Format special details
+                    $specialDetailsText = !empty($specialDetails) ? implode(", ", $specialDetails) : "No additional details";
+                    
+                    // Create the personalized buyer confirmation message
+                    $statusText = $sale_status === 'sold' ? 'sold' : 'traded';
+                    $systemMessage = "The " . $conversation['product_name'] . " was already " . $statusText . " to you.\n\n";
+                    $systemMessage .= "Product Details:\n";
+                    $systemMessage .= "• Price: ₱" . number_format($conversation['price'], 2) . "\n";
+                    $systemMessage .= "• " . $specialDetailsText . "\n\n";
+                    $systemMessage .= "You may fill up the rating form to complete your transaction.";
+                    
+                    // Insert the system message (sender_id = 0)
+                    $messageSql = "INSERT INTO messages (conversation_id, sender_id, message_text, created_at) 
+                                  VALUES (:conversation_id, 0, :message_text, NOW())";
+                    
+                    try {
+                        $messageStmt = $this->pdo->prepare($messageSql);
+                        $messageResult = $messageStmt->execute([
+                            ':conversation_id' => $conversation['conversation_id'],
+                            ':message_text' => $systemMessage
+                        ]);
+                        
+                        if ($messageResult) {
+                            $messageId = $this->pdo->lastInsertId();
+                            error_log("✅✅✅ SYSTEM MESSAGE SENT SUCCESSFULLY! Message ID: " . $messageId . " ✅✅✅");
+                            error_log("📨 System message: " . $systemMessage);
+                            
+                            // 🔴 BROADCAST SYSTEM MESSAGE VIA SOCKET.IO
+                            // Emit the message to both buyer and seller rooms
+                            $socketData = [
+                                'conversation_id' => $conversation['conversation_id'],
+                                'message_id' => $messageId,
+                                'sender_id' => 0, // System message
+                                'sender_name' => 'System',
+                                'sender_avatar' => '',
+                                'message_text' => $systemMessage,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'is_read' => false,
+                                'is_system_message' => true,
+                                'system_message_type' => $sale_status,
+                                'product_id' => $product_id,
+                                'product_name' => $conversation['product_name'],
+                                'product_status' => $sale_status
+                            ];
+                            
+                            // Emit to buyer room
+                            $this->emitSocketEvent('user_' . $conversation['buyer_id'], 'new_message', $socketData);
+                            
+                            // Emit to seller room
+                            $this->emitSocketEvent('user_' . $conversation['seller_id'], 'new_message', $socketData);
+                            
+                            // Also emit product status change event
+                            $statusChangeData = [
+                                'product_id' => $product_id,
+                                'conversation_id' => $conversation['conversation_id'],
+                                'new_status' => $sale_status,
+                                'product_name' => $conversation['product_name']
+                            ];
+                            
+                            $this->emitSocketEvent('user_' . $conversation['buyer_id'], 'product_status_changed', $statusChangeData);
+                            $this->emitSocketEvent('user_' . $conversation['seller_id'], 'product_status_changed', $statusChangeData);
+                            
+                            error_log("🔴 Socket.IO events emitted to buyer and seller");
+                        } else {
+                            error_log("❌ Failed to insert system message");
+                        }
+                    } catch (\PDOException $messageError) {
+                        error_log("❌ System message error: " . $messageError->getMessage());
+                    }
+                } else {
+                    error_log("⚠️ No conversation found for product_id: " . $product_id . " with seller_id: " . $uploader_id);
+                    error_log("🔍 This might be because no buyer has messaged about this product yet");
+                }
+            }
+            
             // Log the status change for admin monitoring
             $logSql = "INSERT INTO product_status_log (product_id, previous_status, new_status, for_type, changed_by, changed_at, product_name) 
                        VALUES (:product_id, :previous_status, :new_status, :for_type, :changed_by, :changed_at, :product_name)";
@@ -1220,21 +1362,49 @@ public function submitReport($data) {
     $reporter_id = $data->reporter_id ?? null;
     $reported_user_id = $data->reported_user_id ?? null;
     $product_id = $data->product_id ?? null;
-    $product_images = $data->product_images ?? null;
-    $product_description = $data->product_description ?? null;
-    $reason_type = $data->reason_type ?? null;
+    $conversation_id = $data->conversation_id ?? null;
+    
+    // New schema fields
+    $report_type = $data->report_type ?? null;
+    $product_reason_type = $data->product_reason_type ?? null;
+    $user_reason_type = $data->user_reason_type ?? null;
+    
     $reason_details = $data->reason_details ?? null;
-    $proof = $data->proof ?? null;  // Array of base64 strings from frontend
+    $proof = $data->proof ?? null;  // JSON string from frontend
+    $status = $data->status ?? 'pending';
 
     // Validate required fields
-    if (!$reporter_id || !$reason_type) {
-        return $this->sendPayload(null, "error", "Reporter ID and reason type are required", 400);
+    if (!$reporter_id) {
+        return $this->sendPayload(null, "error", "Reporter ID is required", 400);
     }
 
-    // Validate reason_type enum (exact match with database)
-    $valid_reason_types = ['scam', 'fake product', 'spam', 'inappropriate content', 'misleading information', 'stolen item', 'others'];
-    if (!in_array($reason_type, $valid_reason_types)) {
-        return $this->sendPayload(null, "error", "Invalid reason type", 400);
+    if (!$report_type) {
+        return $this->sendPayload(null, "error", "Report type is required", 400);
+    }
+
+    // Validate report_type enum
+    $valid_report_types = ['product', 'user_behavior', 'post_purchase_concern'];
+    if (!in_array($report_type, $valid_report_types)) {
+        return $this->sendPayload(null, "error", "Invalid report type", 400);
+    }
+
+    // Validate reason types based on report type
+    if ($report_type === 'product') {
+        if (!$product_reason_type) {
+            return $this->sendPayload(null, "error", "Product reason type is required for product reports", 400);
+        }
+        $valid_product_reasons = ['scam', 'fake product', 'spam', 'inappropriate content', 'misleading information', 'stolen item', 'others'];
+        if (!in_array($product_reason_type, $valid_product_reasons)) {
+            return $this->sendPayload(null, "error", "Invalid product reason type", 400);
+        }
+    } else if ($report_type === 'user_behavior' || $report_type === 'post_purchase_concern') {
+        if (!$user_reason_type) {
+            return $this->sendPayload(null, "error", "User reason type is required for user behavior reports", 400);
+        }
+        $valid_user_reasons = ['rude behavior', 'harassment', 'threats', 'scamming attempt', 'not cooperative', 'refund issue', 'item not as described', 'damaged item', 'post purchase issue', 'others'];
+        if (!in_array($user_reason_type, $valid_user_reasons)) {
+            return $this->sendPayload(null, "error", "Invalid user reason type", 400);
+        }
     }
 
     // Ensure either reported_user_id or product_id is provided, but not both
@@ -1242,14 +1412,12 @@ public function submitReport($data) {
         return $this->sendPayload(null, "error", "Either reported_user_id or product_id must be provided, but not both", 400);
     }
 
-    // Validate product_images JSON if provided
-    if ($product_images !== null && !$this->isValidJson($product_images)) {
-        return $this->sendPayload(null, "error", "Product images must be valid JSON", 400);
-    }
-
-    // Process proof files if provided
+    // Process proof files if provided (proof is now a JSON string from frontend)
     $proofFilePaths = null;
-    if ($proof && is_array($proof)) {
+    if ($proof && is_string($proof)) {
+        // Proof is already a JSON string from frontend
+        $proofFilePaths = $proof;
+    } else if ($proof && is_array($proof)) {
         $savedProofPaths = [];
         
         foreach ($proof as $index => $base64File) {
@@ -1350,13 +1518,14 @@ public function submitReport($data) {
     }
 
     // Insert report with exact database field mapping
-    $sql = "INSERT INTO reports (
+        $sql = "INSERT INTO reports (
                 reporter_id, 
                 reported_user_id, 
-                product_id, 
-                product_images, 
-                product_description, 
-                reason_type, 
+                product_id,
+                conversation_id,
+                report_type,
+                product_reason_type,
+                user_reason_type, 
                 reason_details, 
                 proof,
                 status, 
@@ -1364,27 +1533,28 @@ public function submitReport($data) {
             ) VALUES (
                 :reporter_id, 
                 :reported_user_id, 
-                :product_id, 
-                :product_images, 
-                :product_description, 
-                :reason_type, 
+                :product_id,
+                :conversation_id,
+                :report_type,
+                :product_reason_type,
+                :user_reason_type, 
                 :reason_details, 
                 :proof,
-                'pending', 
+                :status, 
                 NOW()
-            )";
-
-    try {
+            )";    try {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             ':reporter_id' => $reporter_id,
             ':reported_user_id' => $reported_user_id,
             ':product_id' => $product_id,
-            ':product_images' => $product_images,
-            ':product_description' => $product_description,
-            ':reason_type' => $reason_type,
+            ':conversation_id' => $conversation_id,
+            ':report_type' => $report_type,
+            ':product_reason_type' => $product_reason_type,
+            ':user_reason_type' => $user_reason_type,
             ':reason_details' => $reason_details,
-            ':proof' => $proofFilePaths
+            ':proof' => $proofFilePaths,
+            ':status' => $status
         ]);
 
         $report_id = $this->pdo->lastInsertId();
@@ -1394,13 +1564,191 @@ public function submitReport($data) {
             "reporter_id" => $reporter_id,
             "reported_user_id" => $reported_user_id,
             "product_id" => $product_id,
-            "reason_type" => $reason_type,
-            "status" => "pending",
+            "conversation_id" => $conversation_id,
+            "report_type" => $report_type,
+            "product_reason_type" => $product_reason_type,
+            "user_reason_type" => $user_reason_type,
+            "status" => $status,
             "message" => "Report submitted successfully"
         ], "success", "Report submitted successfully", 201);
 
     } catch (\PDOException $e) {
         return $this->sendPayload(null, "error", "Failed to submit report: " . $e->getMessage(), 500);
+    }
+}
+
+// 🔹 Submit User Report (for user_reports table)
+public function submitUserReport($data) {
+    $reporter_id = $data->reporter_id ?? null;
+    $reported_user_id = $data->reported_user_id ?? null;
+    $conversation_id = $data->conversation_id ?? null;
+    $product_id = $data->product_id ?? null;
+    $report_type = $data->report_type ?? null;
+    $reason_type = $data->reason_type ?? null;
+    $reason_details = $data->reason_details ?? null;
+    $explanation = $data->explanation ?? null;
+    $message_reference = $data->message_reference ?? null;
+    $proof_files = $data->proof_files ?? null;
+
+    // Validate required fields
+    if (!$reporter_id || !$reported_user_id || !$report_type || !$reason_type) {
+        return $this->sendPayload(null, "error", "Reporter ID, reported user ID, report type, and reason type are required", 400);
+    }
+
+    // Validate report_type enum
+    $valid_report_types = ['user_behavior', 'post_purchase_concern'];
+    if (!in_array($report_type, $valid_report_types)) {
+        return $this->sendPayload(null, "error", "Invalid report type", 400);
+    }
+
+    // Validate reason_type enum based on report_type
+    $valid_reason_types = [
+        'user_behavior' => ['rude behavior', 'harassment', 'threats', 'scamming attempt', 'spam messages', 'others'],
+        'post_purchase_concern' => ['refund issue', 'item not as described', 'damaged item', 'others']
+    ];
+    
+    if (!in_array($reason_type, $valid_reason_types[$report_type])) {
+        return $this->sendPayload(null, "error", "Invalid reason type for the selected report type", 400);
+    }
+
+    // Check if reason_details is required (when reason_type is 'others')
+    if ($reason_type === 'others' && empty($reason_details)) {
+        return $this->sendPayload(null, "error", "Reason details are required when reason type is 'others'", 400);
+    }
+
+    // Process proof files if provided
+    $proofFilesJson = null;
+    if ($proof_files && is_array($proof_files)) {
+        $savedProofPaths = [];
+        
+        foreach ($proof_files as $index => $base64File) {
+            // Check if it's a base64 string
+            if (is_string($base64File) && !empty($base64File)) {
+                // Generate filename for base64 data
+                $ext = 'jpg'; // Default extension
+                $fileName = 'user_report_' . $reporter_id . '_' . time() . '_' . $index . '.' . $ext;
+                $filePath = 'uploads/user_reports/' . $fileName;
+                
+                // Create directory if it doesn't exist
+                if (!file_exists('uploads/user_reports/')) {
+                    mkdir('uploads/user_reports/', 0777, true);
+                }
+                
+                // Decode and save base64 data
+                $fileData = base64_decode($base64File);
+                if ($fileData && file_put_contents($filePath, $fileData)) {
+                    $savedProofPaths[] = $filePath;
+                } else {
+                    error_log("Failed to save proof file: " . $fileName);
+                }
+            }
+        }
+        
+        if (!empty($savedProofPaths)) {
+            $proofFilesJson = json_encode($savedProofPaths);
+        }
+    }
+
+    // Process message reference if provided
+    $messageReferenceJson = null;
+    if ($message_reference && is_array($message_reference)) {
+        $messageReferenceJson = json_encode($message_reference);
+    }
+
+    try {
+        $sql = "INSERT INTO user_reports (
+                    reporter_id, 
+                    reported_user_id, 
+                    conversation_id, 
+                    product_id, 
+                    report_type, 
+                    reason_type, 
+                    reason_details, 
+                    explanation,
+                    message_reference, 
+                    proof_files, 
+                    status, 
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            $reporter_id,
+            $reported_user_id,
+            $conversation_id,
+            $product_id,
+            $report_type,
+            $reason_type,
+            $reason_details,
+            $explanation,
+            $messageReferenceJson,
+            $proofFilesJson
+        ]);
+
+        $reportId = $this->pdo->lastInsertId();
+
+        return $this->sendPayload([
+            "user_report_id" => $reportId,
+            "reporter_id" => $reporter_id,
+            "reported_user_id" => $reported_user_id,
+            "conversation_id" => $conversation_id,
+            "product_id" => $product_id,
+            "report_type" => $report_type,
+            "reason_type" => $reason_type,
+            "status" => "pending",
+            "message" => "User report submitted successfully"
+        ], "success", "User report submitted successfully", 201);
+
+    } catch (\PDOException $e) {
+        error_log("Error submitting user report: " . $e->getMessage());
+        return $this->sendPayload(null, "error", "Failed to submit user report: " . $e->getMessage(), 500);
+    }
+}
+
+// Update user report status (for admin)
+public function updateUserReportStatus($data) {
+    $user_report_id = $data->user_report_id ?? null;
+    $status = $data->status ?? null;
+
+    if (!$user_report_id || !$status) {
+        return $this->sendPayload(null, "error", "User report ID and status are required", 400);
+    }
+
+    // Validate status enum
+    $valid_statuses = ['pending', 'reviewed', 'action_taken'];
+    if (!in_array($status, $valid_statuses)) {
+        return $this->sendPayload(null, "error", "Invalid status. Must be: pending, reviewed, or action_taken", 400);
+    }
+
+    // Check if user report exists
+    try {
+        $stmt = $this->pdo->prepare("SELECT user_report_id FROM user_reports WHERE user_report_id = ?");
+        $stmt->execute([$user_report_id]);
+        if (!$stmt->fetch()) {
+            return $this->sendPayload(null, "error", "User report not found", 404);
+        }
+    } catch (\PDOException $e) {
+        return $this->sendPayload(null, "error", "Database error: " . $e->getMessage(), 500);
+    }
+
+    // Update user report status
+    $sql = "UPDATE user_reports SET status = ? WHERE user_report_id = ?";
+
+    try {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$status, $user_report_id]);
+
+        if ($stmt->rowCount() > 0) {
+            return $this->sendPayload([
+                "user_report_id" => $user_report_id,
+                "status" => $status,
+                "updated_at" => date('Y-m-d H:i:s')
+            ], "success", "User report status updated successfully", 200);
+        } else {
+            return $this->sendPayload(null, "error", "No changes made", 400);
+        }
+    } catch (\PDOException $e) {
+        return $this->sendPayload(null, "error", "Failed to update user report status: " . $e->getMessage(), 500);
     }
 }
 
@@ -1478,52 +1826,39 @@ public function getUserReports($user_id) {
 
 // Admin: Get all reports
 public function getAllReports() {
-    // Get all reports with exact database field mapping
+    // Get all reports with proper joins to related tables
     $sql = "SELECT 
                 r.report_id,
                 r.reporter_id,
                 r.reported_user_id,
                 r.product_id,
-                r.product_images,
-                r.product_description,
-                r.reason_type,
+                r.conversation_id,
+                r.report_type,
+                r.product_reason_type,
+                r.user_reason_type,
                 r.reason_details,
+                r.explanation,
+                r.message_reference,
                 r.proof,
                 r.status,
                 r.created_at,
                 r.reviewed_by,
                 r.reviewed_at,
-                CASE 
-                    WHEN r.reporter_id IS NOT NULL THEN 
-                        (SELECT full_name FROM users WHERE id = r.reporter_id)
-                    ELSE NULL 
-                END as reporter_name,
-                CASE 
-                    WHEN r.reporter_id IS NOT NULL THEN 
-                        (SELECT email FROM users WHERE id = r.reporter_id)
-                    ELSE NULL 
-                END as reporter_email,
-                CASE 
-                    WHEN r.reporter_id IS NOT NULL THEN 
-                        (SELECT profile_image FROM users WHERE id = r.reporter_id)
-                    ELSE NULL 
-                END as reporter_profile_image,
-                CASE 
-                    WHEN r.reported_user_id IS NOT NULL THEN 
-                        (SELECT full_name FROM users WHERE id = r.reported_user_id)
-                    ELSE NULL 
-                END as reported_user_name,
-                CASE 
-                    WHEN r.reported_user_id IS NOT NULL THEN 
-                        (SELECT email FROM users WHERE id = r.reported_user_id)
-                    ELSE NULL 
-                END as reported_user_email,
-                CASE 
-                    WHEN r.product_id IS NOT NULL THEN 
-                        (SELECT product_name FROM products WHERE product_id = r.product_id)
-                    ELSE NULL 
-                END as product_name
+                reporter.full_name as reporter_name,
+                reporter.email as reporter_email,
+                reporter.profile_image as reporter_profile_image,
+                reported_user.full_name as reported_user_name,
+                reported_user.email as reported_user_email,
+                p.product_name,
+                p.price as product_price,
+                p.product_images,
+                p.description as product_description,
+                reviewer.username as reviewed_by_name
             FROM reports r 
+            LEFT JOIN users reporter ON r.reporter_id = reporter.id
+            LEFT JOIN users reported_user ON r.reported_user_id = reported_user.id
+            LEFT JOIN products p ON r.product_id = p.product_id
+            LEFT JOIN admins reviewer ON r.reviewed_by = reviewer.admin_id
             ORDER BY r.created_at DESC";
 
     try {
@@ -1637,31 +1972,106 @@ public function updateReportStatus($data) {
             return $this->sendPayload(null, "error", "Missing required fields", 400);
         }
 
+        // Require reason when archiving
+        if ($action === 'archived' && !$reason) {
+            return $this->sendPayload(null, "error", "Archive reason is required", 400);
+        }
+
         // Determine new status based on action
         $new_status = ($action === 'archived') ? 'archived' : 'active';
+        $is_archived = ($action === 'archived') ? 1 : 0;
 
         try {
             // Begin transaction
             $this->pdo->beginTransaction();
 
-            // Update product status
-            $sql = "UPDATE products SET status = :status WHERE product_id = :product_id";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                'status' => $new_status,
-                'product_id' => $product_id
-            ]);
+            // Get product details for notification
+            $productSql = "SELECT p.product_name, p.uploader_id, u.full_name as uploader_name 
+                          FROM products p 
+                          JOIN users u ON p.uploader_id = u.id 
+                          WHERE p.product_id = :product_id";
+            $productStmt = $this->pdo->prepare($productSql);
+            $productStmt->execute(['product_id' => $product_id]);
+            $product = $productStmt->fetch(\PDO::FETCH_ASSOC);
 
-            // Insert into archive history
-            $historySql = "INSERT INTO archive_history (product_id, archived_by, role, reason, action) 
-                          VALUES (:product_id, :archived_by, :role, :reason, :action)";
-            $historyStmt = $this->pdo->prepare($historySql);
-            $historyStmt->execute([
-                'product_id' => $product_id,
-                'archived_by' => $archived_by,
-                'role' => $role,
-                'reason' => $reason,
-                'action' => $action
+            if (!$product) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            // Update product status with new archive fields
+            if ($action === 'archived') {
+                $sql = "UPDATE products 
+                       SET status = :status, 
+                           is_archived = :is_archived, 
+                           archive_reason = :archive_reason,
+                           archived_at = CURRENT_TIMESTAMP,
+                           archived_by = :archived_by
+                       WHERE product_id = :product_id";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    'status' => $new_status,
+                    'is_archived' => $is_archived,
+                    'archive_reason' => $reason,
+                    'archived_by' => $archived_by,
+                    'product_id' => $product_id
+                ]);
+            } else {
+                // Restore product - clear archive fields
+                $sql = "UPDATE products 
+                       SET status = :status, 
+                           is_archived = :is_archived, 
+                           archive_reason = NULL,
+                           archived_at = NULL,
+                           archived_by = NULL
+                       WHERE product_id = :product_id";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    'status' => $new_status,
+                    'is_archived' => $is_archived,
+                    'product_id' => $product_id
+                ]);
+            }
+
+            // Insert into archive history (if table exists)
+            try {
+                $historySql = "INSERT INTO archive_history (product_id, archived_by, role, reason, action) 
+                              VALUES (:product_id, :archived_by, :role, :reason, :action)";
+                $historyStmt = $this->pdo->prepare($historySql);
+                $historyStmt->execute([
+                    'product_id' => $product_id,
+                    'archived_by' => $archived_by,
+                    'role' => $role,
+                    'reason' => $reason,
+                    'action' => $action
+                ]);
+            } catch (\PDOException $e) {
+                // Archive history table may not exist, continue without failing
+                error_log("Archive history insert failed: " . $e->getMessage());
+            }
+
+            // Send notification to product uploader
+            if ($action === 'archived') {
+                $notificationTitle = "Product Archived";
+                $notificationMessage = "Your product '{$product['product_name']}' has been archived. Reason: {$reason}";
+                $notificationType = 'Product Archived';
+            } else {
+                // Notification for restore
+                $notificationTitle = "Product Restored";
+                $notificationMessage = "Great news! Your product '{$product['product_name']}' has been restored and is now active again.";
+                $notificationType = 'Product Restored';
+            }
+            
+            // Insert user notification
+            $notifSql = "INSERT INTO user_notifications (user_id, type, title, message, reference_id, created_at) 
+                        VALUES (:user_id, :type, :title, :message, :reference_id, NOW())";
+            $notifStmt = $this->pdo->prepare($notifSql);
+            $notifStmt->execute([
+                'user_id' => $product['uploader_id'],
+                'type' => $notificationType,
+                'title' => $notificationTitle,
+                'message' => $notificationMessage,
+                'reference_id' => $product_id
             ]);
 
             $this->pdo->commit();
@@ -1669,7 +2079,8 @@ public function updateReportStatus($data) {
             return $this->sendPayload([
                 'product_id' => $product_id,
                 'status' => $new_status,
-                'action' => $action
+                'action' => $action,
+                'is_archived' => $is_archived
             ], "success", "Product " . $action . " successfully", 200);
 
         } catch (\PDOException $e) {
@@ -2279,7 +2690,7 @@ public function updateReportStatus($data) {
 
                         $initialMessage = "Hi! I'm interested in your " . $product['product_name'] . "." .
                                         "\n\n📦 Product Details:" .
-                                        "\n💰 Price: $" . number_format($product['price'], 2) .
+                                        "\n💰 Price: " . number_format($product['price'], 2) .
                                         "\n📍 Location: " . $product['location'] .
                                         "\n🔧 Condition: " . ucfirst($product['condition']) .
                                         $brandInfo .
@@ -2354,7 +2765,7 @@ public function updateReportStatus($data) {
 
                 $initialMessage = "Hi! I'm interested in your " . $product['product_name'] . "." .
                                 "\n\n📦 Product Details:" .
-                                "\n💰 Price: $" . number_format($product['price'], 2) .
+                                "\n💰 Price: " . number_format($product['price'], 2) .
                                 "\n📍 Location: " . $product['location'] .
                                 "\n🔧 Condition: " . ucfirst($product['condition']) .
                                 $brandInfo .
@@ -2399,12 +2810,23 @@ public function updateReportStatus($data) {
      * Send a message
      */
     public function sendMessage($data) {
+        error_log("🔵🔵🔵 SEND MESSAGE API CALLED 🔵🔵🔵");
+        error_log("Request data: " . json_encode($data));
+        
         $conversation_id = $data->conversation_id ?? null;
         $sender_id = $data->sender_id ?? null;
         $message_text = $data->message_text ?? '';
         $attachments = $data->attachments ?? [];
 
-        if (!$conversation_id || !$sender_id) {
+        error_log("Parsed values:");
+        error_log("  conversation_id: " . $conversation_id);
+        error_log("  sender_id: " . $sender_id);
+        error_log("  sender_id type: " . gettype($sender_id));
+        error_log("  is_system_message: " . ($sender_id == 0 ? 'YES' : 'NO'));
+        error_log("  message_text length: " . strlen($message_text));
+
+        if (!$conversation_id || !isset($sender_id)) {
+            error_log("❌ Missing required fields!");
             return $this->sendPayload(null, "error", "Missing required fields: conversation_id, sender_id", 400);
         }
 
@@ -2414,20 +2836,37 @@ public function updateReportStatus($data) {
         }
 
         // Verify conversation exists and sender is part of it
-        $verifySql = "SELECT * FROM conversations WHERE conversation_id = :conversation_id 
-                      AND (buyer_id = :sender_id1 OR seller_id = :sender_id2)";
-        
+        // Allow sender_id = 0 for system messages
         try {
-            $stmt = $this->pdo->prepare($verifySql);
-            $stmt->execute([
-                ':conversation_id' => $conversation_id,
-                ':sender_id1' => $sender_id,
-                ':sender_id2' => $sender_id
-            ]);
-            
-            $conversation = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if (!$conversation) {
-                return $this->sendPayload(null, "error", "Invalid conversation or unauthorized sender", 403);
+            if ($sender_id == 0) {
+                error_log("🟢🟢🟢 SYSTEM MESSAGE - Special handling 🟢🟢🟢");
+                // System message - only verify conversation exists
+                $verifySql = "SELECT * FROM conversations WHERE conversation_id = :conversation_id";
+                $stmt = $this->pdo->prepare($verifySql);
+                $stmt->execute([':conversation_id' => $conversation_id]);
+                
+                $conversation = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if (!$conversation) {
+                    error_log("❌ Conversation not found: " . $conversation_id);
+                    return $this->sendPayload(null, "error", "Invalid conversation", 403);
+                }
+                error_log("✅ Conversation verified: " . json_encode($conversation));
+            } else {
+                // Regular user message - verify sender is part of conversation
+                $verifySql = "SELECT * FROM conversations WHERE conversation_id = :conversation_id 
+                              AND (buyer_id = :sender_id1 OR seller_id = :sender_id2)";
+                
+                $stmt = $this->pdo->prepare($verifySql);
+                $stmt->execute([
+                    ':conversation_id' => $conversation_id,
+                    ':sender_id1' => $sender_id,
+                    ':sender_id2' => $sender_id
+                ]);
+                
+                $conversation = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if (!$conversation) {
+                    return $this->sendPayload(null, "error", "Invalid conversation or unauthorized sender", 403);
+                }
             }
 
             // Process attachments if provided
@@ -2488,6 +2927,7 @@ public function updateReportStatus($data) {
             $attachmentsJson = !empty($savedAttachments) ? json_encode($savedAttachments) : null;
 
             // Insert message
+            error_log("📝 Inserting message into database...");
             $sql = "INSERT INTO messages (conversation_id, sender_id, message_text, attachments) 
                     VALUES (:conversation_id, :sender_id, :message_text, :attachments)";
             
@@ -2500,19 +2940,44 @@ public function updateReportStatus($data) {
             ]);
 
             $message_id = $this->pdo->lastInsertId();
+            error_log("✅ Message inserted with ID: " . $message_id);
+            
+            if ($sender_id == 0) {
+                error_log("🟢 System message saved to database!");
+                error_log("  Message ID: " . $message_id);
+                error_log("  Conversation ID: " . $conversation_id);
+            }
 
-            // Get sender info for response
-            $senderSql = "SELECT full_name, profile_image FROM users WHERE id = :sender_id";
-            $stmt = $this->pdo->prepare($senderSql);
-            $stmt->execute([':sender_id' => $sender_id]);
-            $sender = $stmt->fetch(\PDO::FETCH_ASSOC);
+            // Get sender info for response (skip for system messages)
+            if ($sender_id == 0) {
+                // System message
+                $sender = [
+                    'full_name' => 'System',
+                    'profile_image' => ''
+                ];
+            } else {
+                // Regular user message
+                $senderSql = "SELECT full_name, profile_image FROM users WHERE id = :sender_id";
+                $stmt = $this->pdo->prepare($senderSql);
+                $stmt->execute([':sender_id' => $sender_id]);
+                $sender = $stmt->fetch(\PDO::FETCH_ASSOC);
+            }
 
             // Add full URL paths to attachments for frontend
             $attachmentsWithUrls = [];
             foreach ($savedAttachments as $attachment) {
                 $attachmentWithUrl = $attachment;
-                $attachmentWithUrl['url'] = 'http://localhost/CycleMart/CycleMart/CycleMart-api/api/' . $attachment['path'];
+                $attachmentWithUrl['url'] = 'http://api.cyclemart.shop/CycleMart-api/api' . $attachment['path'];
                 $attachmentsWithUrls[] = $attachmentWithUrl;
+            }
+
+            // For system messages, recipient is determined differently
+            if ($sender_id == 0) {
+                // System message goes to both parties - return buyer as primary recipient
+                $recipient_id = $conversation['buyer_id'];
+            } else {
+                // Regular message - recipient is the other party
+                $recipient_id = $conversation['buyer_id'] == $sender_id ? $conversation['seller_id'] : $conversation['buyer_id'];
             }
 
             return $this->sendPayload([
@@ -2525,7 +2990,7 @@ public function updateReportStatus($data) {
                 "attachments" => $attachmentsWithUrls,
                 "created_at" => date('Y-m-d H:i:s'),
                 "is_read" => 0,
-                "recipient_id" => $conversation['buyer_id'] == $sender_id ? $conversation['seller_id'] : $conversation['buyer_id']
+                "recipient_id" => $recipient_id
             ], "success", "Message sent successfully", 201);
 
         } catch (\PDOException $e) {
@@ -2926,6 +3391,263 @@ public function updateReportStatus($data) {
         }
         json_decode($string);
         return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    /**
+     * Mark a user notification as read
+     */
+    public function markUserNotificationAsRead($data) {
+        $notification_id = $data->notification_id ?? null;
+
+        if (!$notification_id) {
+            return $this->sendPayload(null, "error", "Notification ID is required", 400);
+        }
+
+        try {
+            $sql = "UPDATE user_notifications 
+                    SET is_read = 1, read_at = NOW() 
+                    WHERE notification_id = :notification_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['notification_id' => $notification_id]);
+
+            return $this->sendPayload(
+                ['notification_id' => $notification_id], 
+                "success", 
+                "Notification marked as read", 
+                200
+            );
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Mark all user notifications as read
+     */
+    public function markAllUserNotificationsAsRead($data) {
+        $user_id = $data->user_id ?? null;
+
+        if (!$user_id) {
+            return $this->sendPayload(null, "error", "User ID is required", 400);
+        }
+
+        try {
+            $sql = "UPDATE user_notifications 
+                    SET is_read = 1, read_at = NOW() 
+                    WHERE user_id = :user_id AND is_read = 0";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['user_id' => $user_id]);
+            
+            $count = $stmt->rowCount();
+
+            return $this->sendPayload(
+                ['user_id' => $user_id, 'count' => $count], 
+                "success", 
+                "All notifications marked as read", 
+                200
+            );
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Delete a user notification
+     */
+    public function deleteUserNotification($data) {
+        $notification_id = $data->notification_id ?? null;
+
+        if (!$notification_id) {
+            return $this->sendPayload(null, "error", "Notification ID is required", 400);
+        }
+
+        try {
+            $sql = "DELETE FROM user_notifications WHERE notification_id = :notification_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['notification_id' => $notification_id]);
+
+            return $this->sendPayload(
+                ['notification_id' => $notification_id], 
+                "success", 
+                "Notification deleted successfully", 
+                200
+            );
+            
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Mark user violation - Admin action to penalize users
+     * 
+     * @param object $data - Contains user_id, level, reason
+     * @return array - Response with violation data
+     */
+    public function markUserViolation($data) {
+        $user_id = $data->user_id ?? null;
+        $level = $data->level ?? null;
+        $reason = $data->reason ?? null;
+
+        // Validation
+        if (!$user_id || !$level || !$reason) {
+            return $this->sendPayload(null, "error", "User ID, violation level, and reason are required", 400);
+        }
+
+        if (!in_array($level, [1, 2, 3, 4])) {
+            return $this->sendPayload(null, "error", "Invalid violation level. Must be 1, 2, 3, or 4", 400);
+        }
+
+        if (strlen(trim($reason)) < 10) {
+            return $this->sendPayload(null, "error", "Reason must be at least 10 characters long", 400);
+        }
+
+        try {
+            // Begin transaction
+            $this->pdo->beginTransaction();
+
+            // Check if user exists
+            $checkUser = $this->pdo->prepare("SELECT id, full_name, email, violation_count, account_status FROM users WHERE id = :user_id");
+            $checkUser->execute(['user_id' => $user_id]);
+            $user = $checkUser->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "User not found", 404);
+            }
+
+            // Determine new account status based on violation level
+            $account_status = match($level) {
+                1 => 'active',
+                2 => 'restricted',
+                3 => 'suspended',
+                4 => 'banned',
+                default => 'active'
+            };
+
+            // Increment violation count
+            $new_violation_count = $user['violation_count'] + 1;
+
+            // Update user's violation_count and account_status
+            $updateUser = $this->pdo->prepare("
+                UPDATE users 
+                SET violation_count = :violation_count, 
+                    account_status = :account_status,
+                    updated_at = NOW()
+                WHERE id = :user_id
+            ");
+            
+            $updateUser->execute([
+                'violation_count' => $new_violation_count,
+                'account_status' => $account_status,
+                'user_id' => $user_id
+            ]);
+
+            // Determine notification title and message based on level
+            $notification_data = match($level) {
+                1 => [
+                    'title' => '⚠️ Account Warning',
+                    'message' => "You have received a warning for violating CycleMart's community guidelines.\n\nReason: {$reason}\n\nThis is your first violation. Please review our terms of service to avoid further penalties."
+                ],
+                2 => [
+                    'title' => '🔒 Account Restricted',
+                    'message' => "Your account has been restricted due to a second violation of CycleMart's community guidelines.\n\nReason: {$reason}\n\nYour account now has limited access. Continued violations may result in suspension."
+                ],
+                3 => [
+                    'title' => '🚫 Account Suspended',
+                    'message' => "Your account has been suspended due to multiple violations of CycleMart's community guidelines.\n\nReason: {$reason}\n\nYour account access is temporarily suspended. This is your final warning before permanent ban."
+                ],
+                4 => [
+                    'title' => '❌ Account Permanently Banned',
+                    'message' => "Your account has been permanently banned due to repeated violations of CycleMart's community guidelines.\n\nReason: {$reason}\n\nYou will no longer have access to CycleMart. This decision is final."
+                ],
+                default => [
+                    'title' => 'Account Violation',
+                    'message' => "Your account has received a violation notice.\n\nReason: {$reason}"
+                ]
+            };
+
+            // Insert user notification
+            $insertNotification = $this->pdo->prepare("
+                INSERT INTO user_notifications 
+                (user_id, type, title, message, reference_id, is_read, created_at) 
+                VALUES 
+                (:user_id, 'violation', :title, :message, NULL, 0, NOW())
+            ");
+
+            $insertNotification->execute([
+                'user_id' => $user_id,
+                'title' => $notification_data['title'],
+                'message' => $notification_data['message']
+            ]);
+
+            $notification_id = $this->pdo->lastInsertId();
+
+            // Commit transaction
+            $this->pdo->commit();
+
+            // Return success response
+            return $this->sendPayload([
+                'user_id' => $user_id,
+                'violation_level' => $level,
+                'violation_count' => $new_violation_count,
+                'account_status' => $account_status,
+                'notification_id' => $notification_id,
+                'user_name' => $user['full_name'],
+                'user_email' => $user['email']
+            ], "success", "Violation marked successfully. User has been notified.", 200);
+
+        } catch (\PDOException $e) {
+            $this->pdo->rollBack();
+            return $this->sendPayload(null, "error", "Database error: " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Helper method to emit Socket.IO events
+     * This method sends HTTP requests to the Socket.IO server to emit events
+     */
+    private function emitSocketEvent($room, $event, $data) {
+        try {
+            $socketServerUrl = 'http://localhost:3000/emit';
+            
+            $payload = json_encode([
+                'room' => $room,
+                'event' => $event,
+                'data' => $data
+            ]);
+            
+            error_log("🔴 Emitting socket event: " . $event . " to room: " . $room);
+            
+            // Use cURL to send the event to Socket.IO server
+            $ch = curl_init($socketServerUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5); // 5 second timeout
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if (curl_errno($ch)) {
+                error_log("❌ Socket emit error: " . curl_error($ch));
+            } else if ($httpCode === 200) {
+                error_log("✅ Socket event emitted successfully");
+            } else {
+                error_log("⚠️ Socket emit returned HTTP " . $httpCode);
+            }
+            
+            curl_close($ch);
+            
+        } catch (\Exception $e) {
+            error_log("❌ Exception in emitSocketEvent: " . $e->getMessage());
+        }
     }
 
 }

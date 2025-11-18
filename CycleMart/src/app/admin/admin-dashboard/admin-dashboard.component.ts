@@ -22,9 +22,27 @@ interface Notification {
 
 interface DashboardStats {
   total_users: number;
-  total_listings: number;
+  new_users_week: number;
+  new_users_day: number;
   total_products: number;
+  active_listings: number;
+  new_listings_week: number;
+  new_listings_day: number;
+  pending_products: number;
   total_reports: number;
+  product_reports: number;
+  user_reports: number;
+  pending_reports: number;
+}
+
+interface RecentActivity {
+  activity_type: string;
+  reference_id: number;
+  user_name: string;
+  product_name: string | null;
+  report_type: string | null;
+  activity_time: string;
+  activity_message: string;
 }
 
 interface DashboardChartData {
@@ -32,6 +50,7 @@ interface DashboardChartData {
   product_categories: any[];
   reports_by_reason: any[];
   top_sellers: any[];
+  most_reported_accounts: any[];
 }
 
 @Component({
@@ -47,19 +66,30 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
   dashboardStats: DashboardStats = {
     total_users: 0,
-    total_listings: 0,
+    new_users_week: 0,
+    new_users_day: 0,
     total_products: 0,
-    total_reports: 0
+    active_listings: 0,
+    new_listings_week: 0,
+    new_listings_day: 0,
+    pending_products: 0,
+    total_reports: 0,
+    product_reports: 0,
+    user_reports: 0,
+    pending_reports: 0
   };
   
-  recentNotifications: Notification[] = [];
+  recentActivities: RecentActivity[] = [];
   isLoading = true;
+  isActivitiesLoading = false;
   adminId: number = 0;
+  private refreshInterval: any;
   chartData: DashboardChartData = {
     monthly_growth: [],
     product_categories: [],
     reports_by_reason: [],
-    top_sellers: []
+    top_sellers: [],
+    most_reported_accounts: []
   };
 
   // Chart instances
@@ -84,11 +114,13 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
   ngOnInit() {
     this.loadDashboardData();
+    this.loadRecentActivities();
     
-    // Auto-refresh every 30 seconds
-    setInterval(() => {
+    // Auto-refresh dashboard stats every 30 seconds
+    this.refreshInterval = setInterval(() => {
       this.loadDashboardData();
-    }, 30000);
+      this.loadRecentActivities();
+    }, 15000); // Refresh every 15 seconds for near real-time updates
   }
 
   ngAfterViewInit() {
@@ -122,23 +154,24 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       }
     });
 
-    // Load recent notifications
-    if (this.adminId) {
-      this.apiService.getAdminNotifications(this.adminId).subscribe({
-        next: (response: any) => {
-          this.isLoading = false;
-          if (response.status === 'success') {
-            this.recentNotifications = response.data;
-          }
-        },
-        error: (error: any) => {
-          this.isLoading = false;
-          console.error('Error loading notifications:', error);
+    this.isLoading = false;
+  }
+
+  loadRecentActivities() {
+    this.isActivitiesLoading = true;
+    
+    this.apiService.getRecentActivities(50).subscribe({
+      next: (response: any) => {
+        this.isActivitiesLoading = false;
+        if (response.status === 'success') {
+          this.recentActivities = response.data;
         }
-      });
-    } else {
-      this.isLoading = false;
-    }
+      },
+      error: (error: any) => {
+        this.isActivitiesLoading = false;
+        console.error('Error loading recent activities:', error);
+      }
+    });
   }
 
   updateCharts(chartData: DashboardChartData) {
@@ -325,20 +358,22 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
     });
   }
 
-  getNotificationIcon(type: string): string {
+  getActivityIcon(type: string): string {
     switch (type) {
-      case 'new_user': return 'U';
-      case 'new_listing': return 'L';
-      case 'system': return 'S';
-      default: return 'N';
+      case 'new_user': return '👤';
+      case 'new_listing': return '📦';
+      case 'new_report': return '⚠️';
+      case 'new_user_report': return '🚨';
+      default: return '📋';
     }
   }
 
-  getNotificationColor(type: string): string {
+  getActivityColor(type: string): string {
     switch (type) {
       case 'new_user': return 'bg-blue-500';
       case 'new_listing': return 'bg-green-500';
-      case 'system': return 'bg-purple-500';
+      case 'new_report': return 'bg-orange-500';
+      case 'new_user_report': return 'bg-red-500';
       default: return 'bg-gray-500';
     }
   }
@@ -364,6 +399,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   ngOnDestroy() {
+    // Clear refresh interval
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    
     // Clean up chart instances to prevent memory leaks
     if (this.monthlyGrowthChart) {
       this.monthlyGrowthChart.destroy();

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { ApiService } from '../../api/api.service';
@@ -13,6 +13,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 
 interface Admin {
   admin_id: number;
@@ -40,12 +42,21 @@ interface Admin {
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule
+    MatSelectModule,
+    MatPaginatorModule,
+    MatSortModule
   ],
   templateUrl: './admin-monitoring.component.html',
   styleUrl: './admin-monitoring.component.css'
 })
-export class AdminMonitoringComponent implements OnInit {
+export class AdminMonitoringComponent implements OnInit, AfterViewInit {
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+  
+  // Pagination settings
+  pageSize = 10;
+  pageSizeOptions = [10, 25, 50, 100];
+  
   admins: Admin[] = [];
   dataSource = new MatTableDataSource<Admin>([]);
   isLoading = true;
@@ -95,6 +106,22 @@ export class AdminMonitoringComponent implements OnInit {
     this.loadAdmins();
   }
 
+  ngAfterViewInit() {
+    // Set up paginator and sort after view initializes
+    // Will be reconnected when data loads due to *ngIf condition
+    this.connectPaginatorAndSort();
+  }
+
+  private connectPaginatorAndSort() {
+    if (this.paginator) {
+      this.dataSource.paginator = this.paginator;
+      this.paginator.pageSize = this.pageSize;
+    }
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
   loadAdmins() {
     this.isLoading = true;
     this.apiService.getAllAdmins().subscribe({
@@ -102,6 +129,9 @@ export class AdminMonitoringComponent implements OnInit {
         if (response.status === 'success') {
           this.admins = response.data;
           this.dataSource.data = this.admins;
+          
+          // Reconnect paginator after data loads and view updates
+          setTimeout(() => this.connectPaginatorAndSort(), 0);
         } else {
           this.showError('Failed to load administrators');
         }

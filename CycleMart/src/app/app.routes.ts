@@ -22,30 +22,40 @@ import { ResendVerificationComponent } from './resend-verification/resend-verifi
 import { ReportsComponent } from './reports/reports.component';
 import { ReportMonitoringComponent } from './admin/report-monitoring/report-monitoring.component';
 import { RatingModalComponent } from './messages/rating-modal/rating-modal.component';
+import { AuthGuard } from './api/auth.guard';
+import { accountStatusGuard } from './api/account-status.guard';
+import { UserReportsComponent } from './user-reports/user-reports.component';
+import { UserReportMonitoringComponent } from './admin/user-report-monitoring/user-report-monitoring.component';
+import { SuspendedComponent } from './suspended/suspended.component';
+import { BannedComponent } from './banned/banned.component';
 
 export const routes: Routes = [
     {path: '', component: LoginComponent},
-    {path: 'dashboard', component: DashboardComponent},
-    {path: 'sidenav', component: SidenavComponent},
+    {path: 'suspended', component: SuspendedComponent},
+    {path: 'banned', component: BannedComponent},
+    {path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard, accountStatusGuard]},
+    {path: 'sidenav', component: SidenavComponent, canActivate: [AuthGuard, accountStatusGuard]},
     {path: 'admin-sidenav', component: AdminSidenavComponent},
     {path: 'admin-dashboard', component: AdminDashboardComponent},
     {path: 'listing-monitoring', component: ListingMonitoringComponent},
     {path: 'user-list', component: UserListComponent},
-    {path: 'home', component: HomeComponent},
-    {path: 'profile', component: ProfileComponent},
-    {path: 'messages', component: MessagesComponent},
-    {path: 'notification', component: NotificationComponent},
+    {path: 'home', component: HomeComponent, canActivate: [AuthGuard, accountStatusGuard]},
+    {path: 'profile', component: ProfileComponent, canActivate: [AuthGuard, accountStatusGuard]},
+    {path: 'messages', component: MessagesComponent, canActivate: [AuthGuard, accountStatusGuard]},
+    {path: 'notification', component: NotificationComponent, canActivate: [AuthGuard, accountStatusGuard]},
     {path: 'login', component: LoginComponent},
     {path: 'admin-login', component: AdminLoginComponent},
-    {path: 'listing', component: ListingComponent},
+    {path: 'listing', component: ListingComponent, canActivate: [AuthGuard, accountStatusGuard]},
     {path: 'sold-items', component: SoldItemsComponent},
     {path: 'admin-monitoring', component: AdminMonitoringComponent},
     {path: 'socket-demo', component: SocketDemoComponent},
     {path: 'email-verification', component: EmailVerificationComponent},
     {path: 'resend-verification', component: ResendVerificationComponent},
-    {path: 'reports', component: ReportsComponent},
+    {path: 'reports', component: ReportsComponent, canActivate: [AuthGuard, accountStatusGuard]},
     {path: 'report-monitoring', component: ReportMonitoringComponent},
-    {path: 'rating-modal', component: RatingModalComponent}
+    {path: 'rating-modal', component: RatingModalComponent, canActivate: [AuthGuard, accountStatusGuard]},
+    {path: 'user-reports', component: UserReportsComponent, canActivate: [AuthGuard, accountStatusGuard]},
+    {path: 'user-report-monitoring', component: UserReportMonitoringComponent},
 
     // { path: '', redirectTo: '/home', pathMatch: 'full' }
 

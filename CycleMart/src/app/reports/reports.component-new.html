@@ -1,0 +1,560 @@
+<!-- Standalone Reports Page Layout (with sidenav) -->
+<div *ngIf="!isModal" class="flex h-screen bg-white">
+  <!-- Sidenav -->
+  <app-sidenav></app-sidenav>
+
+  <!-- Main Content -->
+  <div class="flex-1 p-4 md:p-6 bg-white overflow-y-auto">
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-black mb-2">My Reports</h1>
+      <p class="text-gray-600">View and track your submitted reports</p>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="flex justify-center items-center h-64">
+      <mat-spinner diameter="50"></mat-spinner>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && reports.length === 0" class="text-center py-16">
+      <div class="bg-white border border-gray-300 rounded-lg p-8">
+        <div class="text-6xl mb-4 text-gray-400">📋</div>
+        <h3 class="text-xl font-bold text-black mb-4">No Reports Yet</h3>
+        <p class="text-gray-600 mb-6">You haven't submitted any reports yet.</p>
+        <button mat-raised-button 
+                color="primary" 
+                class="bg-black text-white hover:bg-gray-800"
+                (click)="goBack()">
+          Back to Home
+        </button>
+      </div>
+    </div>
+
+    <!-- Reports Card Grid -->
+    <div *ngIf="!loading && reports.length > 0" class="reports-grid">
+      <div *ngFor="let report of reports" 
+           class="report-card"
+           (click)="openReportDetails(report)">
+        
+        <!-- Card Header -->
+        <div class="report-card-header">
+          <div class="flex items-center justify-between">
+            <span class="report-type-badge">{{ getReportTypeDisplay(report.report_type) }}</span>
+            <mat-chip [ngClass]="getStatusClass(report.status)" class="status-chip">
+              {{ getStatusText(report.status) }}
+            </mat-chip>
+          </div>
+          <p class="report-time">{{ getRelativeTime(report.created_at) }}</p>
+        </div>
+
+        <!-- Card Body -->
+        <div class="report-card-body">
+          <!-- Target Info -->
+          <div class="target-info">
+            <div class="target-image">
+              <img 
+                *ngIf="report.report_type === 'product' && report.product_images"
+                [src]="getProductImageUrl(report.product_images)"
+                (error)="onImageError($event)"
+                alt="Product"
+                class="w-full h-full object-cover">
+              <div *ngIf="report.report_type !== 'product' || !report.product_images"
+                   class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-2xl">
+                {{ report.report_type === 'product' ? '🛍️' : '👤' }}
+              </div>
+            </div>
+            <div class="target-details">
+              <p class="target-name">{{ getTargetName(report) }}</p>
+              <p class="target-subtitle" *ngIf="report.report_type === 'product' && report.product_price">
+                ₱{{ report.product_price | number:'1.2-2' }}
+              </p>
+              <p class="target-subtitle" *ngIf="report.reported_user_email">
+                {{ report.reported_user_email }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Reason -->
+          <div class="reason-section">
+            <div class="reason-label">
+              <span class="reason-icon">{{ getReasonTypeIcon(getReasonTypeDisplay(report)) }}</span>
+              <span class="reason-text">{{ getReasonTypeLabel(getReasonTypeDisplay(report)) }}</span>
+            </div>
+            <p class="reason-details">{{ truncateDescription(report.reason_details, 120) }}</p>
+          </div>
+
+          <!-- Proof Preview -->
+          <div *ngIf="getFirstProofThumbnail(report.proof)" class="proof-preview">
+            <img 
+              [src]="getFirstProofThumbnail(report.proof)"
+              alt="Proof thumbnail"
+              class="proof-thumbnail">
+            <span class="proof-count" *ngIf="getProofFiles(report.proof).length > 1">
+              +{{ getProofFiles(report.proof).length - 1 }} more
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Footer -->
+        <div class="report-card-footer">
+          <button mat-button class="view-details-btn">
+            View Details
+            <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Details Modal -->
+<div *ngIf="showReportDetailsModal && selectedReport" 
+     class="modal-overlay"
+     (click)="closeReportDetails()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-2xl font-bold text-black">Report Details</h2>
+        <button mat-icon-button (click)="closeReportDetails()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="report-type-badge-large">{{ getReportTypeDisplay(selectedReport.report_type) }}</span>
+        <mat-chip [ngClass]="getStatusClass(selectedReport.status)" class="status-chip-large">
+          {{ getStatusText(selectedReport.status) }}
+        </mat-chip>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body">
+      <!-- Report Info Section -->
+      <div class="info-section">
+        <h3 class="section-title">Report Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Report ID:</span>
+            <span class="info-value">#{{ selectedReport.report_id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Submitted:</span>
+            <span class="info-value">{{ formatDate(selectedReport.created_at) }}</span>
+          </div>
+          <div class="info-item" *ngIf="selectedReport.reviewed_at">
+            <span class="info-label">Reviewed:</span>
+            <span class="info-value">{{ formatDate(selectedReport.reviewed_at) }}</span>
+          </div>
+          <div class="info-item" *ngIf="selectedReport.reviewed_by_name">
+            <span class="info-label">Reviewed By:</span>
+            <span class="info-value">{{ selectedReport.reviewed_by_name }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target Section (Product or User) -->
+      <div class="info-section">
+        <h3 class="section-title">
+          {{ selectedReport.report_type === 'product' ? 'Reported Product' : 'Reported User' }}
+        </h3>
+        
+        <!-- Product Details -->
+        <div *ngIf="selectedReport.report_type === 'product'" class="target-details-card">
+          <div class="flex items-start gap-4">
+            <img 
+              [src]="getProductImageUrl(selectedReport.product_images)"
+              (error)="onImageError($event)"
+              alt="Product"
+              class="w-24 h-24 object-cover rounded-lg border border-gray-300">
+            <div class="flex-1">
+              <h4 class="text-lg font-semibold text-black">{{ selectedReport.product_name || 'Unknown Product' }}</h4>
+              <p class="text-sm text-gray-600 mt-1" *ngIf="selectedReport.product_description">
+                {{ truncateDescription(selectedReport.product_description, 200) }}
+              </p>
+              <div class="flex items-center gap-4 mt-2">
+                <span class="text-lg font-bold text-green-600" *ngIf="selectedReport.product_price">
+                  ₱{{ selectedReport.product_price | number:'1.2-2' }}
+                </span>
+                <span class="text-sm text-gray-500" *ngIf="selectedReport.product_location">
+                  📍 {{ selectedReport.product_location }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Details -->
+        <div *ngIf="selectedReport.report_type !== 'product'" class="target-details-card">
+          <div class="flex items-start gap-4">
+            <img 
+              [src]="selectedReport.reported_user_profile_image || 'assets/default-avatar.png'"
+              alt="User"
+              class="w-16 h-16 object-cover rounded-full border border-gray-300">
+            <div class="flex-1">
+              <h4 class="text-lg font-semibold text-black">{{ selectedReport.reported_user_name || 'Unknown User' }}</h4>
+              <p class="text-sm text-gray-600">{{ selectedReport.reported_user_email }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reason Section -->
+      <div class="info-section">
+        <h3 class="section-title">Report Reason</h3>
+        <div class="reason-card">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="reason-icon-large">{{ getReasonTypeIcon(getReasonTypeDisplay(selectedReport)) }}</span>
+            <span class="reason-text-large">{{ getReasonTypeLabel(getReasonTypeDisplay(selectedReport)) }}</span>
+          </div>
+          <p class="text-gray-700 leading-relaxed">{{ selectedReport.reason_details || 'No details provided' }}</p>
+          <p class="text-gray-700 leading-relaxed mt-3" *ngIf="selectedReport.explanation">
+            <strong>Additional Explanation:</strong> {{ selectedReport.explanation }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Message Reference Section -->
+      <div class="info-section" *ngIf="selectedReport.message_reference && getMessageReferences(selectedReport.message_reference).length > 0">
+        <h3 class="section-title">Referenced Messages</h3>
+        <div class="message-references">
+          <div *ngFor="let message of getMessageReferences(selectedReport.message_reference)" 
+               class="message-ref-card">
+            <div class="flex items-start gap-3">
+              <mat-icon class="text-gray-500 mt-1">chat_bubble</mat-icon>
+              <div class="flex-1">
+                <p class="text-sm text-gray-700">{{ message.text || message.message_text }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ message.timestamp ? formatDate(message.timestamp) : 'No timestamp' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proof Files Section -->
+      <div class="info-section" *ngIf="getProofFiles(selectedReport.proof).length > 0">
+        <h3 class="section-title">Proof Evidence ({{ getProofFiles(selectedReport.proof).length }})</h3>
+        <div class="proof-grid">
+          <div *ngFor="let proofFile of getProofFiles(selectedReport.proof); let i = index" 
+               class="proof-item"
+               (click)="viewProofFiles(selectedReport); currentProofIndex = i">
+            
+            <!-- Image Preview -->
+            <div *ngIf="isImageFile(proofFile)" class="proof-thumbnail-large">
+              <img [src]="proofFile" alt="Proof {{ i + 1 }}" class="w-full h-full object-cover">
+              <div class="proof-overlay">
+                <mat-icon>zoom_in</mat-icon>
+              </div>
+            </div>
+
+            <!-- Video Preview -->
+            <div *ngIf="isVideoFile(proofFile)" class="proof-thumbnail-large">
+              <video [src]="proofFile" class="w-full h-full object-cover"></video>
+              <div class="proof-overlay">
+                <mat-icon>play_circle</mat-icon>
+              </div>
+            </div>
+
+            <!-- Generic File -->
+            <div *ngIf="!isImageFile(proofFile) && !isVideoFile(proofFile)" 
+                 class="proof-thumbnail-large bg-gray-200 flex items-center justify-center">
+              <mat-icon class="text-gray-500 text-4xl">attach_file</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reporter Section -->
+      <div class="info-section">
+        <h3 class="section-title">Reporter Information</h3>
+        <div class="reporter-card">
+          <div class="flex items-center gap-3">
+            <img 
+              [src]="selectedReport.reporter_profile_image || 'assets/default-avatar.png'"
+              alt="Reporter"
+              class="w-12 h-12 object-cover rounded-full border border-gray-300">
+            <div>
+              <p class="font-semibold text-black">{{ selectedReport.reporter_name }}</p>
+              <p class="text-sm text-gray-600">{{ selectedReport.reporter_email }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <button mat-raised-button (click)="closeReportDetails()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Version (Submit Report Form) -->
+<div *ngIf="isModal" class="report-modal-container">
+  <!-- Header -->
+  <div class="report-modal-header">
+    <h2 class="text-xl font-bold text-black mb-2">
+      Report {{ prefilledProduct ? 'Product' : prefilledUser ? 'User' : 'Content' }}
+    </h2>
+    <p class="text-gray-600">Help us maintain a safe community by reporting inappropriate content or behavior.</p>
+  </div>
+
+  <!-- Submit Report Form -->
+  <form (ngSubmit)="submitReport()" #reportFormRef="ngForm" class="report-form-container">
+    
+    <!-- Report Type Selection (hidden if prefilled) -->
+    <div *ngIf="!prefilledProduct && !prefilledUser" class="form-field-container">
+      <label class="block text-sm font-medium text-gray-700 mb-2">What are you reporting?</label>
+      <select [(ngModel)]="reportForm.report_type" 
+              name="report_type"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+              required>
+        <option value="">Select report type...</option>
+        <option value="product">🛍️ Product/Listing</option>
+        <option value="user_behavior">👤 User Behavior</option>
+        <option value="post_purchase_concern">📦 Post-Purchase Concern</option>
+      </select>
+    </div>
+
+    <!-- Target Identifier (hidden if prefilled) -->
+    <div *ngIf="!prefilledProduct && !prefilledUser" class="form-field-container">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        {{ reportForm.report_type === 'product' ? 'Product ID' : 'User ID' }}
+      </label>
+      <input type="number" 
+             [(ngModel)]="reportForm.target_identifier" 
+             name="target_identifier"
+             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+             [placeholder]="'Enter ' + (reportForm.report_type === 'product' ? 'product' : 'user') + ' ID'"
+             required>
+    </div>
+
+    <!-- Reason Type Selection -->
+    <div class="form-field-container">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Reason for reporting
+      </label>
+      <select [ngModel]="getCurrentReasonType()" 
+              (ngModelChange)="setCurrentReasonType($event)"
+              name="reason_type"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+              required>
+        <option value="">Select a reason...</option>
+        <option 
+          *ngFor="let reason of getCurrentReasonOptions()" 
+          [value]="reason.value">
+          {{ reason.icon }} {{ reason.label }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Reason Details -->
+    <div class="form-field-container">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Detailed Explanation
+      </label>
+      <textarea 
+        [(ngModel)]="reportForm.reason_details" 
+        name="reason_details"
+        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+        placeholder="Please provide detailed information about why you are reporting this..."
+        required
+        minlength="10"
+        rows="4">
+      </textarea>
+      <p class="text-xs text-gray-500 mt-1">Minimum 10 characters required</p>
+    </div>
+
+    <!-- Proof Upload Section -->
+    <div class="form-field-container">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Upload Proof (Optional)
+        <span class="text-xs text-gray-500 ml-1">- Images or videos that support your report</span>
+      </label>
+      
+      <!-- File Upload Area -->
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50 hover:bg-gray-100 transition-colors"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onProofFilesDrop($event)">
+        
+        <!-- Upload Icon and Text -->
+        <div class="mb-4">
+          <mat-icon class="text-4xl text-gray-400">cloud_upload</mat-icon>
+          <p class="text-sm text-gray-600 mt-2">Drag and drop files here or click to browse</p>
+          <input type="file" 
+                 #proofFileInput
+                 (change)="onProofFilesSelected($event)"
+                 accept="image/*,video/*"
+                 multiple
+                 class="hidden">
+          <button mat-button 
+                  type="button"
+                  class="mt-2"
+                  (click)="proofFileInput.click()">
+            <mat-icon>add_photo_alternate</mat-icon>
+            Choose Files
+          </button>
+          <p class="text-xs text-gray-500 mt-2">
+            Max {{ maxProofFiles }} files, up to 10MB each. Supported: Images and videos
+          </p>
+        </div>
+      </div>
+
+      <!-- Selected Files Preview -->
+      <div *ngIf="proofPreviews.length > 0" class="mt-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Selected Proof Files ({{proofPreviews.length}}/{{maxProofFiles}}):</h4>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div *ngFor="let preview of proofPreviews; let i = index" class="relative">
+            <img *ngIf="preview.type === 'image'" 
+                 [src]="preview.url" 
+                 alt="Preview {{ i + 1 }}"
+                 class="w-full h-32 object-cover rounded-lg border border-gray-300">
+            <video *ngIf="preview.type === 'video'" 
+                   [src]="preview.url" 
+                   class="w-full h-32 object-cover rounded-lg border border-gray-300"></video>
+            <button mat-icon-button 
+                    type="button"
+                    (click)="removeProofFile(i)"
+                    class="absolute -top-2 -right-2 bg-red-500 text-white hover:bg-red-600 shadow-lg">
+              <mat-icon class="text-sm">close</mat-icon>
+            </button>
+            <p class="text-xs text-gray-600 mt-1 truncate">{{ preview.file.name }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="report-form-actions">
+      <button mat-button 
+              type="button" 
+              class="report-cancel-btn"
+              (click)="goBack()">
+        Cancel
+      </button>
+      <button mat-raised-button 
+              type="submit" 
+              class="report-submit-btn"
+              [disabled]="loading">
+        <span *ngIf="loading">Submitting...</span>
+        <span *ngIf="!loading">Submit Report</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Simple Modal for Messages -->
+<div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" (click)="closeModal()">
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 border border-gray-300" (click)="$event.stopPropagation()">
+    <div class="text-center">
+      <h3 class="text-lg font-bold text-black mb-4">{{ modalTitle }}</h3>
+      <p class="text-gray-600 mb-6">{{ modalMessage }}</p>
+      <button mat-raised-button 
+              class="bg-black text-white hover:bg-gray-800"
+              (click)="closeModal()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Proof Files Viewing Modal -->
+<div *ngIf="showProofModal" 
+     class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+     style="z-index: 9999;"
+     (click)="closeProofModal()">
+  <div class="relative w-full max-w-5xl max-h-[95vh] bg-white rounded-xl shadow-xl overflow-hidden mx-4" 
+       (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-100">
+      <div class="flex items-center space-x-3">
+        <mat-icon class="text-gray-600">image</mat-icon>
+        <div>
+          <h3 class="text-lg font-semibold text-black">Proof Evidence</h3>
+          <p class="text-sm text-gray-600">
+            File {{ currentProofIndex + 1 }} of {{ currentProofFiles.length }}
+          </p>
+        </div>
+      </div>
+      <button mat-icon-button 
+              (click)="closeProofModal()"
+              class="hover:bg-gray-100 rounded-full">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="flex flex-col items-center justify-center p-8 min-h-[500px] max-h-[75vh] overflow-auto bg-gray-50">
+      <!-- Image Display -->
+      <div *ngIf="isCurrentFileImage()" class="flex flex-col items-center w-full">
+        <img 
+          [src]="getCurrentProofFile()" 
+          alt="Proof evidence"
+          class="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
+          (error)="onModalImageError($event)">
+      </div>
+
+      <!-- Video Display -->
+      <div *ngIf="isCurrentFileVideo()" class="flex flex-col items-center w-full">
+        <video 
+          [src]="getCurrentProofFile()" 
+          controls
+          class="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+
+      <!-- Unsupported File Type -->
+      <div *ngIf="!isCurrentFileImage() && !isCurrentFileVideo()" class="flex flex-col items-center text-center">
+        <mat-icon class="text-6xl text-gray-400 mb-4">insert_drive_file</mat-icon>
+        <h4 class="text-lg font-semibold text-gray-700 mb-2">File Preview Not Available</h4>
+        <p class="text-sm text-gray-500">This file type cannot be previewed in the browser.</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="currentProofFiles.length === 0" class="flex flex-col items-center text-center">
+        <mat-icon class="text-6xl text-gray-400 mb-4">error_outline</mat-icon>
+        <h4 class="text-lg font-semibold text-gray-700 mb-2">No Proof Files</h4>
+        <p class="text-sm text-gray-500">No proof files are attached to this report.</p>
+      </div>
+    </div>
+
+    <!-- Modal Footer with Navigation -->
+    <div *ngIf="currentProofFiles.length > 0" class="flex justify-between items-center px-6 py-4 bg-white border-t border-gray-100">
+      <!-- Previous Button -->
+      <button mat-button 
+              (click)="previousProofFile()"
+              [disabled]="currentProofIndex === 0"
+              class="flex items-center">
+        <mat-icon>chevron_left</mat-icon>
+        Previous
+      </button>
+
+      <!-- File Navigation Indicators -->
+      <div class="flex items-center space-x-4">
+        <div class="flex space-x-2">
+          <button 
+            *ngFor="let file of currentProofFiles; let i = index"
+            (click)="currentProofIndex = i"
+            [class.bg-black]="i === currentProofIndex"
+            [class.bg-gray-300]="i !== currentProofIndex"
+            class="w-2 h-2 rounded-full transition-all duration-200">
+          </button>
+        </div>
+      </div>
+
+      <!-- Next Button -->
+      <button mat-button 
+              (click)="nextProofFile()"
+              [disabled]="currentProofIndex === currentProofFiles.length - 1"
+              class="flex items-center">
+        Next
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

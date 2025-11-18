@@ -147,7 +147,7 @@ if (empty($token) || empty($email)) {
                     You can now log in to your account and start exploring our premium bike parts and cycling accessories.
                 </div>
                 
-                <a href="http://localhost:4200/login" class="btn">Go to Login</a>
+                <a href="http://cyclemart.shop/login" class="btn">Go to Login</a>
             </div>
         <?php endif; ?>
         

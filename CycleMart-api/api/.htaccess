@@ -1,0 +1,14 @@
+
+
+<IfModule mod_rewrite.c>
+  
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ routes.php?request=$1 [L,QSA]
+
+    
+    RewriteCond %{REQUEST_METHOD} DELETE
+    RewriteRule ^images/([0-9]+)$ post.php?delete_id=$1 [L,QSA]
+</IfModule>
+

@@ -239,7 +239,8 @@ export class DeleteUserModalComponent {
     }
     
     // The images are in the api/uploads directory
-    const fullUrl = `${this.data.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    const fullUrl = `${this.data.apiService.baseUrl}${cleanPath}`;
     console.log('Delete modal image URL:', fullUrl);
     return fullUrl;
   }

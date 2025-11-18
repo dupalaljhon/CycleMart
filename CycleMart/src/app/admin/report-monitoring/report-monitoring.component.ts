@@ -24,11 +24,14 @@ export interface Report {
   reporter_id: number;
   reported_user_id?: number;
   product_id?: number;
-  product_images?: string;
-  product_description?: string;
-  reason_type: 'scam' | 'fake product' | 'spam' | 'inappropriate content' | 'misleading information' | 'stolen item' | 'others';
+  conversation_id?: number;
+  report_type: 'product' | 'user_behavior' | 'post_purchase_concern';
+  product_reason_type?: string; // Only for product reports
+  user_reason_type?: string; // Only for user_behavior and post_purchase_concern reports
   reason_details?: string;
-  proof?: string | null; // JSON string of proof files from database or plain string paths
+  explanation?: string;
+  message_reference?: string; // JSON array
+  proof?: string | null; // JSON array of proof files
   status: 'pending' | 'reviewed' | 'action_taken';
   created_at: string;
   reviewed_by?: number;
@@ -41,6 +44,8 @@ export interface Report {
   reported_user_email?: string;
   product_name?: string;
   product_price?: number;
+  product_images?: string;
+  product_description?: string;
   reviewed_by_name?: string;
 }
 
@@ -75,7 +80,7 @@ export class ReportMonitoringComponent implements OnInit {
   displayedColumns: string[] = [
     'reporter_info',
     'reported_target',
-    'reason_type',
+    'reason_info',
     'reason_details',
     'proof',
     'status',
@@ -157,9 +162,19 @@ export class ReportMonitoringComponent implements OnInit {
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.sort = this.sort;
+    // Set up paginator and sort after view initializes
+    // Will be reconnected when data loads due to *ngIf condition
+    this.connectPaginatorAndSort();
     this.setupCustomFilter();
+  }
+
+  private connectPaginatorAndSort(): void {
+    if (this.paginator) {
+      this.dataSource.paginator = this.paginator;
+    }
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
   }
 
   loadReports(): void {
@@ -175,6 +190,10 @@ export class ReportMonitoringComponent implements OnInit {
         
         if (response.status === 'success') {
           this.dataSource.data = response.data || [];
+          
+          // Reconnect paginator after data loads and view updates
+          setTimeout(() => this.connectPaginatorAndSort(), 0);
+          
           console.log('✅ Reports loaded successfully:', this.dataSource.data.length, 'reports');
           
           // Debug proof data in reports
@@ -212,7 +231,7 @@ export class ReportMonitoringComponent implements OnInit {
     this.dataSource.filterPredicate = (data: Report, filter: string) => {
       const searchTerm = this.searchFilter.toLowerCase();
       const statusMatch = !this.statusFilter || data.status === this.statusFilter;
-      const reasonMatch = !this.reasonTypeFilter || data.reason_type === this.reasonTypeFilter;
+      const reasonMatch = !this.reasonTypeFilter || this.getReasonType(data) === this.reasonTypeFilter;
       
       const searchMatch = !searchTerm || 
         data.reporter_name?.toLowerCase().includes(searchTerm) ||
@@ -349,7 +368,7 @@ export class ReportMonitoringComponent implements OnInit {
       if (Array.isArray(images) && images.length > 0) {
         const firstImage = images[0];
         const cleanImageName = firstImage.replace(/^uploads[\/\\]/, '');
-        return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/${cleanImageName}`;
+        return `http://api.cyclemart.shop/CycleMart-api/api/uploads/${cleanImageName}`;
       }
     } catch (e) {
       console.error('Error parsing product images:', e);
@@ -465,6 +484,12 @@ export class ReportMonitoringComponent implements OnInit {
           // Ensure path is a string and clean it
           let cleanPath = typeof path === 'string' ? path.trim() : String(path);
           
+          // Check if it's a base64 data URL - return as-is
+          if (cleanPath.startsWith('data:')) {
+            console.log('Found base64 data URL (length: ' + cleanPath.length + ')');
+            return cleanPath;
+          }
+          
           // Remove any escaped slashes that might come from JSON encoding
           cleanPath = cleanPath.replace(/\\\//g, '/');
           
@@ -472,16 +497,24 @@ export class ReportMonitoringComponent implements OnInit {
           if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
             return cleanPath;
           }
-          return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${cleanPath}`;
+          return `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
         });
-        console.log('Successfully parsed as JSON array:', urls);
+        console.log('Successfully parsed as JSON array:', urls.map(u => u.startsWith('data:') ? `[BASE64 DATA: ${u.substring(0, 50)}...]` : u));
         return urls;
       } else if (typeof proofArray === 'string') {
         // Handle case where JSON contains a single string
-        let cleanPath = proofArray.trim().replace(/\\\//g, '/');
+        let cleanPath = proofArray.trim();
+        
+        // Check if it's a base64 data URL
+        if (cleanPath.startsWith('data:')) {
+          console.log('Parsed as single base64 data URL');
+          return [cleanPath];
+        }
+        
+        cleanPath = cleanPath.replace(/\\\//g, '/');
         const singleUrl = cleanPath.startsWith('http://') || cleanPath.startsWith('https://') ? 
                          cleanPath : 
-                         `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${cleanPath}`;
+                         `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
         console.log('Parsed as single string:', [singleUrl]);
         return [singleUrl];
       } else {
@@ -508,7 +541,7 @@ export class ReportMonitoringComponent implements OnInit {
             }
             // Ensure the path starts with uploads/ if it doesn't already have a full URL
             const cleanPath = path.startsWith('uploads/') ? path : `uploads/proof/${path}`;
-            return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${cleanPath}`;
+            return `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
           });
           console.log('Converted string paths to URLs:', urls);
           return urls;
@@ -522,13 +555,25 @@ export class ReportMonitoringComponent implements OnInit {
 
   isProofImage(url: string): boolean {
     if (!url) return false;
+    
+    // Check if it's a base64 image data URL
+    if (url.startsWith('data:image/')) {
+      return true;
+    }
+    
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
     return imageExtensions.some(ext => url.toLowerCase().includes(ext));
   }
 
   isProofVideo(url: string): boolean {
     if (!url) return false;
-    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+    
+    // Check if it's a base64 video data URL
+    if (url.startsWith('data:video/')) {
+      return true;
+    }
+    
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
     return videoExtensions.some(ext => url.toLowerCase().includes(ext));
   }
 
@@ -553,11 +598,79 @@ export class ReportMonitoringComponent implements OnInit {
     }
     
     try {
-      window.open(url, '_blank');
+      // Check if it's a base64 data URL
+      if (url.startsWith('data:')) {
+        // For base64 data URLs, we need to download them as files
+        this.downloadBase64File(url);
+      } else {
+        // For regular URLs, open in new tab
+        window.open(url, '_blank');
+      }
     } catch (error) {
       console.error('Error opening proof file:', error);
       this.showSnackBar('Error opening file', 'error');
     }
+  }
+
+  // Download base64 data URL as a file
+  private downloadBase64File(dataUrl: string): void {
+    try {
+      // Extract file type from data URL
+      const matches = dataUrl.match(/^data:([^;]+);base64,/);
+      if (!matches) {
+        this.showSnackBar('Invalid file format', 'error');
+        return;
+      }
+
+      const mimeType = matches[1];
+      const extension = this.getExtensionFromMimeType(mimeType);
+      const fileName = `proof_file_${Date.now()}.${extension}`;
+
+      // Create a link element and trigger download
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.showSnackBar('File download started', 'success');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      this.showSnackBar('Error downloading file', 'error');
+    }
+  }
+
+  // Get file extension from MIME type
+  private getExtensionFromMimeType(mimeType: string): string {
+    const mimeMap: { [key: string]: string } = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/bmp': 'bmp',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/ogg': 'ogg',
+      'application/pdf': 'pdf'
+    };
+    return mimeMap[mimeType] || 'file';
+  }
+
+  // Get the appropriate reason type based on report type
+  getReasonType(report: Report): string {
+    if (report.report_type === 'product') {
+      return report.product_reason_type || 'Not specified';
+    } else {
+      return report.user_reason_type || 'Not specified';
+    }
+  }
+
+  // Safe method to get reason type class name
+  getReasonTypeClass(report: Report): string {
+    const reasonType = this.getReasonType(report);
+    return 'reason-' + reasonType.toLowerCase().replace(/\s+/g, '-');
   }
 
   // New method to view proof files in modal

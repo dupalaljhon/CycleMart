@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api/api.service';
 
 import { NotificationService } from '../services/notification.service';
+import { AccountStatusService } from '../services/account-status.service';
 import { ReportsComponent } from '../reports/reports.component';
 
 @Component({
@@ -72,7 +73,8 @@ export class HomeComponent implements OnInit {
   constructor(
     public apiService: ApiService,
     private router: Router,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    public accountStatusService: AccountStatusService
   ) {}
 
   ngOnInit() {
@@ -247,7 +249,7 @@ export class HomeComponent implements OnInit {
     // Remove any extra path prefixes from the image name
     const cleanImageName = imageName.replace(/^uploads[\/\\]/, '');
     // Create the correct path to the uploads folder (which is inside the api directory)
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/${cleanImageName}`;
+    return `http://api.cyclemart.shop/CycleMart-api/api/uploads/${cleanImageName}`;
   }
 
   getProfileImageUrl(profileImage: string | null, username?: string): string | null {
@@ -263,8 +265,8 @@ export class HomeComponent implements OnInit {
     
     // Remove any extra path prefixes from the image name
     const cleanImageName = profileImage.replace(/^uploads[\/\\]/, '');
-    // Create the correct path to the uploads folder (actual uploaded images)
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/uploads/${cleanImageName}`;
+    // Serve profile images from images subdomain (uploads root)
+    return `http://images.cyclemart.shop/${cleanImageName}`;
   }
 
   formatSaleType(forType: string): string {
@@ -701,7 +703,7 @@ export class HomeComponent implements OnInit {
     if (videoPath.startsWith('data:')) {
       return videoPath; // Base64 video
     }
-    return `http://localhost/CycleMart/CycleMart/CycleMart-api/api/${videoPath}`;
+    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
   }
 
   // Media type switching
@@ -835,6 +837,28 @@ export class HomeComponent implements OnInit {
     
     this.reportTargetProduct = product;
     this.showReportModal = true;
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * Open report modal from within the product modal
+   */
+  openReportModalFromProductModal() {
+    console.log('Opening report modal from product modal');
+    console.log('Selected product:', this.selectedProduct);
+    
+    // Set the report target to the currently selected product
+    this.reportTargetProduct = this.selectedProduct;
+    
+    // Open the report modal first
+    this.showReportModal = true;
+    
+    // Close the product modal after a brief delay to ensure smooth transition
+    setTimeout(() => {
+      this.closeModal();
+    }, 50);
     
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';

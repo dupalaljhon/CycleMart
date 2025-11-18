@@ -31,6 +31,6 @@ function testImageUrl(url) {
 }
 
 // Example usage:
-// testImageUrl('http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/profile_68bbcd8bb7b60.jpeg');
+// testImageUrl('http://api.cyclemart.shop/CycleMart-api/apiuploads/profile_68bbcd8bb7b60.jpeg');
 
 console.log('Image debug helper loaded. Use testImageUrl(url) to test any image URL.');

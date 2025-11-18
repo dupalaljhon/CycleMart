@@ -7,9 +7,11 @@ const app = express();
 const server = http.createServer(app);
 
 // Configure CORS for Socket.IO
+// Allow both Angular dev origin (4200) and Apache-served origin (http://localhost)
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:4200", "http://localhost:3000"], // Angular dev server
+    // origin: ["http://localhost:4200", "http://localhost", "http://localhost:3000"],
+     origin: ["http://api.cyclemart.shop/CycleMart-api/api", "http://localhost", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -199,14 +201,27 @@ io.on('connection', (socket) => {
   // Handle messaging events
   socket.on('send_message', (messageData) => {
     const { recipient_id, conversation_id, message_text, sender_name } = messageData;
-    
+    if (!recipient_id) {
+      console.warn('⚠️ send_message received without recipient_id', messageData);
+      return;
+    }
+
     console.log(`💌 Message from ${messageData.sender_id} to ${recipient_id} in conversation ${conversation_id}`);
-    
-    // Send to recipient's personal room
+
+    // Emit to recipient room
     io.to(`user_${recipient_id}`).emit('new_message', {
       ...messageData,
       timestamp: new Date().toISOString()
     });
+
+    // Echo back to sender so their UI updates instantly if not already
+    if (messageData.sender_id) {
+      io.to(`user_${messageData.sender_id}`).emit('new_message', {
+        ...messageData,
+        is_echo: true,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Handle message read status
@@ -336,6 +351,38 @@ app.get('/health', (req, res) => {
     adminUsers: adminUsers.size,
     uptime: process.uptime()
   });
+});
+
+// Emit endpoint for PHP backend to trigger Socket.IO events
+app.post('/emit', (req, res) => {
+  try {
+    const { room, event, data } = req.body;
+    
+    if (!room || !event || !data) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Missing required fields: room, event, data'
+      });
+    }
+    
+    console.log(`🔴 Backend emit request - Room: ${room}, Event: ${event}`);
+    
+    // Emit to the specified room
+    io.to(room).emit(event, data);
+    
+    res.json({
+      status: 'success',
+      message: `Event '${event}' emitted to room '${room}'`,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in /emit endpoint:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

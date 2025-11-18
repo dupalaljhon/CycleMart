@@ -18,6 +18,7 @@ import { ApiService } from '../../api/api.service';
 import { ProfileImageService } from '../../services/profile-image.service';
 import { UserDetailModalComponent } from './user-detail-modal/user-detail-modal.component';
 import { DeleteUserModalComponent } from './delete-user-modal/delete-user-modal.component';
+import { MarkViolationModalComponent } from './mark-violation-modal/mark-violation-modal.component';
 
 interface User {
   id: number;
@@ -29,6 +30,8 @@ interface User {
   terms_accepted: boolean;
   is_verified: boolean;
   created_at: string;
+  violation_count: number;
+  account_status: string;
 }
 
 @Component({
@@ -56,6 +59,10 @@ export class UserListComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   
+  // Pagination settings
+  pageSize = 10;
+  pageSizeOptions = [10, 25, 50, 100];
+  
   users: User[] = [];
   dataSource = new MatTableDataSource<User>([]);
   isLoading = true;
@@ -66,7 +73,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
     'full_name', 
     'email', 
     'phone', 
-    'is_verified', 
+    'is_verified',
     'created_at', 
     'actions'
   ];
@@ -83,8 +90,9 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.sort = this.sort;
+    // Set up paginator and sort after view initializes
+    // Will be reconnected when data loads due to *ngIf condition
+    this.connectPaginatorAndSort();
     
     // Custom filter predicate for search functionality
     this.dataSource.filterPredicate = (data: User, filter: string) => {
@@ -96,6 +104,16 @@ export class UserListComponent implements OnInit, AfterViewInit {
     };
   }
 
+  private connectPaginatorAndSort() {
+    if (this.paginator) {
+      this.dataSource.paginator = this.paginator;
+      this.paginator.pageSize = this.pageSize;
+    }
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
   loadUsers() {
     this.isLoading = true;
     this.apiService.getAllUsers().subscribe({
@@ -104,6 +122,9 @@ export class UserListComponent implements OnInit, AfterViewInit {
         if (response.status === 'success') {
           this.users = response.data;
           this.dataSource.data = this.users;
+          
+          // Reconnect paginator after data loads and view updates
+          setTimeout(() => this.connectPaginatorAndSort(), 0);
         }
       },
       error: (error) => {
@@ -153,6 +174,29 @@ export class UserListComponent implements OnInit, AfterViewInit {
     console.log('Edit user:', user);
     this.showMessage(`Edit functionality for "${user.full_name}" coming soon!`);
     // Add edit functionality here
+  }
+
+  markViolation(user: User) {
+    const dialogRef = this.dialog.open(MarkViolationModalComponent, {
+      width: '650px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { user: user },
+      disableClose: false,
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.success) {
+        const data = result.data;
+        this.showMessage(
+          `✅ Violation marked! User "${data.user_name}" now has ${data.violation_count} violation(s). Status: ${data.account_status.toUpperCase()}.`,
+          6000
+        );
+        // Refresh user list to show updated violation count and status
+        this.loadUsers();
+      }
+    });
   }
 
   deleteUser(user: User) {
@@ -214,9 +258,9 @@ export class UserListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private showMessage(message: string) {
+  private showMessage(message: string, duration: number = 3000) {
     this.snackBar.open(message, 'Close', {
-      duration: 3000,
+      duration: duration,
       horizontalPosition: 'end',
       verticalPosition: 'top'
     });

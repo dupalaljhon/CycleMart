@@ -38,11 +38,7 @@ interface User {
           <mat-icon class="text-blue-600 text-2xl">person</mat-icon>
           <h2 class="text-xl font-semibold text-gray-800">User Details</h2>
         </div>
-        <button mat-icon-button 
-                (click)="closeModal()" 
-                class="text-gray-400 hover:text-gray-600">
-          <mat-icon>close</mat-icon>
-        </button>
+        
       </div>
 
       <!-- Modal Content -->
@@ -206,22 +202,11 @@ interface User {
       </div>
 
       <!-- Modal Actions -->
-      <div mat-dialog-actions class="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-        <button mat-button 
-                (click)="closeModal()"
-                class="px-6 py-2 text-gray-600 hover:text-gray-800">
-          <mat-icon class="mr-2">close</mat-icon>
-          Close
-        </button>
-        
-        <button mat-raised-button 
-                color="primary"
-                (click)="editUser()"
-                class="px-6 py-2">
-          <mat-icon class="mr-2">edit</mat-icon>
-          Edit User
-        </button>
-      </div>
+     <div class="absolute top-4 right-4">
+  <button mat-icon-button (click)="closeModal()">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
     </div>
   `,
   styles: [`
@@ -308,10 +293,11 @@ export class UserDetailModalComponent {
     }
     
     // The images are stored as 'uploads/profile_xxx.jpeg' in database
-    // Base URL: http://localhost/CycleMart/CycleMart/CycleMart-api/api/
-    // Final URL: http://localhost/CycleMart/CycleMart/CycleMart-api/api/uploads/profile_xxx.jpeg
+    // Base URL: http://api.cyclemart.shop/CycleMart-api/api
+    // Final URL: http://api.cyclemart.shop/CycleMart-api/api/uploads/profile_xxx.jpeg
     
-    const fullUrl = `${this.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    const fullUrl = `${this.apiService.baseUrl}${cleanPath}`;
     
     console.log('=== Image URL Debug ===');
     console.log('Base URL:', this.apiService.baseUrl);

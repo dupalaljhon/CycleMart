@@ -36,9 +36,12 @@ export class SoldItemsComponent implements OnInit, OnChanges {
   // Notification properties
   showSuccessModal = false;
   showErrorModal = false;
+  showConfirmModal = false;
   successMessage = '';
   errorMessage = '';
+  confirmMessage = '';
   isProcessing = false;
+  pendingProduct: SoldProduct | null = null;
 
   constructor(private apiService: ApiService) {}
 
@@ -94,7 +97,8 @@ export class SoldItemsComponent implements OnInit, OnChanges {
     if (imagePath.startsWith('data:')) {
       return imagePath; // Base64 image
     }
-    return `${this.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    return `${this.apiService.baseUrl}${cleanPath}`;
   }
 
   getSaleTypeText(forType: string): string {
@@ -111,33 +115,44 @@ export class SoldItemsComponent implements OnInit, OnChanges {
   }
 
   markAsAvailable(product: SoldProduct) {
-    if (confirm('Mark this item as available again?')) {
-      const updateData = {
-        product_id: product.product_id,
-        sale_status: 'available',
-        uploader_id: this.userId,
-        for_type: product.for_type
-      };
+    this.pendingProduct = product;
+    this.confirmMessage = 'Are you sure you want to mark this item as available again? It will be visible to buyers in your active listings.';
+    this.showConfirmModal = true;
+  }
 
-      this.isProcessing = true;
-      this.apiService.updateSaleStatus(updateData).subscribe({
-        next: (response) => {
-          this.isProcessing = false;
-          if (response.status === 'success') {
-            // Remove from sold items list
-            this.soldItems = this.soldItems.filter(item => item.product_id !== product.product_id);
-            this.showSuccess('Item marked as available again! Your product is now back in the active listings and visible to buyers.');
-          } else {
-            this.showError('Failed to update item status: ' + (response.message || 'Unknown error occurred'));
-          }
-        },
-        error: (error) => {
-          this.isProcessing = false;
-          console.error('Error updating item status:', error);
-          this.showError('Failed to update item status. Please check your internet connection and try again.');
+  confirmMarkAsAvailable() {
+    if (!this.pendingProduct) return;
+    
+    const product = this.pendingProduct;
+    this.showConfirmModal = false;
+    
+    const updateData = {
+      product_id: product.product_id,
+      sale_status: 'available',
+      uploader_id: this.userId,
+      for_type: product.for_type
+    };
+
+    this.isProcessing = true;
+    this.apiService.updateSaleStatus(updateData).subscribe({
+      next: (response) => {
+        this.isProcessing = false;
+        this.pendingProduct = null;
+        if (response.status === 'success') {
+          // Remove from sold items list
+          this.soldItems = this.soldItems.filter(item => item.product_id !== product.product_id);
+          this.showSuccess('Item marked as available again! Your product is now back in the active listings and visible to buyers.');
+        } else {
+          this.showError('Failed to update item status: ' + (response.message || 'Unknown error occurred'));
         }
-      });
-    }
+      },
+      error: (error) => {
+        this.isProcessing = false;
+        this.pendingProduct = null;
+        console.error('Error updating item status:', error);
+        this.showError('Failed to update item status. Please check your internet connection and try again.');
+      }
+    });
   }
 
   // Notification Methods
@@ -156,8 +171,11 @@ export class SoldItemsComponent implements OnInit, OnChanges {
   resetNotifications() {
     this.showSuccessModal = false;
     this.showErrorModal = false;
+    this.showConfirmModal = false;
     this.successMessage = '';
     this.errorMessage = '';
+    this.confirmMessage = '';
+    this.pendingProduct = null;
   }
 
   closeSuccessModal() {
@@ -166,5 +184,10 @@ export class SoldItemsComponent implements OnInit, OnChanges {
 
   closeErrorModal() {
     this.showErrorModal = false;
+  }
+
+  closeConfirmModal() {
+    this.showConfirmModal = false;
+    this.pendingProduct = null;
   }
 }

@@ -1,0 +1,342 @@
+<div class="flex h-screen bg-gray-50">
+  <!-- Sidenav -->
+  <app-sidenav></app-sidenav>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-6">
+          <div>
+            <h1 class="text-2xl font-bold text-black">My Reports</h1>
+            <p class="mt-1 text-sm text-gray-600">View and manage your submitted reports</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        </div>
+
+        <!-- No Reports -->
+        <div *ngIf="!isLoading && reports.length === 0" class="text-center py-12">
+          <div class="mx-auto h-12 w-12 text-gray-400 mb-4">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-full h-full">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No Reports Yet</h3>
+          <p class="text-gray-600">You haven't submitted any reports yet.</p>
+        </div>
+
+        <!-- Reports List -->
+        <div *ngIf="!isLoading && reports.length > 0" class="space-y-6">
+          
+          <!-- Report Card -->
+          <div *ngFor="let report of reports; trackBy: trackByReportId" 
+               class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+            
+            <!-- Card Header -->
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                  <div class="flex-shrink-0">
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                      <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM12 17.3c-.72 0-1.3-.58-1.3-1.3 0-.72.58-1.3 1.3-1.3.72 0 1.3.58 1.3 1.3 0 .72-.58 1.3-1.3 1.3zm1-4.3h-2V7h2v6z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-black">
+                      Report #{{ report.user_report_id }}
+                    </h3>
+                    <p class="text-sm text-gray-600">
+                      {{ getReportTypeText(report.report_type) }} • 
+                      {{ formatDate(report.created_at) }}
+                    </p>
+                  </div>
+                </div>
+                
+                <!-- Status Badge -->
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border"
+                      [ngClass]="getStatusClass(report.status)">
+                  {{ report.status | titlecase }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Card Content -->
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Report Details -->
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900 mb-3">Report Details</h4>
+                  <div class="space-y-2">
+                    <div class="flex items-start">
+                      <span class="text-sm font-medium text-gray-500 w-24 flex-shrink-0">Type:</span>
+                      <span class="text-sm text-gray-900">{{ getReportTypeText(report.report_type) }}</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-sm font-medium text-gray-500 w-24 flex-shrink-0">Reason:</span>
+                      <span class="text-sm text-gray-900">{{ getReasonTypeText(report.reason_type) }}</span>
+                    </div>
+                    <div *ngIf="report.reason_details" class="flex items-start">
+                      <span class="text-sm font-medium text-gray-500 w-24 flex-shrink-0">Details:</span>
+                      <span class="text-sm text-gray-900">{{ report.reason_details }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Full Explanation Section -->
+                <div *ngIf="report.explanation" class="col-span-1 md:col-span-2">
+                  <h4 class="text-sm font-medium text-gray-900 mb-3">Full Explanation</h4>
+                  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{{ report.explanation }}</p>
+                  </div>
+                </div>
+
+                <!-- Related Information -->
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900 mb-3">Related Information</h4>
+                  <div class="space-y-2">
+                    <div *ngIf="report.reported_user_name" class="flex items-start">
+                      <span class="text-sm font-medium text-gray-500 w-24 flex-shrink-0">User:</span>
+                      <span class="text-sm text-gray-900">{{ report.reported_user_name }}</span>
+                    </div>
+                    <div *ngIf="report.product_name" class="flex items-start">
+                      <span class="text-sm font-medium text-gray-500 w-24 flex-shrink-0">Product:</span>
+                      <span class="text-sm text-gray-900">{{ report.product_name }}</span>
+                    </div>
+                    <div *ngIf="report.conversation_id" class="flex items-start">
+                      <span class="text-sm font-medium text-gray-500 w-24 flex-shrink-0">Chat ID:</span>
+                      <span class="text-sm text-gray-900">#{{ report.conversation_id }}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Proof Files (if any) -->
+              <div *ngIf="report.proof_files && report.proof_files.length > 0" class="mt-6">
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Evidence Files</h4>
+                <div class="flex flex-wrap gap-3">
+                  <div *ngFor="let file of report.proof_files; let i = index" 
+                       class="w-16 h-16 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Review Information (if reviewed) -->
+              <div *ngIf="report.status !== 'pending' && report.reviewed_at" class="mt-6 pt-4 border-t border-gray-200">
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                      <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div class="ml-3">
+                      <h5 class="text-sm font-medium text-blue-800">Report Status Update</h5>
+                      <p class="text-sm text-blue-700 mt-1">
+                        This report was reviewed on {{ formatDate(report.reviewed_at) }}.
+                        <span *ngIf="report.status === 'action_taken'">
+                          Appropriate action has been taken based on your report.
+                        </span>
+                        <span *ngIf="report.status === 'reviewed'">
+                          Your report has been reviewed by our team.
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- User Report Modal -->
+  <div *ngIf="showUserReportModal" 
+       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+       (click)="closeUserReportModal()">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-red-50">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-black">Report User</h3>
+            <p class="text-sm text-gray-600" *ngIf="reportedUser">
+              Reporting: {{ reportedUser.full_name || reportedUser.name }}
+            </p>
+          </div>
+        </div>
+        <button (click)="closeUserReportModal()"
+                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="overflow-y-auto max-h-[calc(90vh-140px)] p-6">
+        <form (ngSubmit)="submitUserReport()" class="space-y-6">
+          
+          <!-- Report Type Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              What type of issue are you reporting?
+            </label>
+            <select [(ngModel)]="userReportForm.report_type" 
+                    name="report_type"
+                    (change)="onReportTypeChange()"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required>
+              <option *ngFor="let option of reportTypeOptions" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Reason Type Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Specific reason for reporting
+            </label>
+            <select [(ngModel)]="userReportForm.user_reason_type" 
+                    name="user_reason_type"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required>
+              <option value="">Select a reason...</option>
+              <option *ngFor="let reason of getCurrentReasonOptions()" [value]="reason">
+                {{ reason | titlecase }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Detailed Explanation -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Detailed Explanation
+            </label>
+            <textarea [(ngModel)]="userReportForm.explanation" 
+                      name="explanation"
+                      rows="4"
+                      placeholder="Please provide detailed information about the issue. Include specific examples, dates, or any other relevant details that will help us understand the problem."
+                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                      required>
+            </textarea>
+            <p class="text-xs text-gray-500 mt-1">Minimum 10 characters required</p>
+          </div>
+
+          <!-- Proof Upload Section -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Evidence Files (Optional)
+            </label>
+            <p class="text-sm text-gray-600 mb-3">
+              Upload screenshots, images, or videos as evidence to support your report.
+            </p>
+            
+            <!-- File Upload Area -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+              <input type="file" 
+                     #fileInput
+                     (change)="onProofFilesSelected($event)"
+                     multiple
+                     accept="image/*,video/*"
+                     class="hidden">
+              
+              <div class="space-y-2">
+                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                  <button type="button" 
+                          (click)="fileInput.click()"
+                          class="text-red-600 hover:text-red-500 font-medium">
+                    Choose files
+                  </button>
+                  <p class="text-gray-500">or drag and drop</p>
+                </div>
+                <p class="text-xs text-gray-500">
+                  PNG, JPG, GIF, MP4, WebM up to 10MB each (max {{ maxProofFiles }} files)
+                </p>
+              </div>
+            </div>
+
+            <!-- Selected Files Preview -->
+            <div *ngIf="proofPreviews.length > 0" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div *ngFor="let preview of proofPreviews; let i = index" 
+                   class="relative group">
+                <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                  <img *ngIf="preview.type === 'image'" 
+                       [src]="preview.url" 
+                       class="w-full h-full object-cover">
+                  <div *ngIf="preview.type === 'video'" 
+                       class="w-full h-full flex items-center justify-center bg-gray-200">
+                    <svg class="w-8 h-8 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+                <button type="button"
+                        (click)="removeProofFile(i)"
+                        class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100">
+                  ×
+                </button>
+                <p class="text-xs text-gray-500 mt-1 truncate">{{ preview.file.name }}</p>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+        <button type="button" 
+                (click)="closeUserReportModal()"
+                class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                [disabled]="isSubmitting">
+          Cancel
+        </button>
+        <button type="button"
+                (click)="submitUserReport()"
+                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                [disabled]="isSubmitting">
+          <svg *ngIf="isSubmitting" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>{{ isSubmitting ? 'Submitting...' : 'Submit Report' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

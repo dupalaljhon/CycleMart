@@ -13,6 +13,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatBadgeModule } from '@angular/material/badge';
 import { AdminSidenavComponent } from "../admin-sidenav/admin-sidenav.component";
 import { ApiService } from '../../api/api.service';
 import { ProfileImageService } from '../../services/profile-image.service';
@@ -32,7 +33,7 @@ interface Product {
   category: string;
   quantity: number;
   status: 'active' | 'archived';
-  sale_status: 'available' | 'sold';
+  sale_status: 'available' | 'sold' | 'reserved' | 'traded';
   created_at: string;
   uploader_id: number;
   seller_name?: string;
@@ -57,7 +58,8 @@ interface Product {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatBadgeModule
   ],
   templateUrl: './listing-monitoring.component.html',
   styleUrl: './listing-monitoring.component.css'
@@ -76,14 +78,15 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   
+  // Pagination settings
+  pageSize = 10;
+  pageSizeOptions = [10, 25, 50, 100];
+  
   displayedColumns: string[] = [
     'product_name',
     'seller',
-    'price',
-    'for_type',
-    'condition',
     'status',
-    'created_at',
+    'sale_status',
     'actions'
   ];
 
@@ -117,6 +120,12 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   // View-only modal
   showViewOnlyModal = false;
   selectedViewProduct: Product | null = null;
+  currentMediaType: 'image' | 'video' = 'image';
+
+  // Success modal
+  showSuccessModal = false;
+  successMessage = '';
+  successTitle = '';
 
   constructor(
     private apiService: ApiService,
@@ -143,8 +152,19 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
+    // Set up paginator and sort after view initializes
+    // Will be reconnected when data loads due to *ngIf condition
+    this.connectPaginatorAndSort();
+  }
+
+  private connectPaginatorAndSort() {
+    if (this.paginator) {
+      this.dataSource.paginator = this.paginator;
+      this.paginator.pageSize = this.pageSize;
+    }
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
   }
 
   loadAllProducts() {
@@ -163,6 +183,9 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
               : product.product_videos || []
           }));
           this.dataSource.data = this.products;
+          
+          // Reconnect paginator after data loads and view updates
+          setTimeout(() => this.connectPaginatorAndSort(), 0);
         } else {
           console.error('Failed to load products:', response.message);
         }
@@ -182,6 +205,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
   confirmArchive() {
     if (!this.productToArchive || !this.archiveReason.trim()) {
+      alert('Please provide a reason for archiving this product');
       return;
     }
 
@@ -204,9 +228,13 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
     this.apiService.archiveProduct(archiveData).subscribe({
       next: (response) => {
         if (response.status === 'success') {
-          this.productToArchive!.status = 'archived';
+          // Remove the product from the table immediately without page refresh
+          this.products = this.products.filter(p => p.product_id !== this.productToArchive!.product_id);
+          this.dataSource.data = this.products;
+          
           this.closeArchiveModal();
-          alert('Product archived successfully');
+          this.showSuccessMessage('Product Archived Successfully', 
+            `The product has been archived and the uploader has been notified about the reason.`);
         } else {
           alert('Failed to archive product: ' + response.message);
         }
@@ -232,6 +260,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
   confirmRestore() {
     if (!this.productToRestore || !this.restoreReason.trim()) {
+      alert('Please provide a reason for restoring this product');
       return;
     }
 
@@ -254,9 +283,15 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
     this.apiService.archiveProduct(restoreData).subscribe({
       next: (response) => {
         if (response.status === 'success') {
+          // Update the product status in the list
           this.productToRestore!.status = 'active';
+          const productName = this.productToRestore!.product_name;
           this.closeRestoreModal();
-          alert('Product restored successfully');
+          
+          // Show success modal instead of alert
+          this.successTitle = '✅ Product Restored Successfully';
+          this.successMessage = `The product "${productName}" has been restored and is now active. The seller has been notified via notification.`;
+          this.showSuccessModal = true;
         } else {
           alert('Failed to restore product: ' + response.message);
         }
@@ -338,14 +373,16 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
     if (imagePath.startsWith('data:')) {
       return imagePath;
     }
-    return `${this.apiService.baseUrl}${imagePath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
+    return `${this.apiService.baseUrl}${cleanPath}`;
   }
 
   getVideoUrl(videoPath: string): string {
     if (videoPath.startsWith('data:')) {
       return videoPath;
     }
-    return `${this.apiService.baseUrl}${videoPath}`;
+    const cleanPath = videoPath.startsWith('/') ? videoPath : '/' + videoPath;
+    return `${this.apiService.baseUrl}${cleanPath}`;
   }
 
   getVideoExtension(videoPath: string): string {
@@ -432,6 +469,10 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
   applyGlobalFilter() {
     this.dataSource.filter = this.searchTerm.trim().toLowerCase();
+    // Reset to first page when searching
+    if (this.paginator) {
+      this.paginator.firstPage();
+    }
   }
 
   applyFilters() {
@@ -445,6 +486,11 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
     // Apply search filter if exists
     if (this.searchTerm) {
       this.dataSource.filter = this.searchTerm.trim().toLowerCase();
+    }
+    
+    // Reset to first page when filters change
+    if (this.paginator) {
+      this.paginator.firstPage();
     }
   }
 
@@ -465,7 +511,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   }
 
   formatPrice(price: number): string {
-    return '₱' + price.toLocaleString();
+    return price.toLocaleString();
   }
 
   clearFilters() {
@@ -506,6 +552,14 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   // Get seller profile image URL
   getSellerProfileImageUrl(profileImage: string | null | undefined): string {
     return this.profileImageService.getUserProfileImageUrl(profileImage, 'S');
+  }
+
+  // Handle product image errors
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = 'https://via.placeholder.com/150?text=No+Image';
+    }
   }
 
   // Handle seller profile image errors
@@ -608,12 +662,66 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   viewDescriptionSpecificationsReadOnly(product: Product): void {
     this.selectedViewProduct = product;
     this.showViewOnlyModal = true;
+    this.currentImageIndex = 0;
+    this.currentVideoIndex = 0;
+    // Set initial media type based on what's available
+    if (product.product_images && product.product_images.length > 0) {
+      this.currentMediaType = 'image';
+    } else if (product.product_videos && product.product_videos.length > 0) {
+      this.currentMediaType = 'video';
+    }
     document.body.style.overflow = 'hidden';
   }
 
   closeViewOnlyModal(): void {
     this.showViewOnlyModal = false;
     this.selectedViewProduct = null;
+    this.currentImageIndex = 0;
+    this.currentVideoIndex = 0;
+    this.currentMediaType = 'image';
     document.body.style.overflow = 'auto';
+  }
+
+  // Modal Image Navigation Methods
+  nextModalImage(): void {
+    if (this.selectedViewProduct && this.selectedViewProduct.product_images) {
+      this.currentImageIndex = (this.currentImageIndex + 1) % this.selectedViewProduct.product_images.length;
+    }
+  }
+
+  prevModalImage(): void {
+    if (this.selectedViewProduct && this.selectedViewProduct.product_images) {
+      this.currentImageIndex = this.currentImageIndex === 0 
+        ? this.selectedViewProduct.product_images.length - 1 
+        : this.currentImageIndex - 1;
+    }
+  }
+
+  // Modal Video Navigation Methods
+  nextModalVideo(): void {
+    if (this.selectedViewProduct && this.selectedViewProduct.product_videos) {
+      this.currentVideoIndex = (this.currentVideoIndex + 1) % this.selectedViewProduct.product_videos.length;
+    }
+  }
+
+  prevModalVideo(): void {
+    if (this.selectedViewProduct && this.selectedViewProduct.product_videos) {
+      this.currentVideoIndex = this.currentVideoIndex === 0 
+        ? this.selectedViewProduct.product_videos.length - 1 
+        : this.currentVideoIndex - 1;
+    }
+  }
+
+  // Success Modal Methods
+  showSuccessMessage(title: string, message: string): void {
+    this.successTitle = title;
+    this.successMessage = message;
+    this.showSuccessModal = true;
+  }
+
+  closeSuccessModal(): void {
+    this.showSuccessModal = false;
+    this.successTitle = '';
+    this.successMessage = '';
   }
 }

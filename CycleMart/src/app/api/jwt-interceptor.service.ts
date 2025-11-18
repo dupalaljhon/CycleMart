@@ -1,18 +1,63 @@
-import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
+import { AccountStatusService } from '../services/account-status.service';
 
-@Injectable()
-export class JwtInterceptor implements HttpInterceptor {
-
-  intercept(request: HttpRequest<any>, next: HttpHandler) {
-    const token = localStorage.getItem('token');
-    if (token) {
-      request = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-    }
-    return next.handle(request);
+export const JwtInterceptor: HttpInterceptorFn = (req, next) => {
+  const token = localStorage.getItem('authToken');
+  const router = inject(Router);
+  const accountStatusService = inject(AccountStatusService);
+  
+  let authReq = req;
+  if (token) {
+    authReq = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
   }
-}
+  
+  return next(authReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      // Handle account status errors
+      if (error.status === 403 && error.error) {
+        const errorData = error.error;
+        
+        // Banned account
+        if (errorData.banned === true || errorData.data?.banned === true) {
+          const status = {
+            account_status: 'banned' as const,
+            violation_count: errorData.violation_count || errorData.data?.violation_count || 4
+          };
+          accountStatusService.updateAccountStatus(status);
+          router.navigate(['/banned']);
+          return throwError(() => error);
+        }
+        
+        // Suspended account
+        if (errorData.suspended === true || errorData.data?.suspended === true) {
+          const status = {
+            account_status: 'suspended' as const,
+            violation_count: errorData.violation_count || errorData.data?.violation_count || 3
+          };
+          accountStatusService.updateAccountStatus(status);
+          router.navigate(['/suspended']);
+          return throwError(() => error);
+        }
+        
+        // Restricted account
+        if (errorData.restricted === true || errorData.data?.restricted === true) {
+          const status = {
+            account_status: 'restricted' as const,
+            violation_count: errorData.violation_count || errorData.data?.violation_count || 2
+          };
+          accountStatusService.updateAccountStatus(status);
+          // Don't redirect, just update status
+        }
+      }
+      
+      return throwError(() => error);
+    })
+  );
+};

@@ -1,0 +1,127 @@
+/* Image Display Enhancements for User Report Monitoring */
+
+/* Smooth transitions for all image elements */
+.user-report-monitoring img {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Hover effects for proof file gallery */
+.proof-file-gallery .group:hover img {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.proof-file-gallery .group:hover .border-gray-200 {
+  border-color: #3B82F6; /* Blue-500 */
+}
+
+/* Zoom icon animation */
+.proof-file-gallery .group .zoom-icon {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Image preview modal animations */
+.image-preview-modal {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.image-preview-modal img {
+  animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Loading state for images */
+img[src=""] {
+  background-color: #F3F4F6;
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 16L10.586 9.414A2 2 0 0113.414 9.414L16 16M10 10H10.01M6 20H12A2 2 0 0020 18V6A2 2 0 0018 4H6A2 2 0 004 6V18A2 2 0 006 20Z' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 32px 32px;
+}
+
+/* Error state styling */
+img.image-error {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  border: 2px dashed #E5E7EB;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .proof-file-gallery {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .image-preview-modal .image-container {
+    max-width: 95vw;
+    max-height: 85vh;
+    margin: 1rem;
+  }
+  
+  .image-preview-modal .close-button {
+    top: 1rem;
+    right: 1rem;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .proof-file-gallery img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Focus states for accessibility */
+.proof-file-gallery img:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+.image-preview-modal .close-button:focus {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+/* Loading spinner for slow images */
+.image-loading {
+  position: relative;
+}
+
+.image-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #E5E7EB;
+  border-top: 2px solid #3B82F6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

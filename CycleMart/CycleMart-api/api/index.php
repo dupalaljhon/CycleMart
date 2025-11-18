@@ -1,11 +1,20 @@
 <?php
-// Allow requests from Angular frontend
-// header("Access-Control-Allow-Origin: *"); // or "http://localhost:4200" for stricter security
-// header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-// header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json");
 
-// // Handle preflight OPTIONS requests
-// if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-//     http_response_code(200);
-//     exit();
-// }
+// API Directory - Provide basic information
+echo json_encode([
+    "name" => "CycleMart API",
+    "version" => "1.0",
+    "status" => "active",
+    "timestamp" => date('Y-m-d H:i:s'),
+    "endpoints" => [
+        "POST /login" => "User login",
+        "POST /register" => "User registration",
+        "GET /user?id={id}" => "Get user by ID",
+        "GET /all-products" => "Get all products",
+        "GET /health.php" => "Health check",
+        "GET /test-db-connection.php" => "Test database connection"
+    ],
+    "documentation" => "https://cyclemart.shop/api-docs"
+], JSON_PRETTY_PRINT);

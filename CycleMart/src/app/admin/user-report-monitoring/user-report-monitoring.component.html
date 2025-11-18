@@ -1,0 +1,541 @@
+<div class="flex h-screen bg-gray-50">
+  <!-- Admin Sidenav -->
+  <app-admin-sidenav></app-admin-sidenav>
+<div class="flex-1 min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
+  <!-- Header -->
+  <div class="mb-4 md:mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold text-gray-900 mb-1">User Reports Monitoring</h1>
+        <p class="text-sm text-gray-600">Monitor and manage user reports submitted through the system</p>
+      </div>
+      <div class="mt-3 sm:mt-0 flex items-center space-x-2">
+        <div class="text-sm text-gray-500">
+          Last updated: {{ getCurrentTime() }}
+        </div>
+        <button 
+          (click)="loadUserReports()" 
+          class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          [disabled]="isLoading">
+          <svg class="w-3 h-3 inline mr-1" [class.animate-spin]="isLoading" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+      <div class="flex items-center">
+        <div class="p-2 bg-yellow-100 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-medium text-gray-600 truncate">Pending</p>
+          <p class="text-xl font-bold text-gray-900">{{ statistics.pending || 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+      <div class="flex items-center">
+        <div class="p-2 bg-blue-100 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-medium text-gray-600 truncate">Reviewed</p>
+          <p class="text-xl font-bold text-gray-900">{{ statistics.reviewed || 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+      <div class="flex items-center">
+        <div class="p-2 bg-green-100 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-medium text-gray-600 truncate">Action Taken</p>
+          <p class="text-xl font-bold text-gray-900">{{ statistics.action_taken || 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+      <div class="flex items-center">
+        <div class="p-2 bg-purple-100 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-medium text-gray-600 truncate">Total Reports</p>
+          <p class="text-xl font-bold text-gray-900">{{ statistics.total || 0 }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <!-- Search -->
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Search Reports</label>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search by reporter, reported user, or reason..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+        <select
+          [(ngModel)]="statusFilter"
+          (ngModelChange)="onFilterChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="action_taken">Action Taken</option>
+        </select>
+      </div>
+
+      <!-- Report Type Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+        <select
+          [(ngModel)]="reportTypeFilter"
+          (ngModelChange)="onFilterChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">All Types</option>
+          <option value="user_behavior">User Behavior</option>
+          <option value="post_purchase_concern">Post Purchase Concern</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports Table -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+      <h2 class="text-base font-semibold text-gray-900">User Reports ({{ filteredReports.length }})</h2>
+      <div class="text-sm text-gray-500">{{ getStatusSummary() }}</div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="flex items-center justify-center p-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <span class="ml-3 text-gray-600">Loading reports...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && filteredReports.length === 0" class="text-center p-8">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No reports found</h3>
+      <p class="mt-1 text-sm text-gray-500">No user reports match your current filters.</p>
+    </div>
+
+    <!-- Reports Table -->
+    <div *ngIf="!isLoading && filteredReports.length > 0" class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reported User</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type & Reason</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr *ngFor="let report of paginatedReports" class="hover:bg-gray-50 transition-colors duration-200">
+            <!-- Reporter -->
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-8 w-8">
+                  <img 
+                    [src]="getProfileImageUrl(report.reporter_profile_image)" 
+                    [alt]="report.reporter_name || 'Reporter'"
+                    class="h-8 w-8 rounded-full object-cover border border-gray-200"
+                    (error)="onProfileImageError($event)"
+                  >
+                </div>
+                <div class="ml-3">
+                  <div class="text-sm font-medium text-gray-900 truncate max-w-24">{{ report.reporter_name || 'Unknown User' }}</div>
+                  <div class="text-xs text-gray-500">ID: {{ report.reporter_id }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Reported User -->
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-8 w-8">
+                  <img 
+                    [src]="getProfileImageUrl(report.reported_user_profile_image)" 
+                    [alt]="report.reported_user_name || 'Reported User'"
+                    class="h-8 w-8 rounded-full object-cover border border-red-200 ring-2 ring-red-100"
+                    (error)="onProfileImageError($event)"
+                  >
+                </div>
+                <div class="ml-3">
+                  <div class="text-sm font-medium text-gray-900 truncate max-w-24">{{ report.reported_user_name || 'Unknown User' }}</div>
+                  <div class="text-xs text-gray-500">ID: {{ report.reported_user_id }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Type & Reason -->
+            <td class="px-4 py-3">
+              <div class="text-sm text-gray-900">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-md" 
+                      [class]="getReportTypeClass(report.report_type)">
+                  {{ formatReportType(report.report_type) }}
+                </span>
+              </div>
+              <div class="text-xs text-gray-500 mt-1 truncate max-w-32">{{ formatReasonType(report.reason_type) }}</div>
+              <div *ngIf="report.reason_details" class="text-xs text-gray-400 mt-1 max-w-32 truncate" 
+                   [title]="report.reason_details">
+                {{ report.reason_details }}
+              </div>
+            </td>
+
+            <!-- Status -->
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-md" 
+                    [class]="getStatusClass(report.status)">
+                {{ formatStatus(report.status) }}
+              </span>
+            </td>
+
+            <!-- Date -->
+            <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+              {{ formatDate(report.created_at) }}
+            </td>
+
+            <!-- Actions -->
+            <td class="px-4 py-3 whitespace-nowrap text-xs font-medium space-x-1">
+              <button
+                (click)="viewReportDetails(report)"
+                class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors duration-200"
+              >
+                View
+              </button>
+              <button
+                *ngIf="report.status === 'pending'"
+                (click)="updateReportStatus(report.user_report_id, 'reviewed')"
+                class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors duration-200"
+                [disabled]="isUpdatingStatus"
+              >
+                Review
+              </button>
+              <button
+                *ngIf="report.status !== 'action_taken'"
+                (click)="updateReportStatus(report.user_report_id, 'action_taken')"
+                class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors duration-200"
+                [disabled]="isUpdatingStatus"
+              >
+                Take Action
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="!isLoading && filteredReports.length > itemsPerPage" class="px-4 py-3 border-t border-gray-200 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredReports.length) }} 
+          of {{ filteredReports.length }} reports
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            (click)="changePage(currentPage - 1)"
+            [disabled]="currentPage === 1"
+            class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md">{{ currentPage }}</span>
+          <button
+            (click)="changePage(currentPage + 1)"
+            [disabled]="currentPage >= Math.ceil(filteredReports.length / itemsPerPage)"
+            class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Details Modal -->
+<div *ngIf="selectedReport" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeReportDetails()"></div>
+    
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div class="bg-white px-4 pt-4 pb-4 overflow-y-auto max-h-[90vh]">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+          <h3 class="text-base font-semibold text-gray-900">Report Details #{{ selectedReport.user_report_id }}</h3>
+          <button (click)="closeReportDetails()" class="text-gray-400 hover:text-gray-600 p-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Basic Information -->
+          <div class="space-y-4">
+            <h4 class="font-medium text-gray-900">Report Information</h4>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Report Type</label>
+              <p class="text-sm text-gray-900">{{ formatReportType(selectedReport.report_type) }}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Reason</label>
+              <p class="text-sm text-gray-900">{{ formatReasonType(selectedReport.reason_type) }}</p>
+            </div>
+            
+            <div *ngIf="selectedReport.reason_details">
+              <label class="text-sm font-medium text-gray-700">Reason Details</label>
+              <p class="text-sm text-gray-900">{{ selectedReport.reason_details }}</p>
+            </div>
+            
+            <div *ngIf="selectedReport.explanation">
+              <label class="text-sm font-medium text-gray-700">Explanation</label>
+              <p class="text-sm text-gray-900">{{ selectedReport.explanation }}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Status</label>
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" 
+                    [class]="getStatusClass(selectedReport.status)">
+                {{ formatStatus(selectedReport.status) }}
+              </span>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Submitted Date</label>
+              <p class="text-sm text-gray-900">{{ formatDate(selectedReport.created_at) }}</p>
+            </div>
+          </div>
+
+          <!-- User Information -->
+          <div class="space-y-4">
+            <h4 class="font-medium text-gray-900">User Information</h4>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Reporter</label>
+              <div class="flex items-center mt-1">
+                <div class="h-10 w-10 rounded-full mr-3 overflow-hidden border-2 border-gray-200">
+                  <img 
+                    [src]="getProfileImageUrl(selectedReport.reporter_profile_image)" 
+                    [alt]="selectedReport.reporter_name || 'Reporter'"
+                    class="h-10 w-10 object-cover"
+                    (error)="onProfileImageError($event)"
+                  >
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{{ selectedReport.reporter_name || 'Unknown User' }}</p>
+                  <p class="text-xs text-gray-500">ID: {{ selectedReport.reporter_id }}</p>
+                  <p class="text-xs text-gray-400" *ngIf="selectedReport.reporter_email">{{ selectedReport.reporter_email }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-700">Reported User</label>
+              <div class="flex items-center mt-1">
+                <div class="h-10 w-10 rounded-full mr-3 overflow-hidden border-2 border-red-200 ring-2 ring-red-100">
+                  <img 
+                    [src]="getProfileImageUrl(selectedReport.reported_user_profile_image)" 
+                    [alt]="selectedReport.reported_user_name || 'Reported User'"
+                    class="h-10 w-10 object-cover"
+                    (error)="onProfileImageError($event)"
+                  >
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{{ selectedReport.reported_user_name || 'Unknown User' }}</p>
+                  <p class="text-xs text-gray-500">ID: {{ selectedReport.reported_user_id }}</p>
+                  <p class="text-xs text-gray-400" *ngIf="selectedReport.reported_user_email">{{ selectedReport.reported_user_email }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div *ngIf="selectedReport.conversation_id">
+              <label class="text-sm font-medium text-gray-700">Conversation ID</label>
+              <p class="text-sm text-gray-900">{{ selectedReport.conversation_id }}</p>
+            </div>
+            
+            <div *ngIf="selectedReport.product_id || selectedReport.product_name">
+              <label class="text-sm font-medium text-gray-700">Product Information</label>
+              <div class="mt-1 flex items-center space-x-3">
+                <!-- Product Image -->
+                <div class="flex-shrink-0">
+                  <img 
+                    [src]="getProductImageUrl(selectedReport.product_images)" 
+                    [alt]="selectedReport.product_name || 'Product image'"
+                    class="w-12 h-12 object-cover rounded border border-gray-300"
+                    (error)="onProfileImageError($event)">
+                </div>
+                <!-- Product Details -->
+                <div class="flex-1">
+                  <p class="text-sm text-gray-900" *ngIf="selectedReport.product_name">{{ selectedReport.product_name }}</p>
+                  <p class="text-xs text-gray-500">ID: {{ selectedReport.product_id || selectedReport.conversation_product_id }}</p>
+                  <p class="text-xs text-gray-500" *ngIf="selectedReport.product_price">Price: ${{ selectedReport.product_price }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message Reference -->
+        <div *ngIf="selectedReport.message_reference" class="mt-6">
+          <h4 class="font-medium text-gray-900 mb-3">Referenced Messages</h4>
+          <div class="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
+            <pre class="text-sm text-gray-700 whitespace-pre-wrap">{{ formatMessageReference(selectedReport.message_reference) }}</pre>
+          </div>
+        </div>
+
+        <!-- Proof Files -->
+        <div *ngIf="getProofFiles(selectedReport.proof_files).length > 0" class="mt-6">
+          <h4 class="font-medium text-gray-900 mb-3">Proof Files ({{ getProofFiles(selectedReport.proof_files).length }})</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div *ngFor="let file of getProofFiles(selectedReport.proof_files); let i = index" class="relative group">
+              <div class="relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-all duration-200 bg-gray-100">
+                <!-- Loading placeholder -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="animate-pulse bg-gray-300 w-8 h-8 rounded"></div>
+                </div>
+                
+                <img 
+                  [src]="file" 
+                  [alt]="'Proof file ' + (i + 1)" 
+                  class="w-full h-24 object-cover cursor-pointer group-hover:scale-105 transition-transform duration-200"
+                  (click)="openImagePreview(file)"
+                  (error)="onImageLoadError($event)"
+                  (load)="onImageLoad($event)"
+                  loading="lazy"
+                >
+                
+                <!-- Hover overlay with zoom icon -->
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition-all duration-200">
+                  <svg class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- Image index -->
+              <div class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-medium">
+                {{ i + 1 }}
+              </div>
+              
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-8 flex justify-end space-x-3">
+          <button
+            *ngIf="selectedReport.status === 'pending'"
+            (click)="updateReportStatus(selectedReport.user_report_id, 'reviewed')"
+            class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200"
+            [disabled]="isUpdatingStatus"
+          >
+            Mark as Reviewed
+          </button>
+          <button
+            *ngIf="selectedReport.status !== 'action_taken'"
+            (click)="updateReportStatus(selectedReport.user_report_id, 'action_taken')"
+            class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors duration-200"
+            [disabled]="isUpdatingStatus"
+          >
+            Take Action
+          </button>
+          <button
+            (click)="closeReportDetails()"
+            class="px-4 py-2 bg-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-400 transition-colors duration-200"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div *ngIf="previewImage" class="fixed inset-0 z-50 overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="fixed inset-0 bg-black bg-opacity-90" (click)="closeImagePreview()"></div>
+    
+    <!-- Close Button -->
+    <button 
+      (click)="closeImagePreview()" 
+      class="absolute top-4 right-4 z-60 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-all duration-200"
+      aria-label="Close image preview">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+
+    <!-- Image Container -->
+    <div class="relative max-w-[90vw] max-h-[90vh] bg-white rounded-lg p-2">
+      <!-- Loading indicator -->
+      <div class="absolute inset-0 flex items-center justify-center" *ngIf="!imageLoadError">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+      
+      <img 
+        [src]="previewImage" 
+        [alt]="'Proof file preview'"
+        class="max-w-full max-h-full object-contain rounded-lg"
+        (error)="onImageError($event)"
+        (load)="imageLoadError = false"
+        (click)="$event.stopPropagation()"
+      >
+      
+
+      
+      <!-- Image Loading Error -->
+      <div *ngIf="imageLoadError" class="flex items-center justify-center p-8 text-gray-500">
+        <div class="text-center">
+          <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <p class="text-sm font-medium">Failed to load image</p>
+          <p class="text-xs text-gray-400 mt-1">The image file may be corrupted or missing</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>

@@ -108,7 +108,8 @@ export class RatingModalComponent implements OnInit {
         return profileImage;
       }
       // If it's a relative path, prepend the API base URL
-      return this.apiService.baseUrl.replace('/api/', '/') + profileImage;
+      const cleanPath = profileImage.startsWith('/') ? profileImage : '/' + profileImage;
+      return this.apiService.baseUrl.replace('/api/', '/') + cleanPath;
     }
     
     // Generate avatar using UI Avatars

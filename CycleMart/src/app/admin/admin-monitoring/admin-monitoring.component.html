@@ -40,7 +40,7 @@
 
       <!-- Stats Row -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="bg-black text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
@@ -55,7 +55,7 @@
           </div>
         </div>
         
-        <div class="bg-gray-800 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
@@ -85,17 +85,17 @@
           </div>
         </div>
 
-        <div class="bg-gray-400 text-black rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
-                <mat-icon class="text-black mr-3 text-2xl">verified</mat-icon>
-                <p class="text-gray-800 font-semibold text-sm">Active Admins</p>
+                <mat-icon class="text-white mr-3 text-2xl">verified</mat-icon>
+                <p class="text-gray-200  font-semibold text-sm">Active Admins</p>
               </div>
               <p class="text-3xl font-bold">{{ getActiveAdminCount() }}</p>
             </div>
-            <div class="bg-black bg-opacity-20 rounded-full p-3">
-              <mat-icon class="text-black text-xl">check_circle</mat-icon>
+            <div class="bg-gray-200 bg-opacity-20 rounded-full p-3">
+              <mat-icon class="text-white text-xl">check_circle</mat-icon>
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@
             </th>
             <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
               <div class="flex items-center space-x-4">
-                <div class="bg-black rounded-full w-12 h-12 flex items-center justify-center shadow-lg">
+                <div class="bg-gray-400 rounded-full w-12 h-12 flex items-center justify-center shadow-lg">
                   <mat-icon class="text-white text-xl">
                     {{ getRoleIcon(admin.role) }}
                   </mat-icon>
@@ -239,7 +239,7 @@
 
           <!-- Actions Column -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2 border-gray-300 text-center">
+            <th mat-header-cell *matHeaderCellDef class="font-bold text-white bg-black px-6 py-6 border-b-2  text-center">
               <div class="flex items-center justify-center space-x-3">
                 <div class="bg-white p-2 rounded-full">
                   <mat-icon class="text-black text-lg">settings</mat-icon>
@@ -247,11 +247,11 @@
                 <span class="text-sm font-bold">Actions</span>
               </div>
             </th>
-            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b border-gray-300">
+            <td mat-cell *matCellDef="let admin" class="px-6 py-5 border-b bg-gray-600">
               <div class="flex items-center justify-center space-x-2">
                 <!-- Edit Button -->
                 <button mat-mini-fab 
-                        class="bg-white hover:bg-gray-500 text-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                        class="bg-gray-300 hover:bg-gray-500 text-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
                         matTooltip="Edit Administrator Account"
                         [disabled]="isProcessing"
                         (click)="editAdmin(admin)"
@@ -323,6 +323,17 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Paginator -->
+      <div *ngIf="!isLoading && dataSource.data.length > 0" 
+           class="border-t border-gray-300 bg-gray-50">
+        <mat-paginator 
+          [pageSizeOptions]="pageSizeOptions"
+          [pageSize]="pageSize"
+          showFirstLastButtons
+          class="bg-transparent">
+        </mat-paginator>
       </div>
     </div>
   </div>
