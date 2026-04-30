@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+﻿import { Component } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../api/auth.service';
 import { ApiService } from '../api/api.service';
 import { ThemeService } from '../services/theme.service';
@@ -23,12 +23,32 @@ export class LoginComponent {
   address: string = '';
   street: string = '';
   barangay: string = '';
-  city: string = '';
-  province: string = '';
+  city: string = 'Olongapo City'; // Auto-filled, read-only
   termsAccepted: boolean = false;
   isLoginMode: boolean = true;
   isLoading: boolean = false;
   showTermsModal: boolean = false;
+  
+  // Olongapo City barangays list
+  olongapoBarangays: string[] = [
+    'Asinan',
+    'Banicain',
+    'Barretto',
+    'East Bajac-Bajac',
+    'Gordon Heights',
+    'Kalaklan',
+    'Mabayuan',
+    'New Cabalan',
+    'Old Cabalan',
+    'Pag-asa',
+    'Santa Rita',
+    'West Bajac-Bajac',
+    'East Tapinac',
+    'West Tapinac',
+    'New Kalalake',
+    'Kababae',
+    'Ilalim'
+  ];
   
   // UI state properties
   showPassword: boolean = false;
@@ -53,15 +73,32 @@ export class LoginComponent {
     private authService: AuthService, 
     private apiService: ApiService, 
     private router: Router,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private route: ActivatedRoute
   ) {}
+
+  ngOnInit() {
+    this.route.queryParamMap.subscribe(params => {
+      const mode = params.get('mode');
+      if (mode === 'signup') {
+        this.isLoginMode = false;
+      } else if (mode === 'login') {
+        this.isLoginMode = true;
+      }
+    });
+  }
 
   onSubmit() {
     if (this.isLoading) return;
+
+    if (!this.validateEmail(this.email)) {
+      this.showErrorMessage('📧 Please enter a valid @gmail.com email address.');
+      return;
+    }
     
     // Validate password for registration mode
     if (!this.isLoginMode && !this.validatePassword(this.password)) {
-      this.showErrorMessage('⚠️ Please ensure your password meets all requirements:\n\n' + this.passwordErrors.join('\n'));
+      this.showErrorMessage('âš ï¸ Please ensure your password meets all requirements:\n\n' + this.passwordErrors.join('\n'));
       return;
     }
     
@@ -76,11 +113,10 @@ export class LoginComponent {
             if (response.data?.userID) {
               localStorage.setItem('id', response.data.userID);
             }
-            console.log('Login successful:', response);
             this.router.navigate(['/home']);
           } else if (response.status === 'error' && response.data?.requires_verification) {
             // User needs to verify email
-            this.showErrorMessage(
+              this.showErrorMessage(
               '⚠️ ' + response.message + '\n\nClick below to resend verification email.',
               '📧 Resend Verification',
               () => this.router.navigate(['/resend-verification'])
@@ -103,7 +139,6 @@ export class LoginComponent {
         },
         error: (error) => {
           this.isLoading = false;
-          console.error('Login error:', error);
           
           // Check if it's a verification error
           if (error.error?.data?.requires_verification) {
@@ -140,13 +175,11 @@ export class LoginComponent {
         phone: this.phone,
         street: this.street,
         barangay: this.barangay,
-        city: this.city,
-        province: this.province,
+        city: this.city, // Always 'Olongapo City'
         terms_accepted: this.termsAccepted ? 1 : 0
       }).subscribe({
         next: (response) => {
           this.isLoading = false;
-          console.log('Registration successful:', response);
           
           if (response.status === 'success') {
             if (response.data?.verification_email_sent) {
@@ -167,8 +200,7 @@ export class LoginComponent {
         },
         error: (error) => {
           this.isLoading = false;
-          console.error('Registration error:', error);
-          this.showErrorMessage('❌ Registration failed. Please try again.');
+          this.showErrorMessage('🔒 Registration failed. Please try again.');
         }
       });
     }
@@ -188,8 +220,7 @@ export class LoginComponent {
     this.address = '';
     this.street = '';
     this.barangay = '';
-    this.city = '';
-    this.province = '';
+    this.city = 'Olongapo City'; // Reset to default
     this.termsAccepted = false;
     this.passwordErrors = [];
     this.showPasswordRequirements = false;
@@ -223,19 +254,19 @@ export class LoginComponent {
     this.passwordErrors = [];
     
     if (password.length < 8) {
-      this.passwordErrors.push('• At least 8 characters long');
+      this.passwordErrors.push('â€¢ At least 8 characters long');
     }
     
     if (!/[A-Z]/.test(password)) {
-      this.passwordErrors.push('• Contains uppercase letters (A–Z)');
+      this.passwordErrors.push('â€¢ Contains uppercase letters (Aâ€“Z)');
     }
     
     if (!/[a-z]/.test(password)) {
-      this.passwordErrors.push('• Contains lowercase letters (a–z)');
+      this.passwordErrors.push('â€¢ Contains lowercase letters (aâ€“z)');
     }
     
     if (!/[0-9]/.test(password)) {
-      this.passwordErrors.push('• Contains numbers (0–9)');
+      this.passwordErrors.push('â€¢ Contains numbers (0â€“9)');
     }
     
     return this.passwordErrors.length === 0;
@@ -295,11 +326,16 @@ export class LoginComponent {
     this.router.navigate(['/admin-login']);
   }
 
+  // Navigation method to go back to landing page
+  goToLanding() {
+    this.router.navigate(['/']);
+  }
+
   // Email validation methods
   onEmailInput() {
     if (this.email && !this.validateEmail(this.email)) {
       this.showEmailError = true;
-      this.emailError = 'Please enter a valid email address';
+      this.emailError = 'Please enter a valid @gmail.com email address';
     } else {
       this.showEmailError = false;
       this.emailError = '';
@@ -307,7 +343,7 @@ export class LoginComponent {
   }
 
   validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@gmail\.com$/i;
     return emailRegex.test(email);
   }
 

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -47,15 +47,11 @@ export class AdminLoginComponent {
             localStorage.setItem('admin_id', response.user.id.toString());
             localStorage.setItem('full_name', response.user.full_name || '');
             localStorage.setItem('email', response.user.email || '');
-            
-            console.log('Admin login successful:', {
-              role: response.user.role,
-              username: response.user.username,
-              admin_id: response.user.id
-            });
 
-            // Navigate to admin dashboard
-            this.router.navigate(['/admin-dashboard']);
+            // Navigate to the originally requested admin route (if any)
+            const returnUrl = localStorage.getItem('adminReturnUrl') || '/admin-dashboard';
+            localStorage.removeItem('adminReturnUrl');
+            this.router.navigate([returnUrl]);
           } else {
             this.error = response.message || 'Invalid admin credentials';
           }
@@ -63,7 +59,6 @@ export class AdminLoginComponent {
         error: (error: any) => {
           this.isLoading = false;
           this.error = 'Login failed. Please try again.';
-          console.error('Admin login error:', error);
         }
       });
     } else {

@@ -1,11 +1,11 @@
-<div class="flex h-screen bg-white">
+<div class="messages-landing flex h-screen bg-[#f5f5f5]">
   <!-- Sidenav - Hidden on mobile when chat is open -->
   <div [ngClass]="isMobile && showChatWindow ? 'hidden' : 'block'">
     <app-sidenav></app-sidenav>
   </div>
 
   <!-- Main Page Content -->
-  <div class="flex-1 flex flex-col shadow-lg rounded-lg overflow-hidden bg-white m-2 md:m-4 h-full border border-black">
+  <div class="messages-shell relative flex-1 flex flex-col shadow-lg rounded-lg overflow-hidden bg-white m-2 md:m-4 h-full border border-black">
     
     <!-- Account Restriction Banner -->
     <div *ngIf="accountStatusService.isRestricted()" 
@@ -28,7 +28,7 @@
         isMobile ? (showChatList ? 'w-full' : 'hidden') : 'w-full md:w-1/3'
       ]">
       <!-- Sidebar Header -->
-      <div class="bg-black text-white p-3 md:p-4 flex items-center justify-between">
+      <div class="bg-black text-white p-3 md:p-4 flex items-center justify-between messages-sidebar-header">
         <div class="flex items-center space-x-2 md:space-x-3">
           <div class="w-8 h-8 md:w-10 md:h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
             <svg class="w-4 h-4 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -65,7 +65,7 @@
         <!-- Active Messages -->
         <div *ngIf="!showArchivedMessages">
           <div *ngFor="let chat of messages; let i = index" 
-               [ngClass]="selectedChat?.conversation_id === chat.conversation_id ? 'bg-black bg-opacity-10 border-r-4 border-black' : 'hover:bg-gray-50'"
+               [ngClass]="selectedChat?.conversation_id === chat.conversation_id ? 'selected-chat-item' : 'hover:bg-gray-50'"
                class="flex items-center p-3 md:p-4 cursor-pointer border-b border-gray-300 transition-all duration-200 group"
                (click)="selectChat(i)">
             
@@ -82,13 +82,13 @@
               </div>
               <!-- Product Info -->
               <div class="text-xs text-gray-700 mb-1 truncate">
-                {{ chat.product_name }} - ${{ chat.price }}
+                {{ chat.product_name }} - ₱{{ chat.price | number:'1.2-2' }}
               </div>
               <div class="flex items-center justify-between">
                 <p class="text-xs md:text-sm text-gray-700 truncate flex-1">{{ chat.last_message }}</p>
                 <!-- Unread Badge -->
                 <div *ngIf="chat.unread_count > 0" 
-                     class="ml-2 bg-black text-white text-xs rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">
+                     class="ml-2 bg-black text-white text-xs rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0 messages-unread-badge">
                   {{ chat.unread_count }}
                 </div>
               </div>
@@ -146,7 +146,7 @@
               </div>
               <!-- Product Info -->
               <div class="text-xs text-gray-600 mb-1 truncate">
-                {{ chat.product_name }} - ${{ chat.price }}
+                {{ chat.product_name }} - ₱{{ chat.price | number:'1.2-2' }}
               </div>
               <div class="flex items-center justify-between">
                 <p class="text-xs md:text-sm text-gray-600 truncate flex-1">{{ chat.last_message }}</p>
@@ -224,7 +224,7 @@
                     {{ selectedChat.product_name }}
                   </p>
                   <p class="text-xs text-black font-semibold">
-                    ${{ selectedChat.price | number:'1.2-2' }}
+                    ₱{{ selectedChat.price | number:'1.2-2' }}
                   </p>
                 </div>
               </div>
@@ -233,6 +233,42 @@
           
           <!-- Chat Actions -->
           <div class="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+            <!-- Buying Process Dropdown (Top Header, aligned with action buttons) -->
+            <div class="buying-process-widget relative">
+              <button
+                (click)="toggleBuyingProcessDropdown()"
+                class="buying-process-trigger w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-left border transition-all duration-200"
+                title="Buying Process">
+                <div class="buying-process-icon w-4 h-4 md:w-5 md:h-5 rounded-md flex items-center justify-center flex-shrink-0">
+                  <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m-6-8h6m2 11H7a2 2 0 01-2-2V7a2 2 0 012-2h3l2-2 2 2h3a2 2 0 012 2v10a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+              </button>
+
+              <div *ngIf="showBuyingProcessDropdown" class="buying-process-modal absolute right-0 top-full mt-2 rounded-2xl border p-3 md:p-4 shadow-2xl max-h-[62vh] overflow-y-auto">
+                <div *ngFor="let step of buyingProcessSteps" class="buying-process-step mb-2 last:mb-0 rounded-xl border overflow-hidden">
+                  <button
+                    (click)="toggleBuyingStep(step)"
+                    class="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-white/70 transition-colors">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="step-badge w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center flex-shrink-0">{{ step.id }}</span>
+                      <span class="text-sm font-medium truncate">{{ step.title }}</span>
+                    </div>
+                    <svg class="w-4 h-4 transition-transform duration-200 flex-shrink-0"
+                         [class.rotate-180]="step.expanded"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+
+                  <div *ngIf="step.expanded" class="px-3 pb-3 text-sm buying-process-description animate-fadeIn">
+                    {{ step.description }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Mark as Sold/Traded Dropdown (Only visible to seller/product owner) -->
             <div class="relative" *ngIf="isProductOwner()">
               <button 
@@ -249,6 +285,7 @@
                    class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border-2 border-black z-[9999]">
                 <div class="py-2">
                   <button 
+                    *ngIf="canShowSoldOption()"
                     (click)="markProductStatus('sold')"
                     class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 hover:text-black flex items-center space-x-2 transition-colors">
                     <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
@@ -257,6 +294,7 @@
                     <span>Mark as Sold</span>
                   </button>
                   <button 
+                    *ngIf="canShowTradedOption()"
                     (click)="markProductStatus('traded')"
                     class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 hover:text-black flex items-center space-x-2 transition-colors">
                     <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
@@ -264,25 +302,31 @@
                     </svg>
                     <span>Mark as Traded</span>
                   </button>
-                  <button 
-                    (click)="markProductStatus('reserved')"
-                    class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 hover:text-black flex items-center space-x-2 transition-colors">
-                    <svg class="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                    <span>Reserve Item</span>
-                  </button>
-                  <button 
-                    (click)="markProductStatus('available')"
-                    class="w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100 hover:text-black flex items-center space-x-2 transition-colors border-t border-gray-200">
-                    <svg class="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                    </svg>
-                    <span>Mark as Available</span>
-                  </button>
                 </div>
               </div>
             </div>
+
+            <!-- Reserve Product Button (Only visible to seller/product owner when product is available) -->
+            <button 
+              *ngIf="isProductOwner() && selectedChat && productSaleStatus[selectedChat.conversation_id] === 'available'"
+              (click)="openReservationModal()"
+              class="w-8 h-8 md:w-10 md:h-10 bg-orange-100 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+              title="Reserve Product">
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+              </svg>
+            </button>
+
+            <!-- Cancel Reservation Button (Only visible when product is reserved) -->
+            <button 
+              *ngIf="isProductOwner() && selectedChat && productSaleStatus[selectedChat.conversation_id] === 'reserved'"
+              (click)="openCancelReservationModal()"
+              class="w-8 h-8 md:w-10 md:h-10 bg-red-100 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
+              title="Cancel Reservation">
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/>
+              </svg>
+            </button>
             
             <!-- Report Button -->
             <button 
@@ -327,11 +371,11 @@
             
             <!-- System Message (Auto-generated Transaction Notification) -->
             <div *ngIf="msg.is_system_message" class="w-full max-w-2xl mx-auto animate-fadeIn">
-              <div class="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-yellow-500 rounded-lg p-4 shadow-md">
+              <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-[#2e7d32] rounded-xl p-4 shadow-md">
                 <div class="flex items-start space-x-3">
                   <!-- System Icon -->
                   <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <div class="w-10 h-10 bg-[#2e7d32] rounded-full flex items-center justify-center shadow-sm">
                       <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                       </svg>
@@ -341,10 +385,10 @@
                   <!-- System Message Content -->
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center space-x-2 mb-2">
-                      <span class="text-xs font-semibold text-yellow-700 uppercase tracking-wide">System Notification</span>
+                      <span class="text-xs font-semibold text-[#2e7d32] uppercase tracking-wide">System Notification</span>
                       <span class="text-xs text-gray-500">{{ formatMessageTime(msg.created_at) }}</span>
                     </div>
-                    <p class="text-sm text-gray-800 leading-relaxed font-medium whitespace-pre-wrap">{{ msg.message_text }}</p>
+                    <p class="text-sm text-[#1f2937] leading-relaxed font-medium whitespace-pre-wrap">{{ msg.message_text }}</p>
                   </div>
                 </div>
               </div>
@@ -360,19 +404,16 @@
                   <div *ngFor="let attachment of msg.attachments" class="mb-2">
                     <!-- Image Attachment -->
                     <div *ngIf="attachment.type === 'image'" class="rounded-lg overflow-hidden">
-                      <img [src]="attachment.url" 
+                      <img [src]="getAttachmentUrl(attachment)" 
                            [alt]="attachment.name || 'Image'"
-                           class="max-w-full h-auto max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        class="w-full h-auto max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                            (click)="openAttachmentModal(attachment)">
                     </div>
                     
                     <!-- Video Attachment -->
                     <div *ngIf="attachment.type === 'video'" class="rounded-lg overflow-hidden">
-                      <video controls class="max-w-full h-auto max-h-64">
-                        <source [src]="attachment.url" type="video/mp4">
-                        <source [src]="attachment.url" type="video/webm">
-                        <source [src]="attachment.url" type="video/ogg">
-                        Your browser does not support the video tag.
+                      <video controls playsinline preload="metadata" class="w-full h-auto max-h-64">
+                        <source [src]="getAttachmentUrl(attachment)">
                       </video>
                       <div class="text-xs text-gray-500 mt-1">{{attachment.name}}</div>
                     </div>
@@ -393,26 +434,23 @@
             
             <!-- My Message -->
             <div *ngIf="!msg.is_system_message && isMyMessage(msg.sender_id)" class="flex items-end space-x-2 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg animate-fadeIn">
-              <div class="bg-black text-white border-2 border-black rounded-2xl rounded-br-md px-3 py-2 md:px-4 md:py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02]">
+              <div class="bg-black text-white border-2 border-black rounded-2xl rounded-br-md px-3 py-2 md:px-4 md:py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02] my-message-bubble">
                 
                 <!-- Attachments -->
                 <div *ngIf="msg.attachments && msg.attachments.length > 0" class="mb-2">
                   <div *ngFor="let attachment of msg.attachments" class="mb-2">
                     <!-- Image Attachment -->
                     <div *ngIf="attachment.type === 'image'" class="rounded-lg overflow-hidden">
-                      <img [src]="attachment.url" 
+                      <img [src]="getAttachmentUrl(attachment)" 
                            [alt]="attachment.name || 'Image'"
-                           class="max-w-full h-auto max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        class="w-full h-auto max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                            (click)="openAttachmentModal(attachment)">
                     </div>
                     
                     <!-- Video Attachment -->
                     <div *ngIf="attachment.type === 'video'" class="rounded-lg overflow-hidden">
-                      <video controls class="max-w-full h-auto max-h-64">
-                        <source [src]="attachment.url" type="video/mp4">
-                        <source [src]="attachment.url" type="video/webm">
-                        <source [src]="attachment.url" type="video/ogg">
-                        Your browser does not support the video tag.
+                      <video controls playsinline preload="metadata" class="w-full h-auto max-h-64">
+                        <source [src]="getAttachmentUrl(attachment)">
                       </video>
                       <div class="text-xs text-white opacity-75 mt-1">{{attachment.name}}</div>
                     </div>
@@ -457,7 +495,7 @@
                class="absolute bottom-6 right-6 z-20">
             <button 
               (click)="scrollToBottomManually()"
-              class="w-12 h-12 bg-black text-white rounded-full shadow-xl hover:bg-gray-800 transition-all duration-200 flex items-center justify-center hover:scale-110 border-2 border-white"
+              class="w-12 h-12 bg-black text-white rounded-full shadow-xl hover:bg-gray-800 transition-all duration-200 flex items-center justify-center hover:scale-110 border-2 border-white messages-scroll-btn"
               title="Scroll to bottom">
               <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
@@ -468,6 +506,25 @@
 
         <!-- Message Input (Fixed Bottom) -->
         <div class="bg-white border-t border-black pt-3 pb-2 px-3 md:pt-4 md:pb-2 md:px-4 flex-shrink-0">
+          <!-- Guided Messages (shown before user starts typing) -->
+          <div *ngIf="shouldShowGuidedMessages()" class="guided-messages-panel mb-3 rounded-xl border p-3">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs md:text-sm font-semibold guided-messages-title">
+                {{ isCurrentUserSellerInChat() ? 'Seller → Buyer' : 'Buyer → Seller' }}
+              </p>
+              <span class="text-[11px] md:text-xs guided-messages-hint">Tap a guided message</span>
+            </div>
+
+            <div class="guided-messages-grid flex flex-wrap gap-2">
+              <button
+                *ngFor="let guidedMessage of getGuidedMessagesForCurrentRole()"
+                type="button"
+                (click)="selectGuidedMessage(guidedMessage)"
+                class="guided-message-chip text-xs md:text-sm rounded-full px-3 py-2 text-left transition-all">
+                {{ guidedMessage }}
+              </button>
+            </div>
+          </div>
           
           <!-- Attachment Previews -->
           <div *ngIf="attachmentPreviews.length > 0" class="mb-3">
@@ -502,18 +559,35 @@
           </div>
 
           <div class="flex items-center space-x-2 md:space-x-3">
-            <!-- Attachment Button -->
-            <div class="relative">
+            <!-- Attachment Buttons -->
+            <div class="relative flex items-center space-x-2">
               <input #fileInput 
                      type="file" 
                      multiple 
                      accept="image/*,video/*"
                      (change)="onAttachmentSelect($event)"
                      class="hidden">
+              <input #cameraInput
+                     type="file"
+                     multiple
+                     accept="image/*,video/*"
+                     capture="environment"
+                     (change)="onAttachmentSelect($event)"
+                     class="hidden">
+
               <button (click)="fileInput.click()"
+                      title="Upload photo or video"
                       class="w-8 h-8 md:w-10 md:h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0">
                 <svg class="w-4 h-4 md:w-5 md:h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+                </svg>
+              </button>
+
+              <button (click)="cameraInput.click()"
+                      title="Capture using camera"
+                      class="w-8 h-8 md:w-10 md:h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0">
+                <svg class="w-4 h-4 md:w-5 md:h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20 5h-3.17l-1.84-2H9.01L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 14H4V7h4.05l1.83-2h4.24l1.83 2H20v12zM12 9a4 4 0 100 8 4 4 0 000-8zm0 6a2 2 0 110-4 2 2 0 010 4z"/>
                 </svg>
               </button>
             </div>
@@ -545,7 +619,7 @@
             <button (click)="sendMessage()" 
                     [disabled]="!newMessage.trim() && attachmentPreviews.length === 0 || !accountStatusService.canPerformAction('send_message')"
                     [title]="!accountStatusService.canPerformAction('send_message') ? 'Messaging is disabled due to account restrictions' : ''"
-                    class="w-10 h-10 md:w-12 md:h-12 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex-shrink-0">
+                    class="w-10 h-10 md:w-12 md:h-12 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex-shrink-0 messages-send-btn">
               <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
               </svg>
@@ -601,17 +675,14 @@
       <div class="max-w-full max-h-full">
         <!-- Image -->
         <img *ngIf="selectedAttachment.type === 'image'" 
-             [src]="selectedAttachment.url" 
+             [src]="getAttachmentUrl(selectedAttachment)" 
              [alt]="selectedAttachment.name || 'Image'"
              class="max-w-full max-h-full object-contain">
         
         <!-- Video -->
         <video *ngIf="selectedAttachment.type === 'video'" 
-               controls autoplay class="max-w-full max-h-full">
-          <source [src]="selectedAttachment.url" type="video/mp4">
-          <source [src]="selectedAttachment.url" type="video/webm">
-          <source [src]="selectedAttachment.url" type="video/ogg">
-          Your browser does not support the video tag.
+               controls autoplay playsinline preload="metadata" class="max-w-full max-h-full">
+          <source [src]="getAttachmentUrl(selectedAttachment)">
         </video>
       </div>
 
@@ -650,7 +721,7 @@
             </div>
             <div class="min-w-0 flex-1">
               <p class="font-semibold text-black truncate">{{ selectedChat.product_name }}</p>
-              <p class="text-sm text-gray-600">${{ selectedChat.price | number:'1.2-2' }}</p>
+              <p class="text-sm text-gray-600">₱{{ selectedChat.price | number:'1.2-2' }}</p>
               <p class="text-xs text-gray-500">with {{ selectedChat.other_user_name }}</p>
             </div>
           </div>
@@ -690,61 +761,61 @@
 
   <!-- User Report Modal -->
   <div *ngIf="showUserReportModal" 
-       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+       class="report-user-backdrop fixed inset-0 flex items-center justify-center z-50 p-4"
        (click)="closeUserReportModal()">
-    <div class="bg-white rounded-lg max-w-2xl w-full h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+    <div class="report-user-sheet max-w-2xl w-full h-[90vh] flex flex-col overflow-hidden"
          (click)="$event.stopPropagation()">
       
       <!-- Modal Header - Fixed -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-red-50 flex-shrink-0">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+      <div class="report-user-header flex items-center justify-between p-6 flex-shrink-0">
+        <div class="report-user-title-wrap flex items-center gap-3">
+          <div class="report-user-header-icon w-10 h-10 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"/>
             </svg>
           </div>
           <div>
-            <h3 class="text-lg font-bold text-black">Report User</h3>
-            <p class="text-sm text-gray-600" *ngIf="selectedChat">
+            <h3 class="report-user-title text-lg font-bold">Report User</h3>
+            <p class="report-user-subtitle text-sm" *ngIf="selectedChat">
               Reporting: {{ getReportedUserInfo()?.full_name }}
             </p>
           </div>
         </div>
         <button (click)="closeUserReportModal()"
-                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="report-user-close w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
 
       <!-- Modal Content - Scrollable -->
-      <div class="flex-1 overflow-y-auto p-6">
+      <div class="report-user-content flex-1 overflow-y-auto p-6">
         <form class="space-y-6">
           
           <!-- Report Type Selection -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="report-user-label block text-sm font-medium mb-2">
               What type of issue are you reporting?
             </label>
             <select [(ngModel)]="userReportForm.report_type" 
                     name="report_type"
                     (change)="onReportTypeChange()"
-                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    class="report-user-select w-full p-3 rounded-lg"
                     required>
               <option value="user_behavior">User Behavior</option>
-              <option value="post_purchase_concern">Post-Purchase Concern</option>
+              <option *ngIf="isPostPurchaseAllowed(selectedChat?.conversation_id)" value="post_purchase_concern">Post-Purchase Concern</option>
             </select>
           </div>
 
           <!-- Reason Type Selection -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="report-user-label block text-sm font-medium mb-2">
               Please select the specific reason
             </label>
             <select [(ngModel)]="userReportForm.user_reason_type" 
                     name="user_reason_type"
-                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    class="report-user-select w-full p-3 rounded-lg"
                     required>
               <option value="">Select a reason</option>
               <option *ngFor="let reason of getCurrentReasonOptions()" [value]="reason">
@@ -755,30 +826,30 @@
 
           <!-- Detailed Explanation -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="report-user-label block text-sm font-medium mb-2">
               Detailed Explanation
             </label>
             <textarea [(ngModel)]="userReportForm.explanation" 
                       name="explanation"
                       placeholder="Please provide a detailed explanation of your concern..."
                       rows="4"
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                      class="report-user-textarea w-full p-3 rounded-lg resize-none"
                       required>
             </textarea>
-            <p class="text-xs text-gray-500 mt-1">Minimum 10 characters required</p>
+            <p class="report-user-helper text-xs mt-1">Minimum 10 characters required</p>
           </div>
 
           <!-- Proof Upload Section -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="report-user-label block text-sm font-medium mb-2">
               Proof Files (Optional)
             </label>
-            <p class="text-sm text-gray-600 mb-3">
+            <p class="report-user-helper text-sm mb-3">
               Upload images or videos to support your report (Max 5 files, 10MB each)
             </p>
             
             <!-- File Upload Area -->
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+            <div class="report-upload-zone border-2 border-dashed rounded-lg p-4 text-center transition-colors">
               <input type="file" 
                      multiple 
                      accept="image/*,video/*"
@@ -787,12 +858,12 @@
                      #proofFileInput>
               <button type="button" 
                       (click)="proofFileInput.click()"
-                      class="text-sm text-gray-600 hover:text-gray-800 w-full">
-                <svg class="w-6 h-6 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      class="report-upload-trigger text-sm w-full">
+                <svg class="w-6 h-6 mx-auto mb-2 report-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
                 <div class="text-sm">Click to upload files</div>
-                <div class="text-xs text-gray-500 mt-1">
+                <div class="text-xs report-user-helper mt-1">
                   JPG, PNG, GIF, MP4 (Max 10MB each)
                 </div>
               </button>
@@ -801,7 +872,7 @@
             <!-- Selected Files Preview -->
             <div *ngIf="proofPreviews.length > 0" class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               <div *ngFor="let preview of proofPreviews; let i = index" class="relative">
-                <div class="w-full h-20 bg-gray-100 rounded-lg overflow-hidden border">
+                <div class="report-proof-tile w-full h-20 rounded-lg overflow-hidden border">
                   <img *ngIf="preview.type === 'image'" [src]="preview.url" class="w-full h-full object-cover">
                   <video *ngIf="preview.type === 'video'" [src]="preview.url" class="w-full h-full object-cover"></video>
                 </div>
@@ -820,17 +891,17 @@
       </div>
 
       <!-- Modal Footer - Fixed at Bottom -->
-      <div class="flex-shrink-0 p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+      <div class="report-user-footer flex-shrink-0 p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row justify-end gap-3">
           <button type="button" 
                   (click)="closeUserReportModal()"
-                  class="w-full sm:w-auto px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center"
+                  class="report-user-cancel w-full sm:w-auto px-4 py-2 rounded-lg transition-colors text-center"
                   [disabled]="isSubmittingReport">
             Cancel
           </button>
           <button type="button"
                   (click)="submitUserReport()"
-                  class="w-full sm:w-auto px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="report-user-submit w-full sm:w-auto px-6 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   [disabled]="isSubmittingReport">
             <svg *ngIf="isSubmittingReport" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -842,6 +913,210 @@
       </div>
     </div>
   </div>
+
+  <!-- Reservation Duration Modal -->
+  <div *ngIf="showReservationModal" 
+       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+       (click)="closeReservationModal()">
+    <div class="bg-white rounded-2xl shadow-xl border-2 border-black max-w-md w-full mx-4 transform transition-all duration-300 scale-100"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-orange-50">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-bold text-black flex items-center space-x-2">
+            <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+            </svg>
+            <span>Reserve Product</span>
+          </h3>
+          <button (click)="closeReservationModal()"
+                  class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="px-6 py-5">
+        <div *ngIf="selectedChat" class="mb-5">
+          <!-- Product Info -->
+          <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="w-14 h-14 rounded-lg overflow-hidden border border-gray-300 flex-shrink-0 bg-gray-100">
+              <img [src]="getProductImageUrl(selectedChat.product_images)" 
+                   [alt]="selectedChat.product_name"
+                   class="w-full h-full object-cover"
+                   (error)="$any($event.target).src = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'">
+            </div>
+            <div class="min-w-0 flex-1">
+              <h4 class="font-semibold text-black truncate">{{ selectedChat.product_name }}</h4>
+              <p class="text-sm text-gray-600">₱{{ selectedChat.price | number:'1.2-2' }}</p>
+              <p class="text-xs text-gray-500">Reserving for {{ selectedChat.other_user_name }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Duration Selection -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-3">
+            Select Reservation Duration:
+          </label>
+          <div class="space-y-2">
+            <div *ngFor="let duration of reservationDurations" 
+                 (click)="selectedReservationDuration = duration"
+                 [class.border-orange-500]="selectedReservationDuration === duration"
+                 [class.bg-orange-50]="selectedReservationDuration === duration"
+                 [class.border-gray-300]="selectedReservationDuration !== duration"
+                 class="p-4 rounded-lg border-2 cursor-pointer hover:bg-orange-50 transition-all duration-200 flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <!-- Radio Button -->
+                <div class="relative">
+                  <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                       [class.border-orange-500]="selectedReservationDuration === duration"
+                       [class.border-gray-400]="selectedReservationDuration !== duration">
+                    <div *ngIf="selectedReservationDuration === duration" 
+                         class="w-3 h-3 rounded-full bg-orange-500"></div>
+                  </div>
+                </div>
+                <!-- Duration Label -->
+                <div>
+                  <p class="font-semibold text-black">{{ duration }} Hours</p>
+                  <p class="text-xs text-gray-600">
+                    {{ duration === 24 ? '1 Day' : duration === 48 ? '2 Days' : '3 Days' }}
+                  </p>
+                </div>
+              </div>
+              <!-- Icon -->
+              <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Information Notice -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+          <div class="flex items-start space-x-2">
+            <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <div class="text-sm text-blue-700">
+              <p class="font-semibold mb-1">Reservation Details:</p>
+              <ul class="list-disc list-inside space-y-1 text-xs">
+                <li>Product will be held for the buyer during this period</li>
+                <li>Automatic release after time expires</li>
+                <li>Both parties will be notified of status changes</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+        <button (click)="closeReservationModal()"
+                class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200">
+          Cancel
+        </button>
+        <button (click)="confirmReservation()"
+                class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-all duration-200 hover:scale-105 shadow-lg flex items-center space-x-2">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+          </svg>
+          <span>Reserve for {{ selectedReservationDuration }}h</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel Reservation Confirmation Modal -->
+  <div *ngIf="showCancelReservationModal" 
+       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+       (click)="closeCancelReservationModal()">
+    <div class="bg-white rounded-2xl shadow-xl border-2 border-black max-w-md w-full mx-4 transform transition-all duration-300 scale-100"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-bold text-black flex items-center space-x-2">
+            <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <span>Cancel Reservation</span>
+          </h3>
+          <button (click)="closeCancelReservationModal()"
+                  class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="px-6 py-5">
+        <div *ngIf="selectedChat" class="mb-5">
+          <!-- Product Info -->
+          <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="w-14 h-14 rounded-lg overflow-hidden border border-gray-300 flex-shrink-0 bg-gray-100">
+              <img [src]="getProductImageUrl(selectedChat.product_images)" 
+                   [alt]="selectedChat.product_name"
+                   class="w-full h-full object-cover"
+                   (error)="$any($event.target).src = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'">
+            </div>
+            <div class="min-w-0 flex-1">
+              <h4 class="font-semibold text-black truncate">{{ selectedChat.product_name }}</h4>
+              <p class="text-sm text-gray-600">₱{{ selectedChat.price | number:'1.2-2' }}</p>
+              <p class="text-xs text-gray-500">Reserved for {{ selectedChat.other_user_name }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Confirmation Message -->
+        <div class="mb-4">
+          <p class="text-gray-700 text-center mb-4">
+            Are you sure you want to <strong class="text-red-600">cancel this reservation?</strong>
+          </p>
+        </div>
+        
+        <!-- Warning Notice -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <div class="flex items-start space-x-2">
+            <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <div class="text-sm text-yellow-800">
+              <p class="font-semibold mb-1">This action will:</p>
+              <ul class="list-disc list-inside space-y-1 text-xs">
+                <li>Release the product back to available status</li>
+                <li>Notify the buyer about cancellation</li>
+                <li>Allow other buyers to purchase this item</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+        <button (click)="closeCancelReservationModal()"
+                class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200">
+          Keep Reservation
+        </button>
+        <button (click)="confirmCancelReservation()"
+                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-all duration-200 hover:scale-105 shadow-lg flex items-center space-x-2">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/>
+          </svg>
+          <span>Cancel Reservation</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   </div>
 
 </div>

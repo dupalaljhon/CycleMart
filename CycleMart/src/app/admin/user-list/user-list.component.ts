@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,6 +11,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
@@ -19,6 +20,7 @@ import { ProfileImageService } from '../../services/profile-image.service';
 import { UserDetailModalComponent } from './user-detail-modal/user-detail-modal.component';
 import { DeleteUserModalComponent } from './delete-user-modal/delete-user-modal.component';
 import { MarkViolationModalComponent } from './mark-violation-modal/mark-violation-modal.component';
+import { UnrestrictUserModalComponent } from './unrestrict-user-modal/unrestrict-user-modal.component';
 
 interface User {
   id: number;
@@ -50,6 +52,7 @@ interface User {
     MatTooltipModule,
     MatSnackBarModule,
     MatDialogModule,
+    MatSelectModule,
     FormsModule
   ],
   templateUrl: './user-list.component.html',
@@ -67,6 +70,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<User>([]);
   isLoading = true;
   searchTerm = '';
+  sortQuery = 'violation_high';
   
   displayedColumns: string[] = [
     'profile_image',
@@ -74,6 +78,8 @@ export class UserListComponent implements OnInit, AfterViewInit {
     'email', 
     'phone', 
     'is_verified',
+    'account_status',
+    'violation_count',
     'created_at', 
     'actions'
   ];
@@ -120,8 +126,12 @@ export class UserListComponent implements OnInit, AfterViewInit {
       next: (response) => {
         this.isLoading = false;
         if (response.status === 'success') {
-          this.users = response.data;
-          this.dataSource.data = this.users;
+          this.users = (response.data || []).map((user: any) => ({
+            ...user,
+            account_status: (user.account_status || 'active').toString().trim(),
+            violation_count: Number(user.violation_count ?? 0)
+          }));
+          this.applySortQuery();
           
           // Reconnect paginator after data loads and view updates
           setTimeout(() => this.connectPaginatorAndSort(), 0);
@@ -129,7 +139,6 @@ export class UserListComponent implements OnInit, AfterViewInit {
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('Error loading users:', error);
       }
     });
   }
@@ -140,6 +149,35 @@ export class UserListComponent implements OnInit, AfterViewInit {
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
+  }
+
+  onSortQueryChange() {
+    this.applySortQuery();
+    this.onSearch();
+  }
+
+  private applySortQuery() {
+    const sortedUsers = [...this.users];
+
+    switch (this.sortQuery) {
+      case 'name_az':
+        sortedUsers.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        break;
+      case 'name_za':
+        sortedUsers.sort((a, b) => (b.full_name || '').localeCompare(a.full_name || ''));
+        break;
+      case 'violation_high':
+        sortedUsers.sort((a, b) => (b.violation_count || 0) - (a.violation_count || 0));
+        break;
+      case 'violation_low':
+        sortedUsers.sort((a, b) => (a.violation_count || 0) - (b.violation_count || 0));
+        break;
+      default:
+        sortedUsers.sort((a, b) => (b.violation_count || 0) - (a.violation_count || 0));
+        break;
+    }
+
+    this.dataSource.data = sortedUsers;
   }
 
   getProfileImageUrl(imagePath?: string): string {
@@ -171,7 +209,6 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   editUser(user: User) {
-    console.log('Edit user:', user);
     this.showMessage(`Edit functionality for "${user.full_name}" coming soon!`);
     // Add edit functionality here
   }
@@ -190,13 +227,59 @@ export class UserListComponent implements OnInit, AfterViewInit {
       if (result && result.success) {
         const data = result.data;
         this.showMessage(
-          `✅ Violation marked! User "${data.user_name}" now has ${data.violation_count} violation(s). Status: ${data.account_status.toUpperCase()}.`,
+          `âœ… Violation marked! User "${data.user_name}" now has ${data.violation_count} violation(s). Status: ${data.account_status.toUpperCase()}.`,
           6000
         );
         // Refresh user list to show updated violation count and status
         this.loadUsers();
       }
     });
+  }
+
+  unrestrictUser(user: User) {
+    if (!this.canUnrestrictUser(user)) {
+      this.showError('Only restricted or suspended users can be unrestricted.');
+      return;
+    }
+
+    const dialogRef = this.dialog.open(UnrestrictUserModalComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: { userName: user.full_name }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (!result?.reason) {
+        return;
+      }
+
+      this.apiService.markUserViolation({
+        user_id: user.id,
+        action: 'unrestrict',
+        reason: result.reason
+      }).subscribe({
+        next: (response) => {
+          if (response.status === 'success') {
+            this.showMessage(`âœ… User "${user.full_name}" unrestricted. Notification sent to the user.`);
+            this.loadUsers();
+          } else {
+            this.showError(response.message || 'Failed to unrestrict user.');
+          }
+        },
+        error: (error) => {
+          this.showError(error.error?.message || 'Error unrestricting user.');
+        }
+      });
+    });
+  }
+
+  canUnrestrictUser(user: User): boolean {
+    const status = this.normalizeAccountStatus(user.account_status);
+    return status.includes('restrict') || status.includes('suspend');
+  }
+
+  private normalizeAccountStatus(status?: string): string {
+    return (status || '').toLowerCase().trim().replace(/\s+/g, '_');
   }
 
   deleteUser(user: User) {
@@ -242,7 +325,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
       this.apiService.deleteUser(deleteData).subscribe({
         next: (response) => {
           if (response.status === 'success') {
-            this.showMessage(`✅ User "${user.full_name}" deleted successfully`);
+            this.showMessage(`âœ… User "${user.full_name}" deleted successfully`);
             resolve();
           } else {
             this.showError(`Failed to delete user: ${response.message}`);
@@ -250,8 +333,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
           }
         },
         error: (error) => {
-          console.error('Error deleting user:', error);
-          this.showError('❌ Error deleting user. Please try again.');
+          this.showError('âŒ Error deleting user. Please try again.');
           reject(error);
         }
       });

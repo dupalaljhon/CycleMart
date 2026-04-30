@@ -1,4 +1,44 @@
 /* User Report Monitoring Styles */
+.user-reports-shell {
+  background: #f3f7f4;
+}
+
+.user-reports-main {
+  background: #f3f7f4;
+  animation: fadeIn 0.35s ease-out;
+}
+
+.refresh-btn {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #c5c9d1;
+}
+
+.refresh-btn:disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .nav-button {
   transition: all 0.2s ease-in-out;
 }
@@ -123,4 +163,33 @@ tbody tr:hover {
 /* Statistics card hover effect */
 .stats-card:hover {
   transform: translateY(-2px);
+}
+
+.action-icon-btn {
+  width: 1.85rem;
+  height: 1.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.42rem;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.action-icon-btn:hover {
+  transform: translateY(-1px);
+}
+
+.action-icon-sanction {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.action-icon-sanction:hover {
+  background: #fed7aa;
+}
+
+.action-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
 }

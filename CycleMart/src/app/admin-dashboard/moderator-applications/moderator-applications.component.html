@@ -1,0 +1,420 @@
+<div class="moderator-admin-page flex h-screen bg-gray-100">
+  <!-- Sidenav -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+<div class="flex-1 overflow-y-auto">
+<div class="max-w-7xl mx-auto p-4 md:p-6">
+
+  <!-- Header -->
+  <div class="mb-6 header-block">
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Moderator Applications</h1>
+    <p class="text-gray-600 text-sm md:text-base">Review and manage applications from users who want to become moderators</p>
+  </div>
+
+  <!-- Search and Utility Row -->
+  <div class="search-card mb-6">
+    <p class="search-label">Search applications</p>
+    <mat-form-field appearance="outline" class="w-full search-input-wrap">
+      <input
+        matInput
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="applyClientFilter()"
+        aria-label="Search applications"
+        placeholder="Search by applicant name, email, reason, or status">
+      <mat-icon matSuffix class="text-gray-400">search</mat-icon>
+    </mat-form-field>
+    <div class="search-meta flex items-center justify-between gap-3">
+      <p class="text-sm text-gray-500">Showing {{ filteredApplications.length }} of {{ applications.length }} application(s)</p>
+      <button
+        *ngIf="searchQuery"
+        mat-stroked-button
+        type="button"
+        (click)="clearSearch()">
+        Clear Search
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <mat-card class="stat-card stat-pending bg-yellow-50 border-l-4 border-yellow-500">
+      <mat-card-content class="p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-yellow-700 font-medium">Pending</p>
+            <p class="text-2xl font-bold text-yellow-900">{{ getPendingCount() }}</p>
+          </div>
+          <mat-icon class="text-yellow-500" style="font-size: 48px; height: 48px; width: 48px;">schedule</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-approved bg-green-50 border-l-4 border-green-500">
+      <mat-card-content class="p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-green-700 font-medium">Approved</p>
+            <p class="text-2xl font-bold text-green-900">{{ getApprovedCount() }}</p>
+          </div>
+          <mat-icon class="text-green-500" style="font-size: 48px; height: 48px; width: 48px;">check_circle</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-rejected bg-red-50 border-l-4 border-red-500">
+      <mat-card-content class="p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-red-700 font-medium">Rejected</p>
+            <p class="text-2xl font-bold text-red-900">{{ getRejectedCount() }}</p>
+          </div>
+          <mat-icon class="text-red-500" style="font-size: 48px; height: 48px; width: 48px;">cancel</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Tabs for Filtering -->
+  <mat-card class="table-shell">
+    <mat-card-content class="p-0">
+      <mat-tab-group (selectedTabChange)="onTabChange($event)" class="custom-tabs">
+        <mat-tab label="Pending ({{ getPendingCount() }})">
+          <div class="p-6">
+            <!-- Loading Spinner -->
+            <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+              <mat-spinner diameter="50"></mat-spinner>
+            </div>
+
+            <!-- Applications Table -->
+            <div *ngIf="!isLoading && filteredApplications.length > 0" class="overflow-x-auto table-wrap">
+              <table mat-table [dataSource]="filteredApplications" class="w-full modern-table">
+                
+                <!-- Applicant Column -->
+                <ng-container matColumnDef="applicant">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Applicant</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <div class="flex items-center gap-3">
+                      <img 
+                        [src]="getProfileImageUrl(app.profile_image || app.profile_picture, app.full_name)" 
+                        alt="Profile"
+                        class="w-10 h-10 rounded-full object-cover">
+                      <div>
+                        <p class="font-medium">{{ app.full_name }}</p>
+                        <p class="text-sm text-gray-500">{{ app.email }}</p>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Reason Column -->
+                <ng-container matColumnDef="reason">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Reason</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm text-gray-700" [matTooltip]="app.reason">
+                      {{ truncateText(app.reason, 80) }}
+                    </p>
+                    <button 
+                      mat-button 
+                      color="primary" 
+                      class="text-xs mt-1" 
+                      (click)="viewDetails(app)">
+                      View Full Details
+                    </button>
+                  </td>
+                </ng-container>
+
+                <!-- Status Column -->
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Status</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <mat-chip [color]="getStatusColor(app.status)" class="status-chip">
+                      <mat-icon class="mr-1">{{ getStatusIcon(app.status) }}</mat-icon>
+                      {{ app.status | uppercase }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Date Column -->
+                <ng-container matColumnDef="date">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Submitted</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm">{{ app.created_at | date: 'short' }}</p>
+                  </td>
+                </ng-container>
+
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Actions</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <div class="flex gap-2 action-buttons" *ngIf="app.status === 'pending'">
+                      <button 
+                        mat-mini-fab 
+                        color="accent" 
+                        (click)="approveApplication(app)"
+                        matTooltip="Approve Application"
+                        [disabled]="isLoading">
+                        <mat-icon>check</mat-icon>
+                      </button>
+                      <button 
+                        mat-mini-fab 
+                        color="warn" 
+                        (click)="rejectApplication(app)"
+                        matTooltip="Reject Application"
+                        [disabled]="isLoading">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                    <span *ngIf="app.status !== 'pending'" class="text-sm text-gray-500">
+                      Reviewed
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover:bg-gray-50"></tr>
+              </table>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!isLoading && filteredApplications.length === 0" class="text-center py-12">
+              <mat-icon class="text-gray-300 mb-4" style="font-size: 64px; height: 64px; width: 64px;">inbox</mat-icon>
+              <p class="text-gray-500 text-lg">No pending applications</p>
+            </div>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Approved ({{ getApprovedCount() }})">
+          <div class="p-6">
+            <!-- Loading Spinner -->
+            <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+              <mat-spinner diameter="50"></mat-spinner>
+            </div>
+
+            <!-- Applications Table (same structure as above) -->
+            <div *ngIf="!isLoading && filteredApplications.length > 0" class="overflow-x-auto table-wrap">
+              <table mat-table [dataSource]="filteredApplications" class="w-full modern-table">
+                <ng-container matColumnDef="applicant">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Applicant</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <div class="flex items-center gap-3">
+                      <img 
+                        [src]="getProfileImageUrl(app.profile_image || app.profile_picture, app.full_name)" 
+                        alt="Profile"
+                        class="w-10 h-10 rounded-full object-cover">
+                      <div>
+                        <p class="font-medium">{{ app.full_name }}</p>
+                        <p class="text-sm text-gray-500">{{ app.email }}</p>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="reason">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Reason</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm text-gray-700">{{ truncateText(app.reason, 80) }}</p>
+                    <button mat-button color="primary" class="text-xs mt-1" (click)="viewDetails(app)">View Details</button>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Status</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <mat-chip color="accent" class="status-chip">
+                      <mat-icon class="mr-1">{{ getStatusIcon(app.status) }}</mat-icon>
+                      {{ app.status | uppercase }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="date">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Approved</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm">{{ app.reviewed_at | date: 'short' }}</p>
+                    <p class="text-xs text-gray-500" *ngIf="app.reviewer_username">By: {{ app.reviewer_username }}</p>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Actions</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <span class="text-sm text-green-600 font-medium">✓ Moderator</span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover:bg-gray-50"></tr>
+              </table>
+            </div>
+
+            <div *ngIf="!isLoading && filteredApplications.length === 0" class="text-center py-12">
+              <mat-icon class="text-gray-300 mb-4" style="font-size: 64px; height: 64px; width: 64px;">inbox</mat-icon>
+              <p class="text-gray-500 text-lg">No approved applications</p>
+            </div>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Rejected ({{ getRejectedCount() }})">
+          <div class="p-6">
+            <!-- Same structure as other tabs -->
+            <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+              <mat-spinner diameter="50"></mat-spinner>
+            </div>
+
+            <div *ngIf="!isLoading && filteredApplications.length > 0" class="overflow-x-auto table-wrap">
+              <table mat-table [dataSource]="filteredApplications" class="w-full modern-table">
+                <ng-container matColumnDef="applicant">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Applicant</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <div class="flex items-center gap-3">
+                      <img 
+                        [src]="app.profile_picture || 'assets/default-avatar.png'" 
+                        alt="Profile"
+                        class="w-10 h-10 rounded-full object-cover">
+                      <div>
+                        <p class="font-medium">{{ app.full_name }}</p>
+                        <p class="text-sm text-gray-500">{{ app.email }}</p>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="reason">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Reason</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm text-gray-700">{{ truncateText(app.reason, 80) }}</p>
+                    <button mat-button color="primary" class="text-xs mt-1" (click)="viewDetails(app)">View Details</button>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Status</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <mat-chip class="status-chip">
+                      <mat-icon class="mr-1">{{ getStatusIcon(app.status) }}</mat-icon>
+                      {{ app.status | uppercase }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="date">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Rejected</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm">{{ app.reviewed_at | date: 'short' }}</p>
+                    <p class="text-xs text-gray-500" *ngIf="app.reviewer_username">By: {{ app.reviewer_username }}</p>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Actions</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <span class="text-sm text-red-600">Not Approved</span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover:bg-gray-50"></tr>
+              </table>
+            </div>
+
+            <div *ngIf="!isLoading && filteredApplications.length === 0" class="text-center py-12">
+              <mat-icon class="text-gray-300 mb-4" style="font-size: 64px; height: 64px; width: 64px;">inbox</mat-icon>
+              <p class="text-gray-500 text-lg">No rejected applications</p>
+            </div>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="All Applications">
+          <div class="p-6">
+            <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+              <mat-spinner diameter="50"></mat-spinner>
+            </div>
+
+            <div *ngIf="!isLoading && filteredApplications.length > 0" class="overflow-x-auto table-wrap">
+              <table mat-table [dataSource]="filteredApplications" class="w-full modern-table">
+                <ng-container matColumnDef="applicant">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Applicant</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <div class="flex items-center gap-3">
+                      <img 
+                        [src]="app.profile_picture || 'assets/default-avatar.png'" 
+                        alt="Profile"
+                        class="w-10 h-10 rounded-full object-cover">
+                      <div>
+                        <p class="font-medium">{{ app.full_name }}</p>
+                        <p class="text-sm text-gray-500">{{ app.email }}</p>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="reason">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Reason</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm text-gray-700">{{ truncateText(app.reason, 80) }}</p>
+                    <button mat-button color="primary" class="text-xs mt-1" (click)="viewDetails(app)">View Details</button>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Status</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <mat-chip [color]="getStatusColor(app.status)" class="status-chip">
+                      <mat-icon class="mr-1">{{ getStatusIcon(app.status) }}</mat-icon>
+                      {{ app.status | uppercase }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="date">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Date</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <p class="text-sm">{{ app.created_at | date: 'short' }}</p>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef class="font-semibold">Actions</th>
+                  <td mat-cell *matCellDef="let app" class="py-4">
+                    <div class="flex gap-2 action-buttons" *ngIf="app.status === 'pending'">
+                      <button 
+                        mat-mini-fab 
+                        color="accent" 
+                        (click)="approveApplication(app)"
+                        matTooltip="Approve"
+                        [disabled]="isLoading">
+                        <mat-icon>check</mat-icon>
+                      </button>
+                      <button 
+                        mat-mini-fab 
+                        color="warn" 
+                        (click)="rejectApplication(app)"
+                        matTooltip="Reject"
+                        [disabled]="isLoading">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                    <span *ngIf="app.status !== 'pending'" class="text-sm text-gray-500">
+                      Reviewed
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover:bg-gray-50"></tr>
+              </table>
+            </div>
+
+            <div *ngIf="!isLoading && filteredApplications.length === 0" class="text-center py-12">
+              <mat-icon class="text-gray-300 mb-4" style="font-size: 64px; height: 64px; width: 64px;">inbox</mat-icon>
+              <p class="text-gray-500 text-lg">No applications found</p>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card-content>
+  </mat-card>
+</div>
+</div>
+</div>
+

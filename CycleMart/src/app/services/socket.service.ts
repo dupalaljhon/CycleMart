@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 
@@ -11,7 +11,8 @@ export class SocketService {
   public isConnected$ = this.isConnectedSubject.asObservable();
 
   // Default socket server URL - you can change this to match your backend
-  private readonly SERVER_URL = 'http://localhost:3000';
+  // private readonly SERVER_URL = 'http://localhost:3001';
+  private readonly SERVER_URL = 'https://cyclemart-socket.onrender.com';
   private authenticated = false;
 
   constructor() {
@@ -36,7 +37,6 @@ export class SocketService {
 
       this.setupEventListeners();
     } catch (error) {
-      console.error('Failed to initialize socket:', error);
     }
   }
 
@@ -47,7 +47,6 @@ export class SocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected:', this.socket?.id);
       this.isConnectedSubject.next(true);
       // Re-authenticate automatically if we previously authenticated
       if (!this.authenticated) {
@@ -60,22 +59,18 @@ export class SocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
       this.isConnectedSubject.next(false);
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('🔥 Socket connection error:', error);
       this.isConnectedSubject.next(false);
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
       this.isConnectedSubject.next(true);
     });
 
     this.socket.on('reconnect_error', (error) => {
-      console.error('🔥 Socket reconnection error:', error);
     });
   }
 
@@ -84,7 +79,6 @@ export class SocketService {
    */
   connect(): void {
     if (this.socket && !this.socket.connected) {
-      console.log('🔄 Attempting to connect to Socket.IO server...');
       this.socket.connect();
     }
   }
@@ -113,7 +107,6 @@ export class SocketService {
     };
     this.socket.emit('authenticate', authPayload);
     this.authenticated = true;
-    console.log('🔐 Sent authenticate payload:', authPayload);
   }
 
   /**
@@ -122,7 +115,6 @@ export class SocketService {
   joinRoom(roomId: string): void {
     if (this.socket && this.socket.connected) {
       this.socket.emit('join_room', roomId);
-      console.log(`📍 Joined room: ${roomId}`);
     }
   }
 
@@ -132,7 +124,6 @@ export class SocketService {
   leaveRoom(roomId: string): void {
     if (this.socket && this.socket.connected) {
       this.socket.emit('leave_room', roomId);
-      console.log(`🚪 Left room: ${roomId}`);
     }
   }
 
@@ -144,7 +135,6 @@ export class SocketService {
       this.socket.emit(event, data);
       return true;
     } else {
-      console.warn('⚠️ Socket not connected. Cannot emit event:', event);
       return false;
     }
   }

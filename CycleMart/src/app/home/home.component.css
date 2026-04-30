@@ -1,28 +1,266 @@
-/* Home Component Styles */
 
-/* Report Modal Enhancements */
-.fixed.inset-0.bg-black\/80 {
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.3s ease-out;
+:host {
+  display: block;
 }
 
-@keyframes fadeIn {
+.home-minimal {
+  --landing-primary: #2e7d32;
+  --landing-primary-dark: #25692a;
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  --landing-surface: #ffffff;
+
+  background: #f5f5f5;
+  color: var(--landing-text);
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+}
+
+.home-minimal > .flex-1 {
+  background: #f5f5f5;
+}
+
+/* Enforce solid colors (no gradients) within Home */
+.home-minimal [class*="bg-gradient"] {
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+.moderator-banner-minimal,
+.section-card-minimal,
+.results-chip-minimal,
+.product-card-minimal,
+.restriction-banner-minimal {
+  border: 1px solid #e3e7e3;
+  border-radius: 14px;
+  background: var(--landing-surface);
+  box-shadow: 0 12px 28px rgba(33, 33, 33, 0.07);
+}
+
+.moderator-floating-widget {
+  position: fixed;
+  top: 86px;
+  right: 18px;
+  width: 300px;
+  padding: 0.75rem;
+  z-index: 45;
+}
+
+.moderator-floating-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.moderator-floating-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d3d7de;
+  border-radius: 999px;
+  background: #fff;
+  color: #555b65;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+}
+
+.moderator-floating-close:hover {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.moderator-banner-icon-minimal {
+  background: var(--landing-primary) !important;
+  border: 1px solid var(--landing-primary);
+}
+
+.moderator-tag-minimal {
+  background: var(--landing-soft) !important;
+  color: var(--landing-primary) !important;
+  border: 1px solid var(--landing-soft-border);
+}
+
+.moderator-cta-minimal {
+  background: var(--landing-primary) !important;
+  border: 1px solid var(--landing-primary);
+}
+
+.moderator-cta-minimal:hover {
+  background: var(--landing-primary-dark) !important;
+}
+
+.restriction-banner-minimal {
+  border-left: 4px solid var(--landing-primary) !important;
+}
+
+.restriction-banner-minimal .text-orange-900,
+.restriction-banner-minimal .text-orange-800,
+.restriction-banner-minimal .text-orange-700,
+.restriction-banner-minimal .text-orange-600,
+.restriction-banner-minimal .text-black {
+  color: var(--landing-text) !important;
+}
+
+.restriction-banner-minimal {
+  background: #f7fbf7 !important;
+}
+
+.search-zone-minimal {
+  padding: 0.75rem;
+}
+
+.search-zone-minimal .shadow-md,
+.search-zone-minimal .shadow-sm {
+  box-shadow: none !important;
+}
+
+.home-minimal h1,
+.home-minimal h2,
+.home-minimal h3,
+.home-minimal h4,
+.home-minimal h5,
+.home-minimal .text-gray-900 {
+  color: var(--landing-text) !important;
+}
+
+.home-minimal .text-gray-600,
+.home-minimal .text-gray-500,
+.home-minimal .text-gray-700 {
+  color: var(--landing-muted) !important;
+}
+
+.search-zone-minimal .rounded-lg,
+.filter-wrap-minimal button,
+.results-chip-minimal {
+  border-radius: 12px !important;
+}
+
+.filter-wrap-minimal button {
+  border: 1px solid #d0d3da !important;
+  background: #fff !important;
+  color: #111 !important;
+  font-weight: 600;
+  transition: all 0.18s ease;
+}
+
+.filter-wrap-minimal button:hover {
+  background: var(--landing-primary) !important;
+  color: #fff !important;
+  border-color: var(--landing-primary) !important;
+  transform: translateY(-1px);
+}
+
+.product-card-minimal {
+  border: 1px solid #d1d4db !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.07) !important;
+}
+
+.product-card-minimal:hover {
+  border-color: var(--landing-primary) !important;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+.product-card-minimal .bg-purple-500,
+.product-card-minimal .bg-purple-600,
+.product-card-minimal .bg-purple-100,
+.product-card-minimal .text-purple-500,
+.product-card-minimal .text-purple-600,
+.product-card-minimal .text-purple-700,
+.product-card-minimal .text-yellow-400,
+.product-card-minimal .text-\[\#6BA3BE\] {
+  background: var(--landing-soft) !important;
+  color: var(--landing-primary) !important;
+}
+
+.home-minimal .bg-black {
+  border: 1px solid var(--landing-primary);
+  background: var(--landing-primary) !important;
+}
+
+.home-minimal .bg-black:hover {
+  background: var(--landing-primary-dark) !important;
+}
+
+.home-minimal .border-black {
+  border-color: var(--landing-primary) !important;
+}
+
+.home-minimal .focus\:ring-black:focus {
+  --tw-ring-color: rgba(46, 125, 50, 0.35) !important;
+}
+
+.moderator-apply-overlay {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(6px);
+  animation: homeFadeIn 0.22s ease-out;
+}
+
+.moderator-apply-modal {
+  border: 1px solid #d7e8d9;
+  box-shadow: 0 22px 42px rgba(15, 23, 42, 0.24);
+  animation: homeSlideUp 0.22s ease-out;
+}
+
+.moderator-apply-header {
+  background: linear-gradient(90deg, #eff8f0 0%, #ffffff 100%);
+}
+
+.moderator-apply-icon {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  background: var(--landing-primary);
+}
+
+.moderator-apply-close {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  border: 1px solid #d4d8dc;
+  color: #4b5563;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+}
+
+.moderator-apply-close:hover {
+  border-color: var(--landing-primary);
+  background: var(--landing-soft);
+  color: var(--landing-primary);
+}
+
+/* Modal */
+.home-minimal .fixed.inset-0.bg-black\/80 {
+  backdrop-filter: blur(5px);
+  animation: homeFadeIn 0.24s ease-out;
+}
+
+.home-minimal .bg-white.rounded-3xl {
+  border: 1px solid #151515;
+  animation: homeSlideUp 0.24s ease-out;
+}
+
+@keyframes homeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes homeSlideUp {
   from {
     opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.bg-white.rounded-3xl {
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(50px) scale(0.95);
+    transform: translateY(20px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -30,28 +268,65 @@
   }
 }
 
-/* Report Button Hover Effects */
-.p-2.bg-red-500 {
-  transition: all 0.3s ease;
+@media (max-width: 768px) {
+  /* Floating hamburger menu button at the top-left */
+  .fixed.top-3.left-3,
+  .mobile-toggle {
+    position: fixed !important;
+    top: 0.5rem !important;
+    left: 1rem !important;
+    z-index: 140 !important;
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    padding: 0.45rem 0.5rem !important;
+  }
+
+  /* Make cards lighter on small screens */
+  .moderator-banner-minimal,
+  .section-card-minimal,
+  .results-chip-minimal,
+  .product-card-minimal,
+  .restriction-banner-minimal {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .moderator-floating-widget {
+    width: calc(100vw - 26px);
+    left: 13px;
+    right: 13px;
+    top: 72px;
+  }
+
+  /* Hide only the sidebar container inside app-sidenav, keep mobile toggle button visible */
+  .sidenav-landing > div.bg-white.text-black.flex.flex-col {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+  }
+
+  /* Ensure the main content takes full width and minimal left padding */
+  .home-minimal > .flex-1 {
+    margin-left: 0 !important;
+    padding-left: 1rem !important;
+    padding-top: 3.25rem !important;
+    width: 100% !important;
+  }
 }
 
-.p-2.bg-red-500:hover {
-  transform: scale(1.1);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
-}
-
-/* Tooltip Enhancements */
-.group:hover .opacity-0 {
+.product-zoom-overlay {
+  /* Angular *ngIf controls visibility; CSS just ensures proper display when rendered */
+  display: flex;
   opacity: 1;
-  transform: translateX(-50%) translateY(-2px);
+  pointer-events: auto;
+  animation: zoomFadeIn 0.2s ease-out;
 }
 
-/* Modal Overlay */
-.z-50 {
-  z-index: 9999;
-}
-
-/* Ensure modal content doesn't interfere with page scroll */
-body.modal-open {
-  overflow: hidden;
+@keyframes zoomFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

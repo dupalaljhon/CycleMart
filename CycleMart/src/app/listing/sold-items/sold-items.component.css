@@ -1,4 +1,84 @@
 /* Modal animations */
+.sold-items-landing {
+  --landing-primary: #2e7d32;
+  --landing-primary-dark: #25692a;
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-surface: #ffffff;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+  color: var(--landing-text);
+}
+
+.sold-items-landing .bg-white {
+  background-color: var(--landing-surface) !important;
+}
+
+.sold-items-landing .bg-gray-100,
+.sold-items-landing .bg-gray-50,
+.sold-items-landing .bg-blue-50,
+.sold-items-landing .bg-indigo-50,
+.sold-items-landing .bg-purple-100,
+.sold-items-landing .bg-blue-100 {
+  background-color: #f7fbf7 !important;
+}
+
+.sold-items-landing .text-gray-800,
+.sold-items-landing .text-gray-900,
+.sold-items-landing .text-black {
+  color: var(--landing-text) !important;
+}
+
+.sold-items-landing .text-gray-600,
+.sold-items-landing .text-gray-500,
+.sold-items-landing .text-gray-400,
+.sold-items-landing .text-blue-800,
+.sold-items-landing .text-purple-800,
+.sold-items-landing .text-blue-600 {
+  color: var(--landing-muted) !important;
+}
+
+.sold-items-landing .border-gray-200,
+.sold-items-landing .border-blue-200,
+.sold-items-landing .border-green-400,
+.sold-items-landing .border-gray-300 {
+  border-color: var(--landing-soft-border) !important;
+}
+
+.sold-items-landing .shadow-lg,
+.sold-items-landing .shadow-xl,
+.sold-items-landing .shadow-2xl,
+.sold-items-landing .shadow-md {
+  box-shadow: 0 12px 28px rgba(33, 33, 33, 0.07) !important;
+}
+
+.sold-items-landing .bg-green-600,
+.sold-items-landing .bg-purple-600,
+.sold-items-landing .bg-red-600,
+.sold-items-landing .from-green-400,
+.sold-items-landing .to-green-600,
+.sold-items-landing .from-green-500,
+.sold-items-landing .to-green-700 {
+  background-image: none !important;
+  background-color: var(--landing-primary) !important;
+}
+
+.sold-items-landing .hover\:bg-green-700:hover,
+.sold-items-landing .hover\:bg-green-600:hover,
+.sold-items-landing .hover\:bg-red-600:hover,
+.sold-items-landing .hover\:from-green-600:hover,
+.sold-items-landing .hover\:to-green-700:hover {
+  background-image: none !important;
+  background-color: var(--landing-primary-dark) !important;
+}
+
+.sold-items-landing .text-red-500,
+.sold-items-landing .text-red-600,
+.sold-items-landing .text-white {
+  color: #ffffff;
+}
+
 @keyframes scale-in {
   0% {
     opacity: 0;

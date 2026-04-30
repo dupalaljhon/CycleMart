@@ -1,4 +1,78 @@
 /* Edit Modal Specific Styles */
+.listing-edit-modal-landing {
+  --landing-primary: #2e7d32;
+  --landing-primary-dark: #25692a;
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-surface: #ffffff;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+}
+
+.listing-edit-modal-landing .bg-\[\#6BA3BE\] {
+  background-color: var(--landing-primary) !important;
+}
+
+.listing-edit-modal-landing .listing-edit-modal-header {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.25);
+}
+
+.listing-edit-modal-landing .focus\:ring-\[\#6BA3BE\]:focus {
+  --tw-ring-color: rgba(46, 125, 50, 0.3) !important;
+}
+
+.listing-edit-modal-landing .bg-blue-50,
+.listing-edit-modal-landing .bg-gray-50,
+.listing-edit-modal-landing .bg-gradient-to-r,
+.listing-edit-modal-landing .from-blue-50,
+.listing-edit-modal-landing .to-indigo-50,
+.listing-edit-modal-landing .from-purple-50,
+.listing-edit-modal-landing .to-pink-50,
+.listing-edit-modal-landing .from-yellow-400,
+.listing-edit-modal-landing .to-orange-500 {
+  background-image: none !important;
+  background-color: #f7fbf7 !important;
+}
+
+.listing-edit-modal-landing .text-gray-900,
+.listing-edit-modal-landing .text-gray-800,
+.listing-edit-modal-landing .text-black {
+  color: var(--landing-text) !important;
+}
+
+.listing-edit-modal-landing .text-gray-700,
+.listing-edit-modal-landing .text-gray-600,
+.listing-edit-modal-landing .text-gray-500,
+.listing-edit-modal-landing .text-blue-600,
+.listing-edit-modal-landing .text-blue-700,
+.listing-edit-modal-landing .text-indigo-600,
+.listing-edit-modal-landing .text-purple-600 {
+  color: var(--landing-muted) !important;
+}
+
+.listing-edit-modal-landing .border-blue-200,
+.listing-edit-modal-landing .border-gray-200,
+.listing-edit-modal-landing .border-gray-300,
+.listing-edit-modal-landing .border-purple-200 {
+  border-color: var(--landing-soft-border) !important;
+}
+
+.listing-edit-modal-landing .bg-black,
+.listing-edit-modal-landing .bg-gray-500,
+.listing-edit-modal-landing .bg-red-500,
+.listing-edit-modal-landing .bg-\[\#6BA3BE\] {
+  background-color: var(--landing-primary) !important;
+}
+
+.listing-edit-modal-landing .hover\:bg-gray-600:hover,
+.listing-edit-modal-landing .hover\:bg-red-600:hover,
+.listing-edit-modal-landing .hover\:bg-\[\#5a92a5\]:hover {
+  background-color: var(--landing-primary-dark) !important;
+}
+
 .modal-overlay {
   backdrop-filter: blur(2px);
 }

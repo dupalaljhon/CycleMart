@@ -18,7 +18,6 @@ export class AuthGuard implements CanActivate {
     if (token && userId) {
       return true;
     } else {
-      console.log('AuthGuard: Access denied - missing token or user ID');
       // Store the attempted URL for redirecting after login
       localStorage.setItem('returnUrl', state.url);
       this.router.navigate(['/login']);

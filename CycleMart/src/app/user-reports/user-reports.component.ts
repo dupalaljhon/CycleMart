@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SidenavComponent } from '../sidenav/sidenav.component';
@@ -112,7 +112,6 @@ export class UserReportsComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading user reports:', error);
         this.notificationService.showError(
           'Error Loading Reports',
           'Unable to load your reports. Please try again later.'
@@ -321,7 +320,6 @@ export class UserReportsComponent implements OnInit {
         const base64 = await this.fileToBase64(file);
         base64Files.push(base64);
       } catch (error) {
-        console.error('Error converting file to base64:', error);
       }
     }
     
@@ -368,8 +366,6 @@ export class UserReportsComponent implements OnInit {
         status: 'pending'
       };
 
-      console.log('Submitting user report:', reportData);
-
       // Submit report via API
       this.apiService.submitReport(reportData).subscribe({
         next: (response) => {
@@ -389,7 +385,6 @@ export class UserReportsComponent implements OnInit {
           this.isSubmitting = false;
         },
         error: (error) => {
-          console.error('Error submitting user report:', error);
           this.notificationService.showError(
             'Submission Failed',
             'An error occurred while submitting your report. Please try again.'
@@ -399,7 +394,6 @@ export class UserReportsComponent implements OnInit {
       });
 
     } catch (error) {
-      console.error('Error preparing report data:', error);
       this.notificationService.showError(
         'Submission Failed',
         'An error occurred while preparing your report. Please try again.'

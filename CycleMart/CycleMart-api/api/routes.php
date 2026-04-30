@@ -51,6 +51,35 @@ try {
     exit();
 }
 
+$jwtSecret = getenv('JWT_SECRET') ?: 'your_secret_key';
+
+$extractBearerToken = function () {
+    $authHeader = '';
+
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+    } elseif (isset($_SERVER['Authorization'])) {
+        $authHeader = $_SERVER['Authorization'];
+    } elseif (function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        if (isset($headers['Authorization'])) {
+            $authHeader = $headers['Authorization'];
+        } elseif (isset($headers['authorization'])) {
+            $authHeader = $headers['authorization'];
+        }
+    }
+
+    if ($authHeader && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+        return trim($matches[1]);
+    }
+
+    return null;
+};
+
+$decodeJwt = function ($token) use ($jwtSecret) {
+    return \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($jwtSecret, 'HS256'));
+};
+
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
     switch ($request[0]) {
@@ -72,6 +101,20 @@ switch ($_SERVER['REQUEST_METHOD']) {
             echo json_encode($get->getAllUsers());
             break;
 
+        case 'user-violation-details':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserViolationDetails((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
         case 'products':
             if (isset($_GET['uploader_id'])) {
                 echo json_encode($get->getProductsByUser((int)$_GET['uploader_id']));
@@ -83,6 +126,20 @@ switch ($_SERVER['REQUEST_METHOD']) {
                     "status" => "error",
                     "code" => 400,
                     "message" => "Missing uploader_id or product_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'purchased-products':
+            if (isset($_GET['buyer_id'])) {
+                echo json_encode($get->getProductsBoughtByUser((int)$_GET['buyer_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing buyer_id",
                     "data" => []
                 ]);
             }
@@ -136,6 +193,36 @@ switch ($_SERVER['REQUEST_METHOD']) {
                     "data" => []
                 ]);
             }
+            break;
+
+        case 'moderator-applications':
+            // Get all moderator applications (with optional status filter)
+            $status = $_GET['status'] ?? null;
+            echo json_encode($get->getAllModeratorApplications($status));
+            break;
+
+        case 'moderator-application':
+            // Get user's moderator application
+            if (isset($_GET['user_id'])) {
+                echo json_encode($get->getUserModeratorApplication((int) $_GET['user_id']));
+            } elseif (isset($_GET['id'])) {
+                echo json_encode($get->getModeratorApplicationById((int) $_GET['id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id or application id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'pending-moderator-applications-count':
+            echo json_encode([
+                'status' => 'success',
+                'data' => ['count' => $get->getPendingModeratorApplicationsCount()]
+            ]);
             break;
 
         case 'conversations':
@@ -248,6 +335,20 @@ switch ($_SERVER['REQUEST_METHOD']) {
             echo json_encode($get->getAllSellersWithRatings());
             break;
 
+        case 'user-restriction':
+            if (isset($_GET['user_id'])) {
+                echo json_encode($post->checkUserRestriction((int) $_GET['user_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing user_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
         case 'product-specifications':
             // Note: Specifications are now included in product data as JSON
             // Use the regular products endpoint to get specifications
@@ -256,6 +357,22 @@ switch ($_SERVER['REQUEST_METHOD']) {
             } else {
                 http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "Product ID is required"]);
+            }
+            break;
+
+        case 'product-buyer':
+            error_log("🔍 product-buyer route hit! product_id: " . ($_GET['product_id'] ?? 'NOT SET'));
+            if (isset($_GET['product_id'])) {
+                $result = $get->getProductBuyer((int)$_GET['product_id']);
+                echo json_encode($result);
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Product ID is required",
+                    "data" => null
+                ]);
             }
             break;
 
@@ -279,7 +396,59 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
         case 'recent-activities':
             $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
-            echo json_encode($get->getRecentActivities($limit));
+            $startDate = $_GET['start_date'] ?? null;
+            $endDate = $_GET['end_date'] ?? null;
+            echo json_encode($get->getRecentActivities($limit, $startDate, $endDate));
+            break;
+
+        case 'pending-products':
+            echo json_encode($get->getPendingProducts());
+            break;
+
+        case 'listing-auto-approval-config':
+            echo json_encode($get->getListingAutoApprovalConfig());
+            break;
+
+        case 'bicycle-brands':
+            echo json_encode($get->getBicycleBrands());
+            break;
+
+        case 'bicycle-parts':
+            if (isset($_GET['brand_id'])) {
+                echo json_encode($get->getBicyclePartsByBrand((int) $_GET['brand_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing brand_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'part-specifications':
+            if (isset($_GET['part_id'])) {
+                echo json_encode($get->getPartSpecifications((int) $_GET['part_id']));
+            } else {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 400,
+                    "message" => "Missing part_id",
+                    "data" => []
+                ]);
+            }
+            break;
+
+        case 'check-expired-reservations':
+            // This allows checking expired reservations via GET (for page load trigger)
+            echo json_encode($post->checkExpiredReservations());
+            break;
+
+        case 'landing-visit-counter':
+            $action = $_GET['action'] ?? 'get';
+            echo json_encode($get->getLandingVisitCounter($action));
             break;
             
         default:
@@ -315,6 +484,97 @@ switch ($_SERVER['REQUEST_METHOD']) {
         }
         
         error_log("POST Endpoint: " . ($request[0] ?? 'NONE'));
+
+        $publicPostEndpoints = ['register', 'login', 'verify-email', 'resend-verification'];
+        $isAdminLogin = (($request[0] ?? '') === 'admin' && (($request[1] ?? '') === 'login'));
+        $isPublicPost = in_array(($request[0] ?? ''), $publicPostEndpoints, true) || $isAdminLogin;
+
+        $jwtClaims = null;
+        if (!$isPublicPost) {
+            $token = $extractBearerToken();
+
+            if (!$token) {
+                http_response_code(401);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 401,
+                    "message" => "Missing JWT token"
+                ]);
+                break;
+            }
+
+            try {
+                $jwtClaims = $decodeJwt($token);
+            } catch (\Throwable $e) {
+                http_response_code(401);
+                echo json_encode([
+                    "status" => "error",
+                    "code" => 401,
+                    "message" => "Invalid or expired JWT token"
+                ]);
+                break;
+            }
+
+            $jwtUid = isset($jwtClaims->uid) ? (int)$jwtClaims->uid : null;
+            $userOwnedFieldByEndpoint = [
+                'upload' => 'user_id',
+                'editprofile' => 'user_id',
+                'addProduct' => 'uploader_id',
+                'updateProduct' => 'uploader_id',
+                'deleteProduct' => 'uploader_id',
+                'updateSaleStatus' => 'uploader_id',
+                'submit-user-report' => 'reporter_id',
+                'submit-report' => 'reporter_id',
+                'send-message' => 'sender_id',
+                'submit-rating' => 'rated_by'
+            ];
+
+            $currentEndpoint = $request[0] ?? '';
+            if ($jwtUid && isset($userOwnedFieldByEndpoint[$currentEndpoint])) {
+                $ownedField = $userOwnedFieldByEndpoint[$currentEndpoint];
+                $requestValue = isset($data->$ownedField) ? (int)$data->$ownedField : null;
+                
+                // Debug logging for submit-rating
+                if ($currentEndpoint === 'submit-rating') {
+                    error_log("DEBUG submit-rating: JWT uid=" . $jwtUid . ", request " . $ownedField . "=" . $requestValue);
+                }
+                
+                if (isset($data->$ownedField) && $requestValue !== $jwtUid) {
+                    http_response_code(403);
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => 403,
+                        "message" => "Token user does not match request owner"
+                    ]);
+                    break;
+                }
+            }
+
+            $role = strtolower((string)($jwtClaims->role ?? ''));
+            $isStaffToken = isset($jwtClaims->admin_id) || in_array($role, ['admin', 'moderator'], true);
+            $isAdminEndpoint = (($request[0] ?? '') === 'admin' && in_array(($request[1] ?? ''), ['create', 'update', 'delete'], true));
+            $staffOnlyEndpoints = [
+                'approve-product',
+                'reject-product',
+                'listing-auto-approval-config',
+                'mark-user-violation',
+                'update-report-status',
+                'update-user-report-status',
+                'archiveProduct'
+            ];
+
+            if ($isAdminEndpoint || in_array($currentEndpoint, $staffOnlyEndpoints, true)) {
+                if (!$isStaffToken) {
+                    http_response_code(403);
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => 403,
+                        "message" => "Insufficient permissions for this endpoint"
+                    ]);
+                    break;
+                }
+            }
+        }
         
         // Debug logging for specific endpoints
         if (isset($request[0]) && in_array($request[0], ['login', 'register', 'updateProduct'])) {
@@ -352,6 +612,17 @@ switch ($_SERVER['REQUEST_METHOD']) {
                     echo json_encode($post->deleteAdmin($data));
                 } else {
                     echo json_encode(["status" => "error", "message" => "Invalid admin endpoint"]);
+                    http_response_code(400);
+                }
+                break;
+
+            case 'moderator-application':
+                if (isset($request[1]) && $request[1] === 'submit') {
+                    echo json_encode($post->submitModeratorApplication($data));
+                } elseif (isset($request[1]) && $request[1] === 'review') {
+                    echo json_encode($post->reviewModeratorApplication($data));
+                } else {
+                    echo json_encode(["status" => "error", "message" => "Invalid moderator application endpoint"]);
                     http_response_code(400);
                 }
                 break;
@@ -460,6 +731,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 break;
 
             case 'submit-rating':
+                // Check account status
+                if (isset($data->rated_by)) {
+                    $statusCheck = $global->checkAccountStatus($pdo, $data->rated_by, 'submit-rating');
+                    if ($statusCheck !== null) {
+                        echo json_encode($statusCheck);
+                        break;
+                    }
+                }
                 echo json_encode($post->submitRating($data));
                 break;
 
@@ -489,6 +768,39 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
             case 'mark-user-violation':
                 echo json_encode($post->markUserViolation($data));
+                break;
+
+            case 'approve-product':
+                echo json_encode($post->approveProduct($data));
+                break;
+
+            case 'listing-auto-approval-config':
+                echo json_encode($post->updateListingAutoApprovalConfig($data));
+                break;
+
+            case 'reject-product':
+                echo json_encode($post->rejectProduct($data));
+                break;
+
+            // Reservation System Endpoints
+            case 'reserve-product':
+                echo json_encode($post->reserveProduct($data));
+                break;
+
+            case 'cancel-reservation':
+                echo json_encode($post->cancelReservation($data));
+                break;
+
+            case 'check-expired-reservations':
+                echo json_encode($post->checkExpiredReservations());
+                break;
+
+            case 'reservation-details':
+                echo json_encode($post->getReservationDetails($data));
+                break;
+
+            case 'reservation-history':
+                echo json_encode($post->getReservationHistory($data));
                 break;
 
             default:

@@ -1,12 +1,12 @@
 <!-- Standalone Reports Page Layout (with sidenav) -->
-<div *ngIf="!isModal" class="flex h-screen bg-white">
+<div *ngIf="!isModal" class="reports-landing flex h-screen bg-white">
   <!-- Sidenav -->
   <app-sidenav></app-sidenav>
 
   <!-- Main Content -->
-  <div class="flex-1 p-4 md:p-6 bg-white overflow-y-auto">
+  <div class="reports-content flex-1 p-4 md:p-6 bg-white overflow-y-auto">
     <!-- Header -->
-    <div class="mb-6">
+    <div class="mb-6 reports-page-header">
       <h1 class="text-2xl font-bold text-black mb-2">My Reports</h1>
       <p class="text-gray-600">View and track your submitted reports</p>
     </div>
@@ -121,11 +121,11 @@
 
 <!-- Report Details Modal -->
 <div *ngIf="showReportDetailsModal && selectedReport" 
-     class="modal-overlay"
+     class="modal-overlay report-details-overlay"
      (click)="closeReportDetails()">
-  <div class="modal-container" (click)="$event.stopPropagation()">
+  <div class="modal-container report-details-container" (click)="$event.stopPropagation()">
     <!-- Modal Header -->
-    <div class="modal-header">
+    <div class="modal-header report-details-header">
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-2xl font-bold text-black">Report Details</h2>
         <button mat-icon-button (click)="closeReportDetails()">
@@ -141,7 +141,7 @@
     </div>
 
     <!-- Modal Body -->
-    <div class="modal-body">
+    <div class="modal-body report-details-body">
       <!-- Report Info Section -->
       <div class="info-section">
         <h3 class="section-title">Report Information</h3>
@@ -297,7 +297,7 @@
     </div>
 
     <!-- Modal Footer -->
-    <div class="modal-footer">
+    <div class="modal-footer report-details-footer">
       <button mat-raised-button (click)="closeReportDetails()">
         Close
       </button>
@@ -306,7 +306,7 @@
 </div>
 
 <!-- Modal Version (Submit Report Form) -->
-<div *ngIf="isModal" class="report-modal-container">
+<div *ngIf="isModal" class="report-modal-container reports-landing">
   <!-- Header -->
   <div class="report-modal-header">
     <h2 class="text-xl font-bold text-black mb-2">

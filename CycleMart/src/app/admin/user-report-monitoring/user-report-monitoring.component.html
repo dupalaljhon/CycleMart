@@ -1,7 +1,7 @@
-<div class="flex h-screen bg-gray-50">
+<div class="flex h-screen user-reports-shell overflow-hidden">
   <!-- Admin Sidenav -->
   <app-admin-sidenav></app-admin-sidenav>
-<div class="flex-1 min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
+<div class="flex-1 user-reports-main p-4 md:p-6 lg:p-8 overflow-y-auto">
   <!-- Header -->
   <div class="mb-4 md:mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -15,7 +15,7 @@
         </div>
         <button 
           (click)="loadUserReports()" 
-          class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          class="refresh-btn px-4 py-2 text-sm font-medium rounded-md transition-colors"
           [disabled]="isLoading">
           <svg class="w-3 h-3 inline mr-1" [class.animate-spin]="isLoading" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -124,6 +124,7 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">All Types</option>
+          <option value="product">Product</option>
           <option value="user_behavior">User Behavior</option>
           <option value="post_purchase_concern">Post Purchase Concern</option>
         </select>
@@ -154,7 +155,36 @@
     </div>
 
     <!-- Reports Table -->
-    <div *ngIf="!isLoading && filteredReports.length > 0" class="overflow-x-auto">
+    <div *ngIf="!isLoading && filteredReports.length > 0" class="md:hidden p-3 space-y-3">
+      <div *ngFor="let report of paginatedReports" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-gray-900 truncate">{{ report.reporter_name || 'Unknown User' }}</p>
+            <p class="text-xs text-gray-500">Reporter ID: {{ report.reporter_id }}</p>
+          </div>
+          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-md" [class]="getStatusClass(report.status)">
+            {{ formatStatus(report.status) }}
+          </span>
+        </div>
+
+        <div class="mt-2 text-xs text-gray-700 space-y-1">
+          <p><span class="font-semibold">Reported:</span> {{ report.reported_user_name || 'Unknown User' }} ({{ report.reported_user_id }})</p>
+          <p><span class="font-semibold">Type:</span> {{ formatReportType(report.report_type) }}</p>
+          <p><span class="font-semibold">Reason:</span> {{ formatReasonType(report.reason_type) }}</p>
+          <p><span class="font-semibold">Date:</span> {{ formatDate(report.created_at) }}</p>
+        </div>
+
+        <div class="mt-3 flex items-center gap-2">
+          <button (click)="viewReportDetails(report)" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors duration-200">View</button>
+          <button *ngIf="report.status === 'pending'" (click)="reviewReport(report)" class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors duration-200" [disabled]="isUpdatingStatus">Review</button>
+          <button (click)="sanctionReportedUser(report)" [class]="getActionButtonClass('sanction')" [attr.title]="getActionTooltip('sanction')" [attr.aria-label]="getActionTooltip('sanction')">
+            <mat-icon class="action-icon">gavel</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && filteredReports.length > 0" class="hidden md:block overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -242,19 +272,19 @@
               </button>
               <button
                 *ngIf="report.status === 'pending'"
-                (click)="updateReportStatus(report.user_report_id, 'reviewed')"
+                (click)="reviewReport(report)"
                 class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors duration-200"
                 [disabled]="isUpdatingStatus"
               >
                 Review
               </button>
               <button
-                *ngIf="report.status !== 'action_taken'"
-                (click)="updateReportStatus(report.user_report_id, 'action_taken')"
-                class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors duration-200"
-                [disabled]="isUpdatingStatus"
+                (click)="sanctionReportedUser(report)"
+                [class]="getActionButtonClass('sanction')"
+                [attr.title]="getActionTooltip('sanction')"
+                [attr.aria-label]="getActionTooltip('sanction')"
               >
-                Take Action
+                <mat-icon class="action-icon">gavel</mat-icon>
               </button>
             </td>
           </tr>
@@ -408,7 +438,7 @@
                 <div class="flex-1">
                   <p class="text-sm text-gray-900" *ngIf="selectedReport.product_name">{{ selectedReport.product_name }}</p>
                   <p class="text-xs text-gray-500">ID: {{ selectedReport.product_id || selectedReport.conversation_product_id }}</p>
-                  <p class="text-xs text-gray-500" *ngIf="selectedReport.product_price">Price: ${{ selectedReport.product_price }}</p>
+                  <p class="text-xs text-gray-500" *ngIf="selectedReport.product_price">Price: ₱{{ selectedReport.product_price | number:'1.2-2' }}</p>
                 </div>
               </div>
             </div>
@@ -466,19 +496,17 @@
         <div class="mt-8 flex justify-end space-x-3">
           <button
             *ngIf="selectedReport.status === 'pending'"
-            (click)="updateReportStatus(selectedReport.user_report_id, 'reviewed')"
+            (click)="reviewReport(selectedReport)"
             class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200"
             [disabled]="isUpdatingStatus"
           >
             Mark as Reviewed
           </button>
           <button
-            *ngIf="selectedReport.status !== 'action_taken'"
-            (click)="updateReportStatus(selectedReport.user_report_id, 'action_taken')"
-            class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors duration-200"
-            [disabled]="isUpdatingStatus"
+            (click)="sanctionReportedUser(selectedReport)"
+            class="px-4 py-2 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg hover:bg-orange-200 transition-colors duration-200"
           >
-            Take Action
+            Sanction User
           </button>
           <button
             (click)="closeReportDetails()"

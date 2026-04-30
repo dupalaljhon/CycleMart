@@ -237,7 +237,6 @@ export class SocketDemoComponent implements OnInit, OnDestroy {
       role
     });
 
-    console.log('Authenticated with:', { userId, username, role });
   }
 
   sendTestNotification() {

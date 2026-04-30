@@ -6,7 +6,11 @@
 @tailwind utilities;
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: #eeeff1;
+}
 
 /* Material Design Black & White Theme Overrides */
 .mat-mdc-raised-button.mat-primary {
@@ -49,9 +53,9 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   --color-accent-dark: #65A30D;
   
   /* Backgrounds */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
+  --bg-primary: #eeeff1;
+  --bg-secondary: #eeeff1;
+  --bg-tertiary: #e7e6eb;
   --bg-card: #ffffff;
   --bg-overlay: rgba(30, 41, 59, 0.5);
   --bg-sidebar: var(--color-secondary);
@@ -72,6 +76,82 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* RideX-inspired grayscale + accent palette */
+  --ridex-bg: #eeeff1;
+  --ridex-surface: #ffffff;
+  --ridex-surface-muted: #f6f6f8;
+  --ridex-text: #121212;
+  --ridex-text-muted: #666a73;
+  --ridex-border: #d8dbe2;
+  --ridex-accent: #f5c84c;
+  --ridex-accent-dark: #e0b22f;
+}
+
+/* RideX-style tag system */
+.tag-ridex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.8rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--ridex-border);
+  background: var(--ridex-surface-muted);
+  color: var(--ridex-text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: all 0.18s ease;
+}
+
+.tag-ridex:hover {
+  border-color: #c7ccd6;
+  color: #4f5562;
+}
+
+.tag-ridex-active {
+  background: #0b0b0c;
+  border-color: #0b0b0c;
+  color: #ffffff;
+}
+
+.tag-ridex-outline {
+  background: #ffffff;
+  color: #404652;
+  border-color: #cfd3dc;
+}
+
+.tag-ridex-accent {
+  background: var(--ridex-accent);
+  border-color: var(--ridex-accent);
+  color: #111111;
+}
+
+.tag-ridex-accent:hover {
+  background: var(--ridex-accent-dark);
+  border-color: var(--ridex-accent-dark);
+}
+
+/* Unified tag color scheme (Item 3) */
+.cm-tag-unified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid #2e7d32;
+  background: #e8f3ea;
+  color: #1b5e20;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cm-tag-unified-strong {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
 }
 
 /* Utility Classes for 3-Color System */

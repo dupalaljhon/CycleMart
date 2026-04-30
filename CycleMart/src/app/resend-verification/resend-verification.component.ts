@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService } from '../api/api.service';
 import { CommonModule } from '@angular/common';
@@ -29,7 +29,7 @@ export class ResendVerificationComponent {
     }
 
     if (!this.validateEmail(this.email)) {
-      this.showMessage('Please enter a valid email address.', 'error');
+      this.showMessage('Please enter a valid @gmail.com email address.', 'error');
       return;
     }
 
@@ -52,14 +52,13 @@ export class ResendVerificationComponent {
       },
       error: (error: any) => {
         this.isLoading = false;
-        console.error('Resend verification error:', error);
         this.showMessage(error.error?.message || 'An error occurred. Please try again.', 'error');
       }
     });
   }
 
   private validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@gmail\.com$/i;
     return emailRegex.test(email);
   }
 

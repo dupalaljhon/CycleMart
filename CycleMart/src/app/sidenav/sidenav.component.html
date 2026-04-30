@@ -1,7 +1,6 @@
 <!-- Wrapper -->
-<div class="flex h-screen relative bg-white">
+<div class="sidenav-landing flex h-screen relative bg-white">
 
-  <!-- Mobile Menu Button (Fixed Position) -->
   <button 
     *ngIf="isMobile"
     (click)="toggleSidebar()"
@@ -31,7 +30,7 @@
     <div class="p-4 flex items-center justify-between border-b border-gray-300 bg-white">
       <div *ngIf="!isCollapsed || isMobile" class="flex items-center space-x-2">
         <!-- CycleMart Logo -->
-        <div class="bg-black p-2 rounded-lg shadow-lg">
+        <div class="bg-[#2e7d32] p-2 rounded-lg shadow-lg">
           <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
           </svg>
@@ -43,39 +42,34 @@
       </div>
       
       <!-- Compact logo for collapsed state -->
-      <div *ngIf="isCollapsed && !isMobile" class="bg-black p-2 rounded-lg shadow-lg mx-auto">
+      <div *ngIf="isCollapsed && !isMobile" class="bg-[#2e7d32] p-2 rounded-lg shadow-lg mx-auto">
         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
           <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
         </svg>
       </div>
       
       <!-- Collapse button (desktop only) -->
-      <button *ngIf="!isMobile" class="text-black hover:text-white hover:bg-black p-2 rounded-lg transition-all duration-200" (click)="toggleCollapse()">
+      <button *ngIf="!isMobile" class="text-black hover:text-white hover:bg-[#2e7d32] p-2 rounded-lg transition-all duration-200" (click)="toggleCollapse()">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" [ngClass]="{'rotate-180': isCollapsed}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
 
-      <!-- Close button (mobile only) -->
-      <button *ngIf="isMobile" class="text-black hover:text-white hover:bg-black p-2 rounded-lg transition-all duration-200" (click)="toggleSidebar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
+      <!-- header close removed to avoid duplicate controls on mobile -->
     </div>
 
     <!-- Menu -->
     <nav class="flex-1 p-3 space-y-1 overflow-y-auto bg-white">
       <!-- User Info Section -->
       <div *ngIf="!isCollapsed || isMobile" class="mb-4 p-3 bg-white rounded-lg border border-gray-300">
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-3">
           <!-- Profile Image Container -->
-          <div class="relative w-8 h-8">
+          <div class="relative w-14 h-14">
             <!-- Loading Spinner -->
             <div 
               *ngIf="isLoadingProfile" 
-              class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center animate-pulse">
-              <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+              class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center animate-pulse">
+              <svg class="w-7 h-7 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -86,14 +80,14 @@
               [src]="getProfileImageUrl(userProfileImage)" 
               [alt]="userName || 'User Profile'"
               [title]="userName || 'User Profile'"
-              class="w-8 h-8 rounded-full object-cover border-2 border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
+              class="w-14 h-14 rounded-full object-cover border-2 border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
               (error)="onProfileImageError($event)"
             >
             <!-- Fallback Icon -->
             <div 
               *ngIf="!isLoadingProfile && !userProfileImage" 
-              class="w-8 h-8 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="w-14 h-14 bg-[#2e7d32] rounded-full flex items-center justify-center hover:bg-[#25692a] transition-colors">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
               </svg>
             </div>
@@ -138,7 +132,7 @@
          (click)="closeSidebarOnNavigate()"
          class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- Home Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9v9a2 2 0 01-2 2h-4a2 2 0 01-2-2V12H9v9a2 2 0 01-2 2H3z" />
           </svg>
@@ -154,7 +148,7 @@
          (click)="closeSidebarOnNavigate()"
          class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- User Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -171,7 +165,7 @@
          (click)="closeSidebarOnNavigate()"
          class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- List Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -188,7 +182,7 @@
          (click)="closeSidebarOnNavigate()"
          class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- Chat Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -200,7 +194,7 @@
         </div>
         <!-- Message count badge - only show if there are unread messages -->
         <div *ngIf="(!isCollapsed || isMobile) && unreadMessagesCount > 0" 
-             class="bg-orange-500 text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center shadow-md">
+             class="bg-[#2e7d32] text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center shadow-md">
           {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
         </div>
       </a>
@@ -212,7 +206,7 @@
          (click)="closeSidebarOnNavigate()"
          class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         <!-- Report Icon -->
-        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -224,12 +218,13 @@
         </div>
       </a>
 
+      
          <!-- Notifications -->
       <a routerLink="/notification" routerLinkActive="bg-gray-100 text-black border-l-4"
          (click)="closeSidebarOnNavigate()"
          class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
         
-        <div class="flex-shrink-0 w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+        <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 01-6 0" />
@@ -241,11 +236,65 @@
         </div>
         <!-- Notification count badge - only show if there are unread notifications -->
         <div *ngIf="(!isCollapsed || isMobile) && unreadNotificationsCount > 0" 
-             class="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center shadow-md">
+             class="bg-[#2e7d32] text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center shadow-md">
           {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
         </div>
-      </a> 
+      </a>
+
+      
+    <!-- Moderator Tools (only if approved as moderator) -->
+      <ng-container *ngIf="userRole === 'moderator'">
+        <!-- Listing Approval -->
+        <a routerLink="/listing-approval" routerLinkActive="bg-gray-100 text-black border-l-4"
+           (click)="closeSidebarOnNavigate()"
+           class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
+          <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div *ngIf="!isCollapsed || isMobile" class="flex-1">
+            <span class="font-medium text-black group-hover:text-black">Listing Approval</span>
+            <p class="text-xs text-gray-600 group-hover:text-gray-600">Review pending listings</p>
+          </div>
+        </a>
+
+        <!-- Listing Monitoring -->
+        <a routerLink="/listing-monitoring" routerLinkActive="bg-gray-100 text-black border-l-4"
+           (click)="closeSidebarOnNavigate()"
+           class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
+          <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div *ngIf="!isCollapsed || isMobile" class="flex-1">
+            <span class="font-medium text-black group-hover:text-black">Listing Monitoring</span>
+            <p class="text-xs text-gray-600 group-hover:text-gray-600">Monitor active listings</p>
+          </div>
+        </a>
+
+        <!-- Report Monitoring -->
+        <a routerLink="/report-monitoring" routerLinkActive="bg-gray-100 text-black border-l-4"
+           (click)="closeSidebarOnNavigate()"
+           class="relative group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 hover:text-black transition-all duration-200 border border-transparent hover:border-gray-300">
+          <div class="flex-shrink-0 w-10 h-10 bg-[#2e7d32] rounded-lg flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div *ngIf="!isCollapsed || isMobile" class="flex-1">
+            <span class="font-medium text-black group-hover:text-black">Report Monitoring</span>
+            <p class="text-xs text-gray-600 group-hover:text-gray-600">Manage user reports</p>
+          </div>
+        </a>
+      </ng-container>
+
     </nav>
+
+
+    
+
 
     <!-- Footer Section -->
 <div class="p-1 border-t border-gray-300 bg-white">
@@ -254,7 +303,7 @@
           class="relative group flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 hover:text-black transition-all duration-200 w-full text-left border border-transparent hover:border-gray-300">
     
     <!-- Smaller Logout Icon -->
-    <div class="flex-shrink-0 w-8 h-8 bg-black rounded-md flex items-center justify-center">
+    <div class="flex-shrink-0 w-8 h-8 bg-[#2e7d32] rounded-md flex items-center justify-center">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1" />

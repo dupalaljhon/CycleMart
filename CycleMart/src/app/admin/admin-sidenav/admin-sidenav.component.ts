@@ -100,9 +100,15 @@ export class AdminSidenavComponent implements OnInit {
     this.closeSidebar();
   }
 
+  navigateToListingApproval() {
+    this.activeRoute = '/admin-listing-approval';
+    this.router.navigate(['/admin-listing-approval']);
+    this.closeSidebar();
+  }
+
   navigateToListingMonitoring() {
-    this.activeRoute = '/listing-monitoring';
-    this.router.navigate(['/listing-monitoring']);
+    this.activeRoute = '/admin-listing-monitoring';
+    this.router.navigate(['/admin-listing-monitoring']);
     this.closeSidebar();
   }
 
@@ -118,9 +124,15 @@ export class AdminSidenavComponent implements OnInit {
     this.closeSidebar();
   }
 
+  navigateToModeratorApplications() {
+    this.activeRoute = '/moderator-applications';
+    this.router.navigate(['/moderator-applications']);
+    this.closeSidebar();
+  }
+
   navigateToReportMonitoring() {
-    this.activeRoute = '/report-monitoring';
-    this.router.navigate(['/report-monitoring']);
+    this.activeRoute = '/admin-report-monitoring';
+    this.router.navigate(['/admin-report-monitoring']);
     this.closeSidebar();
   }
 
@@ -136,11 +148,16 @@ export class AdminSidenavComponent implements OnInit {
     localStorage.removeItem('admin_user');
     
     // Navigate to login page
-    this.router.navigate(['/login']);
+    this.router.navigate(['/admin-login']);
     this.closeSidebar();
   }
 
   isActiveRoute(route: string): boolean {
     return this.activeRoute === route;
+  }
+
+  formatAdminRole(role: string | null | undefined): string {
+    if (!role) return 'Admin';
+    return role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 }

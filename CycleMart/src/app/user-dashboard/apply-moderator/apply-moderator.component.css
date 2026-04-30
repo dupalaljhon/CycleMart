@@ -1,0 +1,116 @@
+.moderator-application-shell {
+	max-width: 56rem;
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+.moderator-application-shell.embedded-mode {
+	max-width: 100%;
+	padding: 0.5rem;
+}
+
+.application-hero {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	background: linear-gradient(140deg, #f0f8f1 0%, #ffffff 100%);
+	border: 1px solid #d8ebda;
+	border-radius: 0.95rem;
+	padding: 1rem;
+}
+
+.status-card,
+.form-card {
+	border: 1px solid #deeadf;
+	border-radius: 1rem;
+	box-shadow: 0 12px 22px rgba(21, 128, 61, 0.08);
+}
+
+.status-note {
+	border-radius: 0.7rem;
+	padding: 0.7rem 0.85rem;
+	font-size: 0.86rem;
+	line-height: 1.35;
+}
+
+.pending-note {
+	background: #fff8e6;
+	color: #8a5a00;
+	border: 1px solid #f0d58a;
+}
+
+.approved-note {
+	background: #ebf8ef;
+	color: #176237;
+	border: 1px solid #b7e3c4;
+}
+
+.rejected-note {
+	background: #fff0f0;
+	color: #8f1d2c;
+	border: 1px solid #f4b7c1;
+}
+
+.moderator-responsibilities {
+	background: #eef8ef;
+	border: 1px solid #cbe6ce;
+	border-radius: 0.8rem;
+	padding: 0.9rem;
+}
+
+.process-note {
+	font-size: 0.86rem;
+	color: #4b5563;
+	background: #f7faf7;
+	border: 1px solid #e0ede2;
+	border-radius: 0.8rem;
+	padding: 0.85rem;
+}
+
+:host ::ng-deep .app-field .mat-mdc-text-field-wrapper {
+	background: #ffffff;
+	border: 1px solid #d8e8db;
+	border-radius: 12px;
+	padding-left: 0.2rem;
+	padding-right: 0.2rem;
+	transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+:host ::ng-deep .app-field .mat-mdc-form-field-focus-overlay {
+	opacity: 0;
+}
+
+:host ::ng-deep .app-field .mdc-line-ripple {
+	display: none;
+}
+
+:host ::ng-deep .app-field.mat-focused .mat-mdc-text-field-wrapper {
+	border-color: #2e7d32;
+	box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.14);
+}
+
+:host ::ng-deep .app-field .mdc-floating-label {
+	font-size: 0.96rem;
+	color: #5f6b64;
+}
+
+:host ::ng-deep .app-field textarea.mat-mdc-input-element {
+	line-height: 1.45;
+	resize: vertical;
+}
+
+:host ::ng-deep .app-field .mat-mdc-form-field-subscript-wrapper {
+	margin-top: 0.3rem;
+}
+
+@media (max-width: 640px) {
+	.moderator-application-shell {
+		padding: 0.35rem;
+	}
+
+	.application-hero {
+		padding: 0.85rem;
+		border-radius: 0.8rem;
+	}
+}

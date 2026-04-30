@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+﻿import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../../api/api.service';
+import { environment } from '../../../../environments/environment';
 
 interface User {
   id: number;
@@ -61,7 +62,7 @@ interface DeleteData {
           <div class="flex items-start space-x-3">
             <mat-icon class="text-red-500 mt-1">error</mat-icon>
             <div>
-              <h3 class="text-red-800 font-semibold mb-2">⚠️ This action cannot be undone!</h3>
+              <h3 class="text-red-800 font-semibold mb-2">âš ï¸ This action cannot be undone!</h3>
               <p class="text-red-700 text-sm">
                 You are about to permanently delete this user and all associated data.
               </p>
@@ -238,15 +239,11 @@ export class DeleteUserModalComponent {
              (this.data.user.full_name?.charAt(0).toUpperCase() || 'U');
     }
     
-    // The images are in the api/uploads directory
-    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
-    const fullUrl = `${this.data.apiService.baseUrl}${cleanPath}`;
-    console.log('Delete modal image URL:', fullUrl);
-    return fullUrl;
+      const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+      return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   onImageError(event: any): void {
-    console.log('Delete modal image failed to load:', event.target.src);
     // Set a fallback image
     event.target.src = 'https://via.placeholder.com/64x64/6366f1/white?text=' + 
                        (this.data.user.full_name?.charAt(0).toUpperCase() || 'U');

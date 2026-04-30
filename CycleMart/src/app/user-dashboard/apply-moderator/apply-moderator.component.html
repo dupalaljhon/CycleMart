@@ -1,0 +1,157 @@
+<div class="moderator-application-shell" [class.embedded-mode]="embeddedMode">
+  <div class="application-hero mb-6">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Apply as Moderator</h1>
+      <p class="text-sm text-gray-600">
+        Help keep CycleMart safe by reviewing listings, handling reports, and guiding fair trade behavior.
+      </p>
+    </div>
+
+    <button
+      *ngIf="embeddedMode"
+      type="button"
+      (click)="requestClose.emit()"
+      class="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 text-gray-600 hover:text-green-700 hover:border-green-300 hover:bg-green-50 transition-colors"
+      aria-label="Close moderator application">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <div *ngIf="isLoading && !existingApplication" class="flex justify-center items-center py-12">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <mat-card *ngIf="existingApplication" class="status-card mb-5">
+    <mat-card-content class="p-5 sm:p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Your Application Status</h3>
+      <p class="mb-1 text-sm text-gray-700">
+        <span class="font-medium">Status:</span>
+        <span [class]="getStatusColor(existingApplication.status)" class="ml-2 font-semibold">
+          {{ getStatusText(existingApplication.status) }}
+        </span>
+      </p>
+      <p class="text-sm text-gray-600">
+        <span class="font-medium">Submitted:</span>
+        {{ existingApplication.created_at | date: 'medium' }}
+      </p>
+
+      <p *ngIf="existingApplication.status === 'pending'" class="status-note pending-note mt-4">
+        Your application is currently under review. We will notify you once a decision has been made.
+      </p>
+      <p *ngIf="existingApplication.status === 'approved'" class="status-note approved-note mt-4">
+        Congratulations. Your moderator application has been approved and moderator tools are now enabled.
+      </p>
+      <p *ngIf="existingApplication.status === 'rejected'" class="status-note rejected-note mt-4">
+        Your application was not approved at this time. You may submit a new application in the future.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="!existingApplication || existingApplication.status === 'rejected'" class="form-card">
+    <mat-card-content class="p-5 sm:p-6">
+      <form [formGroup]="applicationForm" (ngSubmit)="submitApplication()">
+        <mat-form-field appearance="fill" class="w-full mb-4 app-field">
+          <mat-label>Full Name</mat-label>
+          <input matInput formControlName="full_name" placeholder="Enter your full name">
+          <mat-error *ngIf="applicationForm.get('full_name')?.hasError('required')">
+            Full name is required
+          </mat-error>
+          <mat-error *ngIf="applicationForm.get('full_name')?.hasError('minlength')">
+            Full name must be at least 3 characters
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="w-full mb-4 app-field">
+          <mat-label>Why do you want to become a moderator?</mat-label>
+          <textarea
+            matInput
+            formControlName="reason"
+            rows="6"
+            placeholder="Share why you want to moderate and how you can help the community.">
+          </textarea>
+          <mat-hint align="end">{{ getReasonCharacterCount() }} / 1000 characters</mat-hint>
+          <mat-error *ngIf="applicationForm.get('reason')?.hasError('required')">
+            Reason is required
+          </mat-error>
+          <mat-error *ngIf="applicationForm.get('reason')?.hasError('minlength')">
+            Please provide at least 50 characters (current: {{ getReasonCharacterCount() }})
+          </mat-error>
+          <mat-error *ngIf="applicationForm.get('reason')?.hasError('maxlength')">
+            Maximum 1000 characters allowed
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="w-full mb-4 app-field">
+          <mat-label>Relevant Experience (Optional)</mat-label>
+          <textarea
+            matInput
+            formControlName="experience"
+            rows="4"
+            placeholder="Include moderation, safety, or community management experience.">
+          </textarea>
+          <mat-hint align="end">{{ getExperienceCharacterCount() }} / 1000 characters</mat-hint>
+          <mat-error *ngIf="applicationForm.get('experience')?.hasError('maxlength')">
+            Maximum 1000 characters allowed
+          </mat-error>
+        </mat-form-field>
+
+        <div class="moderator-responsibilities mb-6">
+          <h4 class="font-semibold text-sm text-green-900 mb-2">Moderator Responsibilities</h4>
+          <ul class="list-disc list-inside text-sm text-green-800 space-y-1">
+            <li>Review and approve or reject product listings</li>
+            <li>Handle user reports and apply fair actions</li>
+            <li>Enforce marketplace policies consistently</li>
+            <li>Support respectful and safe buyer seller interactions</li>
+            <li>Respond to concerns in a timely manner</li>
+          </ul>
+        </div>
+
+        <div class="mb-6">
+          <mat-checkbox formControlName="agree_terms" color="primary">
+            I understand the responsibilities and agree to follow moderator guidelines
+          </mat-checkbox>
+          <div
+            *ngIf="applicationForm.get('agree_terms')?.hasError('required') && applicationForm.get('agree_terms')?.touched"
+            class="text-red-600 text-sm mt-1">
+            You must agree to the terms before submitting
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="applicationForm.invalid || isLoading"
+            class="min-w-[160px]">
+            <span *ngIf="!isLoading">Submit Application</span>
+            <span *ngIf="isLoading" class="flex items-center gap-2">
+              <mat-spinner diameter="20"></mat-spinner>
+              Submitting...
+            </span>
+          </button>
+
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="applicationForm.reset()"
+            [disabled]="isLoading">
+            Clear Form
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="process-note mt-5">
+    <p class="font-semibold mb-2">Application Process</p>
+    <ol class="list-decimal list-inside space-y-1">
+      <li>Submit your application with complete details</li>
+      <li>The admin team reviews your profile and reason</li>
+      <li>You receive a dashboard update once a decision is made</li>
+      <li>Approved users will see moderator tools in their dashboard</li>
+    </ol>
+  </div>
+</div>

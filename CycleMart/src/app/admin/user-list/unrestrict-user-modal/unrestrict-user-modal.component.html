@@ -1,0 +1,49 @@
+<div class="unrestrict-modal">
+  <div class="modal-header">
+    <div class="title-wrap">
+      <span class="title-icon-wrap">
+        <mat-icon class="title-icon">lock_open</mat-icon>
+      </span>
+      <div>
+        <h2 mat-dialog-title>Unrestrict User</h2>
+        <p class="subtitle">Remove account restriction for {{ data.userName }}</p>
+      </div>
+    </div>
+    <button mat-icon-button (click)="cancel()" aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div mat-dialog-content class="modal-content">
+    <div class="note-box">
+      <mat-icon>info</mat-icon>
+      <p>This will restore this user account to active status, deactivate current active restrictions, and send the reason below as a notification to the user.</p>
+    </div>
+
+    <div class="reason-group">
+      <label class="reason-label" for="unrestrict-reason">Reason</label>
+      <textarea
+        id="unrestrict-reason"
+        class="reason-textarea"
+        rows="5"
+        maxlength="300"
+        [(ngModel)]="reason"
+        placeholder="Provide a clear reason for removing this restriction"></textarea>
+      <div class="reason-meta">
+        <span>Minimum 5 characters</span>
+        <span>{{ reason.length }}/300</span>
+      </div>
+    </div>
+  </div>
+
+  <div mat-dialog-actions class="modal-actions">
+    <button mat-stroked-button class="cancel-btn" (click)="cancel()">Cancel</button>
+    <button
+      mat-flat-button
+      class="confirm-btn"
+      (click)="confirm()"
+      [disabled]="reason.trim().length < 5">
+      Confirm Unrestrict
+    </button>
+  </div>
+</div>

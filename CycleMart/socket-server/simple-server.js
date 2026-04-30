@@ -16,22 +16,17 @@ app.get('/health', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
   
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
   });
 });
 
 const PORT = 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
 
 // Keep the process running
 process.on('SIGINT', () => {
-  console.log('Shutting down server...');
   process.exit(0);
 });
 
-console.log('Server starting...');

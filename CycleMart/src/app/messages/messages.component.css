@@ -1,3 +1,172 @@
+/* Home-aligned green theme for messages */
+
+.messages-landing {
+  --landing-primary: #2e7d32;
+  --landing-primary-dark: #25692a;
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-surface: #ffffff;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+  background: #f5f5f5;
+  color: var(--landing-text);
+}
+
+.messages-landing .messages-shell {
+  border-color: var(--landing-soft-border) !important;
+  box-shadow: 0 12px 28px rgba(33, 33, 33, 0.08) !important;
+}
+
+.messages-landing .buying-process-trigger {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%);
+  border-color: var(--landing-primary-dark);
+  box-shadow: 0 6px 14px rgba(46, 125, 50, 0.24);
+}
+
+.messages-landing .buying-process-trigger:hover {
+  background: linear-gradient(135deg, #27742b 0%, #1f5f24 100%);
+  border-color: #1f5f24;
+}
+
+.messages-landing .buying-process-icon {
+  background: transparent;
+}
+
+.messages-landing .buying-process-title {
+  color: #1f2937;
+}
+
+.messages-landing .buying-process-subtitle {
+  color: #5b6470;
+}
+
+.messages-landing .buying-process-chevron {
+  color: #ffffff;
+}
+
+.messages-landing .buying-process-modal {
+  background: #f7fbf7;
+  border-color: var(--landing-soft-border);
+  backdrop-filter: blur(2px);
+  width: 280px;
+  max-width: calc(100vw - 1.5rem);
+  z-index: 60;
+}
+
+.messages-landing .buying-process-step {
+  background: #ffffff;
+  border-color: #d8eadb;
+}
+
+.messages-landing .step-badge {
+  background: #eaf6ec;
+  color: #25692a;
+}
+
+.messages-landing .buying-process-description {
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.messages-landing .messages-sidebar-header {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+}
+
+.messages-landing .selected-chat-item {
+  background: #f7fbf7 !important;
+  border-right: 4px solid var(--landing-primary) !important;
+}
+
+.messages-landing .messages-unread-badge,
+.messages-landing .my-message-bubble,
+.messages-landing .messages-send-btn,
+.messages-landing .messages-scroll-btn {
+  background-color: var(--landing-primary) !important;
+  border-color: var(--landing-primary) !important;
+}
+
+.messages-landing .messages-send-btn:hover,
+.messages-landing .messages-scroll-btn:hover,
+.messages-landing .my-message-bubble:hover {
+  background-color: var(--landing-primary-dark) !important;
+}
+
+.messages-landing .bg-gray-50,
+.messages-landing .bg-gray-100,
+.messages-landing .bg-gray-200 {
+  background-color: #f7fbf7 !important;
+}
+
+.messages-landing .border-black,
+.messages-landing .border-gray-300,
+.messages-landing .border-gray-200 {
+  border-color: var(--landing-soft-border) !important;
+}
+
+.messages-landing .text-black,
+.messages-landing .text-gray-900,
+.messages-landing .text-gray-800 {
+  color: var(--landing-text) !important;
+}
+
+.messages-landing .text-gray-700,
+.messages-landing .text-gray-600,
+.messages-landing .text-gray-500,
+.messages-landing .text-gray-400 {
+  color: var(--landing-muted) !important;
+}
+
+/* Guided messages quick panel */
+.messages-landing .guided-messages-panel {
+  background: linear-gradient(135deg, #f3fbf4 0%, #edf8ef 100%);
+  border-color: var(--landing-soft-border) !important;
+}
+
+.messages-landing .guided-messages-title {
+  color: var(--landing-primary);
+}
+
+.messages-landing .guided-messages-hint {
+  color: var(--landing-muted);
+}
+
+.messages-landing .guided-message-chip {
+  background: #ffffff;
+  color: var(--landing-text);
+  border: 1px solid var(--landing-soft-border);
+}
+
+.messages-landing .guided-message-chip:hover {
+  background: var(--landing-primary);
+  border-color: var(--landing-primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(46, 125, 50, 0.22);
+}
+
+/* Restriction banner aligned to green system */
+.messages-landing .from-orange-50,
+.messages-landing .to-red-50,
+.messages-landing .bg-gradient-to-r {
+  background-image: none !important;
+  background-color: #f7fbf7 !important;
+}
+
+.messages-landing .border-orange-300,
+.messages-landing .text-orange-900,
+.messages-landing .text-orange-800,
+.messages-landing .text-orange-600 {
+  border-color: var(--landing-soft-border) !important;
+  color: var(--landing-text) !important;
+}
+
+/* Keep destructive actions clearly red */
+.messages-landing .text-red-500,
+.messages-landing .text-red-600 {
+  color: #dc2626 !important;
+}
+
 /* Black and White Enhanced Chat Animations and Effects */
 
 .animate-fadeIn {
@@ -184,6 +353,22 @@
 
 /* Responsive design improvements */
 @media (max-width: 768px) {
+  .messages-landing .buying-process-trigger {
+    padding: 0.45rem 0.55rem;
+  }
+
+  .messages-landing .buying-process-title {
+    font-size: 0.8rem;
+  }
+
+  .messages-landing .buying-process-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .messages-landing .buying-process-modal {
+    width: 260px;
+  }
+
   .animate-fadeIn {
     animation: fadeInMobile 0.2s ease-in-out;
   }
@@ -228,4 +413,131 @@
 .delete-button:hover {
   color: #c82333;
   transform: scale(1.1);
+}
+
+/* Report user modal refresh aligned with system design */
+.messages-landing .report-user-backdrop {
+  background: radial-gradient(circle at 16% 14%, rgba(46, 125, 50, 0.12), transparent 42%),
+              radial-gradient(circle at 82% 90%, rgba(239, 68, 68, 0.1), transparent 38%),
+              rgba(15, 23, 18, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.messages-landing .report-user-sheet {
+  background: #ffffff;
+  border: 1px solid var(--landing-soft-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 46px rgba(15, 23, 18, 0.28);
+}
+
+.messages-landing .report-user-header {
+  border-bottom: 1px solid var(--landing-soft-border);
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%);
+}
+
+.messages-landing .report-user-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.messages-landing .report-user-header-icon {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.messages-landing .report-user-title {
+  color: #ffffff;
+}
+
+.messages-landing .report-user-subtitle {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.messages-landing .report-user-close {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+}
+
+.messages-landing .report-user-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.messages-landing .report-user-content {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+}
+
+.messages-landing .report-user-label {
+  color: #3f4752;
+  font-weight: 600;
+}
+
+.messages-landing .report-user-helper {
+  color: #6a7280;
+}
+
+.messages-landing .report-user-select,
+.messages-landing .report-user-textarea {
+  border: 1px solid #cfd7e3;
+  background: #ffffff;
+  color: var(--landing-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.messages-landing .report-user-select:focus,
+.messages-landing .report-user-textarea:focus {
+  outline: none;
+  border-color: var(--landing-primary);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.14);
+  background: #ffffff;
+}
+
+.messages-landing .report-upload-zone {
+  border-color: #bcdcc0;
+  background: #f7fcf8;
+}
+
+.messages-landing .report-upload-zone:hover {
+  background: #f0f8f1;
+  border-color: #9fcea6;
+}
+
+.messages-landing .report-upload-trigger {
+  color: #4d5561;
+}
+
+.messages-landing .report-upload-icon {
+  color: #7ca982;
+}
+
+.messages-landing .report-proof-tile {
+  background: #f6f9f7;
+  border-color: #dbe8dd;
+}
+
+.messages-landing .report-user-footer {
+  border-top: 1px solid var(--landing-soft-border);
+  background: #f7fbf7;
+}
+
+.messages-landing .report-user-cancel {
+  color: #3f4752;
+  background: #ffffff;
+  border: 1px solid #cfd7e3;
+}
+
+.messages-landing .report-user-cancel:hover:not(:disabled) {
+  background: #f3f6f3;
+}
+
+.messages-landing .report-user-submit {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%);
+  border: 1px solid var(--landing-primary-dark);
+  box-shadow: 0 8px 18px rgba(46, 125, 50, 0.24);
+}
+
+.messages-landing .report-user-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #27742b 0%, #1f5f24 100%);
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { ApiService } from '../../api/api.service';
@@ -9,7 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -40,6 +40,7 @@ interface Admin {
     MatTooltipModule,
     MatSnackBarModule,
     ReactiveFormsModule,
+    FormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -47,7 +48,7 @@ interface Admin {
     MatSortModule
   ],
   templateUrl: './admin-monitoring.component.html',
-  styleUrl: './admin-monitoring.component.css'
+  styleUrls: ['./admin-monitoring.component.css']
 })
 export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -71,6 +72,9 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   hidePassword = true;
   hideConfirmPassword = true;
   isSubmitting = false;
+  autoGeneratePassword = false;
+  generatedPassword = '';
+  showGeneratedPasswordModal = false;
   
   displayedColumns: string[] = [
     'username',
@@ -89,15 +93,6 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   ) {
     // Get current admin role for permission checks
     this.currentUserRole = localStorage.getItem('role') || 'moderator';
-    console.log('Current user role:', this.currentUserRole);
-    console.log('Current username:', this.getCurrentUsername());
-    console.log('All localStorage items:', {
-      role: localStorage.getItem('role'),
-      username: localStorage.getItem('username'),
-      admin_id: localStorage.getItem('admin_id'),
-      admin_user: localStorage.getItem('admin_user')
-    });
-    
     // Initialize form
     this.adminForm = this.createForm();
   }
@@ -144,9 +139,13 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
     });
   }
 
+  private isSuperAdminRole(role: string): boolean {
+    return role === 'super admin' || role === 'super_admin';
+  }
+
   // Statistics methods
   getSuperAdminCount(): number {
-    return this.dataSource.data.filter(admin => admin.role === 'super_admin').length;
+    return this.dataSource.data.filter(admin => this.isSuperAdminRole(admin.role)).length;
   }
 
   getModeratorCount(): number {
@@ -164,6 +163,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   // UI Helper Methods
   getRoleIcon(role: string): string {
     switch (role) {
+      case 'super admin':
       case 'super_admin':
         return 'admin_panel_settings';
       case 'moderator':
@@ -187,11 +187,10 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
   getRoleColor(role: string): string {
     switch (role) {
+      case 'super admin':
       case 'super_admin':
         return 'text-black bg-white border border-gray-300';
       case 'moderator':
-        return 'text-black bg-white border border-gray-300';
-      case 'support':
         return 'text-black bg-white border border-gray-300';
       default:
         return 'text-black bg-white border border-gray-300';
@@ -206,21 +205,18 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
   // Role-based access control methods
   canCreateAdmin(): boolean {
-    const canCreate = this.currentUserRole === 'super_admin';
-    console.log('canCreateAdmin:', canCreate, 'current role:', this.currentUserRole);
+    const canCreate = this.isSuperAdminRole(this.currentUserRole);
     return canCreate;
   }
 
   canEditAdmin(admin: Admin): boolean {
-    if (this.currentUserRole === 'super_admin') return true;
+    if (this.isSuperAdminRole(this.currentUserRole)) return true;
     if (this.currentUserRole === 'moderator' && admin.role === 'support') return true;
-    console.log('canEditAdmin for', admin.username, ':', false, 'current role:', this.currentUserRole, 'admin role:', admin.role);
     return false;
   }
 
   canDeleteAdmin(admin: Admin): boolean {
-    if (this.currentUserRole === 'super_admin' && admin.role !== 'super_admin') return true;
-    console.log('canDeleteAdmin for', admin.username, ':', false, 'current role:', this.currentUserRole, 'admin role:', admin.role);
+    if (this.isSuperAdminRole(this.currentUserRole) && !this.isSuperAdminRole(admin.role)) return true;
     return false;
   }
 
@@ -234,12 +230,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   }
 
   editAdmin(admin: Admin) {
-    console.log('editAdmin called for:', admin.username);
-    console.log('isProcessing:', this.isProcessing);
-    console.log('canEditAdmin:', this.canEditAdmin(admin));
-    
     if (this.isProcessing) {
-      console.log('Cannot edit - processing another action');
       return; // Prevent multiple clicks
     }
     
@@ -249,7 +240,6 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    console.log('Opening edit modal for:', admin.username);
     this.isEditMode = true;
     this.currentEditAdmin = admin;
     this.adminForm = this.createForm();
@@ -266,7 +256,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         full_name: ['', [Validators.required]],
         email: ['', [Validators.required, Validators.email]],
         role: ['', [Validators.required]],
-        password: ['', [Validators.required, Validators.minLength(6)]],
+        password: ['', [Validators.required, Validators.minLength(8), this.passwordStrengthValidator]],
         confirmPassword: ['', [Validators.required]]
       }, {
         validators: this.passwordMatchValidator
@@ -281,6 +271,113 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         role: ['', [Validators.required]]
       });
     }
+  }
+
+  /**
+   * Password strength validator
+   * Requires: 8+ chars, uppercase, lowercase, number, special char
+   */
+  private passwordStrengthValidator(control: any) {
+    const password = control.value;
+    if (!password) return null;
+
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+    const passwordValid = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+
+    if (!passwordValid) {
+      return {
+        weakPassword: {
+          hasUpperCase,
+          hasLowerCase,
+          hasNumber,
+          hasSpecialChar
+        }
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Generate a secure random password
+   * 12 characters with uppercase, lowercase, numbers, and special chars
+   */
+  generateSecurePassword(): string {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const special = '!@#$%^&*()_+-=[]{};\':"|,.<>/?';
+    const allChars = uppercase + lowercase + numbers + special;
+
+    let password = '';
+    // Ensure at least one of each required character type
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+
+    // Fill remaining characters (total 12)
+    for (let i = password.length; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+
+  /**
+   * Toggle auto-generate password feature
+   */
+  toggleAutoGeneratePassword(): void {
+    // Note: autoGeneratePassword is already toggled by ngModel in the template
+    // This method handles the side effects of the toggle
+    
+    if (this.autoGeneratePassword) {
+      // Generate and set password
+      const password = this.generateSecurePassword();
+      this.adminForm.patchValue({
+        password: password,
+        confirmPassword: password
+      });
+      // Disable password fields
+      this.adminForm.get('password')?.disable();
+      this.adminForm.get('confirmPassword')?.disable();
+    } else {
+      // Clear and enable password fields
+      this.adminForm.patchValue({
+        password: '',
+        confirmPassword: ''
+      });
+      this.adminForm.get('password')?.enable();
+      this.adminForm.get('confirmPassword')?.enable();
+    }
+  }
+
+  /**
+   * Helper methods for password validation checks in template
+   */
+  hasMinLength(password: string): boolean {
+    return password?.length >= 8;
+  }
+
+  hasUpperCase(password: string): boolean {
+    return /[A-Z]/.test(password);
+  }
+
+  hasLowerCase(password: string): boolean {
+    return /[a-z]/.test(password);
+  }
+
+  hasNumber(password: string): boolean {
+    return /[0-9]/.test(password);
+  }
+
+  hasSpecialChar(password: string): boolean {
+    return /[!@#$%^&*()_+\-=\[\]{};':\"|,.<>\/?]/.test(password);
   }
 
   private passwordMatchValidator(control: any) {
@@ -335,7 +432,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
           next: (response) => {
             this.isSubmitting = false;
             if (response.status === 'success') {
-              this.showMessage(`✅ Administrator "${formData.username}" updated successfully`);
+              this.showMessage(`âœ… Administrator "${formData.username}" updated successfully`);
               this.closeModal();
               this.loadAdmins(); // Refresh the list
             } else {
@@ -349,12 +446,17 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         });
       } else {
         // Create new admin
+        // Get password from form (works for both manual and auto-generated)
+        const password = this.autoGeneratePassword 
+          ? this.adminForm.getRawValue().password // getRawValue() gets disabled fields too
+          : formData.password;
+
         const createData = {
           username: formData.username,
           full_name: formData.full_name,
           email: formData.email,
           role: formData.role,
-          password: formData.password,
+          password: password,
           created_by_role: this.currentUserRole // Add current user's role for permission check
         };
         
@@ -362,9 +464,15 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
           next: (response) => {
             this.isSubmitting = false;
             if (response.status === 'success') {
-              this.showMessage(`✅ Administrator "${formData.username}" created successfully`);
-              this.closeModal();
-              this.loadAdmins(); // Refresh the list
+              // If password was auto-generated, show it to the admin
+              if (this.autoGeneratePassword) {
+                this.generatedPassword = password;
+                this.showGeneratedPasswordModal = true;
+              } else {
+                this.showMessage(`âœ… Administrator "${formData.username}" created successfully`);
+                this.closeModal();
+                this.loadAdmins(); // Refresh the list
+              }
             } else {
               this.showError(response.message || 'Failed to create administrator');
             }
@@ -385,7 +493,26 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
     this.isSubmitting = false;
     this.hidePassword = true;
     this.hideConfirmPassword = true;
+    this.autoGeneratePassword = false;
     this.adminForm.reset();
+  }
+
+  closeGeneratedPasswordModal(): void {
+    this.showGeneratedPasswordModal = false;
+    this.generatedPassword = '';
+    this.showMessage(`âœ… Administrator created successfully`);
+    this.closeModal();
+    this.loadAdmins(); // Refresh the list
+  }
+
+  copyPasswordToClipboard(): void {
+    if (this.generatedPassword) {
+      navigator.clipboard.writeText(this.generatedPassword).then(() => {
+        this.showMessage('ðŸ“‹ Password copied to clipboard!');
+      }).catch(() => {
+        this.showError('Failed to copy password');
+      });
+    }
   }
 
   // Enhanced block access function
@@ -406,7 +533,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
     const newStatus = admin.status === 'active' ? 'blocked' : 'active';
     const action = newStatus === 'active' ? 'unblock' : 'block';
-    const actionIcon = newStatus === 'active' ? '🔓' : '🔒';
+    const actionIcon = newStatus === 'active' ? 'ðŸ”“' : 'ðŸ”’';
     
     const confirmMessage = `${actionIcon} ${action.charAt(0).toUpperCase() + action.slice(1)} Administrator Access\n\n` +
       `Administrator: ${admin.full_name} (${admin.username})\n` +
@@ -443,8 +570,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         },
         error: (error) => {
           this.isProcessing = false;
-          this.showError(`❌ Error ${action}ing administrator access. Please try again.`);
-          console.error(`${action} admin access error:`, error);
+          this.showError(`âŒ Error ${action}ing administrator access. Please try again.`);
         }
       });
     }
@@ -470,12 +596,12 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const confirmMessage = `⚠️ Delete Administrator Confirmation\n\n` +
+    const confirmMessage = `âš ï¸ Delete Administrator Confirmation\n\n` +
       `You are about to permanently delete:\n` +
-      `• Username: ${admin.username}\n` +
-      `• Name: ${admin.full_name}\n` +
-      `• Email: ${admin.email}\n` +
-      `• Role: ${this.formatRole(admin.role)}\n\n` +
+      `â€¢ Username: ${admin.username}\n` +
+      `â€¢ Name: ${admin.full_name}\n` +
+      `â€¢ Email: ${admin.email}\n` +
+      `â€¢ Role: ${this.formatRole(admin.role)}\n\n` +
       `This action cannot be undone. Are you sure?`;
 
     if (confirm(confirmMessage)) {
@@ -490,7 +616,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         next: (response) => {
           this.isProcessing = false;
           if (response.status === 'success') {
-            this.showMessage(`🗑️ Administrator "${admin.username}" deleted successfully`);
+            this.showMessage(`ðŸ—‘ï¸ Administrator "${admin.username}" deleted successfully`);
             this.loadAdmins(); // Refresh the list
           } else {
             this.showError(response.message || 'Failed to delete administrator');
@@ -498,8 +624,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         },
         error: (error) => {
           this.isProcessing = false;
-          this.showError('❌ Error deleting administrator. Please try again.');
-          console.error('Delete admin error:', error);
+          this.showError('âŒ Error deleting administrator. Please try again.');
         }
       });
     }
@@ -516,7 +641,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
     const newStatus = admin.status === 'active' ? 'inactive' : 'active';
     const action = newStatus === 'active' ? 'activate' : 'deactivate';
-    const actionIcon = newStatus === 'active' ? '✅' : '⏸️';
+    const actionIcon = newStatus === 'active' ? 'âœ…' : 'â¸ï¸';
     
     const confirmMessage = `${actionIcon} ${action.charAt(0).toUpperCase() + action.slice(1)} Administrator\n\n` +
       `Administrator: ${admin.full_name} (${admin.username})\n` +
@@ -549,8 +674,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         },
         error: (error) => {
           this.isProcessing = false;
-          this.showError(`❌ Error ${action}ing administrator. Please try again.`);
-          console.error(`${action} admin error:`, error);
+          this.showError(`âŒ Error ${action}ing administrator. Please try again.`);
         }
       });
     }
@@ -575,11 +699,10 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
   // Temporary method to fix role permissions for testing
   updateRoleToSuperAdmin() {
-    if (confirm('This is a temporary fix. Update your role to super_admin for testing?')) {
-      localStorage.setItem('role', 'super_admin');
-      this.currentUserRole = 'super_admin';
-      this.showMessage('✅ Role updated to super_admin. Please refresh the page.');
-      console.log('Role updated to:', this.currentUserRole);
+    if (confirm('This is a temporary fix. Update your role to super admin for testing?')) {
+      localStorage.setItem('role', 'super admin');
+      this.currentUserRole = 'super admin';
+      this.showMessage('âœ… Role updated to super admin. Please refresh the page.');
     }
   }
 }

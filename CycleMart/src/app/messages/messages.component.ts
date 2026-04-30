@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked, HostListener, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked, HostListener, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { SidenavComponent } from '../sidenav/sidenav.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +10,7 @@ import { AccountStatusService } from '../services/account-status.service';
 import { RatingModalComponent } from './rating-modal/rating-modal.component';
 
 import { Subscription } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 interface ChatMessage {
   message_id?: number;
@@ -21,7 +22,14 @@ interface ChatMessage {
   is_read: boolean;
   attachments?: Attachment[];
   is_system_message?: boolean;  // Added to identify system messages
-  system_message_type?: 'sold' | 'traded';  // Type of system message
+  system_message_type?: 'sold' | 'traded' | 'reserved';  // Type of system message
+}
+
+interface BuyingProcessStep {
+  id: number;
+  title: string;
+  description: string;
+  expanded: boolean;
 }
 
 interface Attachment {
@@ -47,6 +55,7 @@ interface Chat {
   messages: ChatMessage[];
   buyer_id?: number;  // Added to track buyer in conversation
   seller_id?: number; // Added to track seller in conversation
+  for_type?: 'sale' | 'trade' | 'both' | string;
 }
 
 @Component({
@@ -80,6 +89,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   // User report modal properties
   showUserReportModal: boolean = false;
   isSubmittingReport: boolean = false;
+
   
   // User Report Form
   userReportForm = {
@@ -115,6 +125,9 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   
   // Track product ownership status
   productOwnershipStatus: { [conversationId: number]: boolean } = {};
+
+  // Track product listing type per conversation
+  productForType: { [conversationId: number]: 'sale' | 'trade' | 'both' } = {};
   
   // Track product sale status per conversation
   productSaleStatus: { [conversationId: number]: string } = {};
@@ -122,6 +135,47 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   // Status confirmation modal properties
   showStatusConfirmationModal: boolean = false;
   pendingStatusChange: 'sold' | 'traded' | 'reserved' | 'available' | null = null;
+  
+  // Reservation modal properties
+  showReservationModal: boolean = false;
+  selectedReservationDuration: number = 24; // Default 24 hours
+  reservationDurations = [24, 48, 72]; // Available duration options
+  showCancelReservationModal: boolean = false;
+
+  // Buying process floating dropdown
+  showBuyingProcessDropdown: boolean = false;
+  buyingProcessSteps: BuyingProcessStep[] = [
+    {
+      id: 1,
+      title: 'Start with Product Check',
+      description: 'Review photos, condition, brand details, location, and price before messaging the seller.',
+      expanded: false
+    },
+    {
+      id: 2,
+      title: 'Ask Questions in Chat',
+      description: 'Confirm item issues, inclusions, and final terms. Keep all agreements inside chat for record.',
+      expanded: false
+    },
+    {
+      id: 3,
+      title: 'Reserve if Needed',
+      description: 'If you need time to prepare payment, ask for reservation and confirm the duration clearly.',
+      expanded: false
+    },
+    {
+      id: 4,
+      title: 'Inspect Before Paying',
+      description: 'Meet in a safe public location and inspect the item first. Only pay after verification.',
+      expanded: false
+    },
+    {
+      id: 5,
+      title: 'Complete and Rate',
+      description: 'After successful purchase, complete the transaction and submit a rating for transparency.',
+      expanded: false
+    }
+  ];
   
   // Scroll management properties
   private shouldAutoScroll: boolean = false;
@@ -136,6 +190,27 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   isDragOver: boolean = false;
   showAttachmentModal: boolean = false;
   selectedAttachment: Attachment | null = null;
+  isMessageInputFocused: boolean = false;
+  private readonly attachmentsBaseUrl: string = environment.apiUploadsBaseUrl;
+
+  readonly buyerGuidedMessages: string[] = [
+    'Hi! Is this item still available?',
+    'Can you share more details about the condition of the item?',
+    'Is the price still negotiable?',
+    'Where are you located? Is meet-up or delivery available?',
+    'What is the last price you can offer?',
+    'I\'m interested. Can we finalize this deal?',
+    'Can you reserve this item for me?'
+  ];
+
+  readonly sellerGuidedMessages: string[] = [
+    'Yes, the item is still available.',
+    'The item is in good condition with minimal issues.',
+    'The price is slightly negotiable.',
+    'Meet-up is available at my location.',
+    'I can reserve the item for you for a limited time.',
+    'Let me know when you\'re ready to proceed.'
+  ];
   
   private subscriptions: Subscription[] = [];
   // Track recent automated status messages to avoid rendering backend duplicates
@@ -162,6 +237,19 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (!event.target.closest('.relative')) {
       this.showStatusDropdown = false;
     }
+
+    if (!event.target.closest('.buying-process-widget')) {
+      this.showBuyingProcessDropdown = false;
+      this.buyingProcessSteps.forEach(step => step.expanded = false);
+    }
+  }
+
+  toggleBuyingProcessDropdown() {
+    this.showBuyingProcessDropdown = !this.showBuyingProcessDropdown;
+  }
+
+  toggleBuyingStep(step: BuyingProcessStep) {
+    step.expanded = !step.expanded;
   }
 
   ngOnInit() {
@@ -199,17 +287,14 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.route.queryParams.subscribe(params => {
       if (params['conversation_id']) {
         // Force reload conversations when coming from product listing
-        console.log('🔗 Direct access to conversation via URL parameter:', params['conversation_id']);
         this.loadConversations().then(() => {
           this.handleDirectConversationAccess(parseInt(params['conversation_id']));
         }).catch(error => {
-          console.error('Failed to load conversations for direct access:', error);
           this.handleDirectConversationAccess(parseInt(params['conversation_id']));
         });
       } else {
         // Normal load when accessing messages page directly
         this.loadConversations().catch(error => {
-          console.error('Failed to load conversations:', error);
         });
       }
     });
@@ -244,22 +329,17 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     let connectionShown = false;
     
     // Add detailed logging
-    console.log('🔧 Initializing socket connection...');
-    console.log('🆔 Current user ID:', this.currentUserId);
     
     // Subscribe to connection status
     this.subscriptions.push(
       this.socketService.isConnected$.subscribe(isConnected => {
-        console.log('🔌 Socket connection status changed:', isConnected);
         if (isConnected) {
           // if (connectionShown) {
           //   this.notificationService.showSuccess('Connected', 'Real-time messaging is now available');
           // }
-          console.log('✅ Socket connected, authenticating user...');
           this.authenticateUser();
         } else if (connectionShown) {
           // this.notificationService.showWarning('Connection Lost', 'Real-time messaging is temporarily unavailable');
-          console.warn('❌ Socket connection lost');
         }
         connectionShown = true;
       })
@@ -267,15 +347,11 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     // Connect to socket if not connected - add small delay to ensure server is ready
     setTimeout(() => {
-      console.log('🔍 Checking socket connection status...');
-      console.log('🔗 Socket connected:', this.socketService.isConnected());
-      
+        
       if (!this.socketService.isConnected()) {
-        console.log('🔌 Initiating Socket.IO connection...');
         this.socketService.connect();
       } else {
         // If already connected, authenticate immediately
-        console.log('✅ Socket already connected, authenticating...');
         this.authenticateUser();
       }
     }, 1000);
@@ -291,12 +367,10 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       role: 'user'
     };
     
-    console.log('🔐 Authenticating user with socket:', authData);
     this.socketService.emit('authenticate', authData);
     
     // Add a small delay to let authentication complete, then confirm
     setTimeout(() => {
-      console.log('✅ User should now be authenticated and in room: user_' + this.currentUserId);
     }, 1000);
   }
 
@@ -316,23 +390,18 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     );
 
     // Listen for product status changes
-    console.log('🎧 Setting up product status change listener...');
     this.subscriptions.push(
       this.socketService.on('product_status_changed').subscribe((data: any) => {
-        console.log('🔔 Product status change event received via socket:', data);
         this.handleProductStatusChange(data);
       })
     );
-    console.log('✅ Socket listeners set up complete');
   }
 
   loadConversations(): Promise<void> {
     this.isLoading = true;
-    console.log('🔍 Loading conversations for user ID:', this.currentUserId);
     return new Promise((resolve, reject) => {
       this.apiService.getUserConversations(this.currentUserId).subscribe({
         next: (response) => {
-          console.log('📊 Conversations API response:', response);
           if (response.status === 'success') {
             this.messages = response.data.map((conv: any) => ({
               conversation_id: conv.conversation_id,
@@ -351,13 +420,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
               seller_id: conv.seller_id  // Track seller_id from conversation
             }));
             
-            console.log('📋 Loaded conversations:', this.messages.map(c => ({
-              id: c.conversation_id,
-              other_user: c.other_user_name,
-              product: c.product_name,
-              buyer_id: c.buyer_id,
-              seller_id: c.seller_id
-            })));
           
             // Auto-select first conversation on desktop
             if (!this.isMobile && this.messages.length > 0) {
@@ -368,7 +430,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           resolve();
         },
         error: (error) => {
-          console.error('Error loading conversations:', error);
           this.isLoading = false;
           reject(error);
         }
@@ -377,23 +438,19 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   loadMessages(conversationId: number) {
-    console.log('�🔵🔵 === LOAD MESSAGES CALLED === 🔵🔵🔵');
-    console.log('🆔 Conversation ID:', conversationId);
-    console.log('⏰ Timestamp:', new Date().toISOString());
     
     this.apiService.getConversationMessages(conversationId).subscribe({
       next: (response) => {
-        console.log('📨📨📨 MESSAGES API RESPONSE 📨📨📨');
-        console.log('📊 Response status:', response.status);
-        console.log('📊 Response data length:', response.data?.length || 0);
-        console.log('📦 Full response:', JSON.stringify(response, null, 2));
         
         if (response.status === 'success' && this.selectedChat) {
-          console.log('✅ Response successful, processing messages...');
+          const autoResponseMessage = 'Hello! Thank you for your interest in this item. We appreciate your inquiry. Kindly wait while the seller reviews your message and responds shortly. Thank you for your patience!';
           
           this.selectedChat.messages = response.data.map((msg: any) => {
             // Check if this is a system message (sender_id = 0)
-            const isSystemMessage = msg.sender_id === 0 || msg.sender_id === '0';
+            const isSystemMessage =
+              msg.sender_id === 0 ||
+              msg.sender_id === '0' ||
+              (typeof msg.message_text === 'string' && msg.message_text.trim() === autoResponseMessage);
             
             // Determine system message type from message text or API data
             let systemMessageType: 'sold' | 'traded' | undefined = undefined;
@@ -408,15 +465,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
               }
             }
             
-            console.log(`� Processing message ${msg.message_id}:`, {
-              sender_id: msg.sender_id,
-              sender_id_type: typeof msg.sender_id,
-              is_system: isSystemMessage,
-              type: systemMessageType,
-              has_is_system_flag: msg.is_system_message,
-              has_type_flag: msg.system_message_type,
-              message_preview: msg.message_text?.substring(0, 50)
-            });
             
             const mappedMessage = {
               message_id: msg.message_id,
@@ -426,39 +474,27 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
               message_text: msg.message_text,
               created_at: msg.created_at,
               is_read: msg.is_read,
-              attachments: msg.attachments || [],
+              attachments: this.normalizeAttachments(msg.attachments || []),
               is_system_message: isSystemMessage,
               system_message_type: systemMessageType
             };
             
-            if (isSystemMessage) {
-              console.log('🟢🟢🟢 SYSTEM MESSAGE DETECTED 🟢🟢🟢', mappedMessage);
-            }
             
             return mappedMessage;
           });
           
-          console.log('📊📊� MESSAGE PROCESSING COMPLETE 📊📊📊');
-          console.log('📝 Total messages loaded:', this.selectedChat.messages.length);
           
           // Log first few messages for debugging
           if (this.selectedChat.messages.length > 0) {
-            console.log('📨 First message:', JSON.stringify(this.selectedChat.messages[0], null, 2));
-            console.log('📨 Last message:', JSON.stringify(this.selectedChat.messages[this.selectedChat.messages.length - 1], null, 2));
             
             // Count system messages
             const systemMessages = this.selectedChat.messages.filter(m => m.is_system_message);
-            console.log(`� System messages count: ${systemMessages.length}`);
             if (systemMessages.length > 0) {
-              console.log('🟢🟢� SYSTEM MESSAGES FOUND 🟢🟢🟢');
               systemMessages.forEach((msg, index) => {
-                console.log(`System message ${index + 1}:`, JSON.stringify(msg, null, 2));
               });
             } else {
-              console.warn('⚠️⚠️⚠️ NO SYSTEM MESSAGES FOUND! ⚠️⚠️⚠️');
             }
           } else {
-            console.warn('⚠️ No messages found in conversation');
           }
           
           // Mark messages as read
@@ -469,23 +505,19 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             this.shouldAutoScroll = true;
           }, 200);
         } else {
-          console.log('📨 Failed to load messages - Response status:', response.status);
         }
       },
       error: (error) => {
-        console.error('❌ Error loading messages:', error);
       }
     });
   }
 
   handleIncomingMessage(messageData: any) {
-    console.log('📨 Received incoming message via socket:', messageData);
     
     // Run inside Angular zone to ensure change detection
     this.ngZone.run(() => {
       // Skip echo messages to avoid duplicates
       if (messageData.is_echo) {
-        console.log('🔄 Skipping echo message');
         return;
       }
 
@@ -496,15 +528,13 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           messageData.conversation_id &&
           this.recentAutoStatusMessageAt[messageData.conversation_id] &&
           (Date.now() - this.recentAutoStatusMessageAt[messageData.conversation_id] < 5000)) {
-        console.log('🛑 Suppressing duplicate system receipt (seller already sent message)');
-        return;
+        // return;
       }
       
       // Find the conversation
       const conversationIndex = this.messages.findIndex(c => c.conversation_id === messageData.conversation_id);
       if (conversationIndex !== -1) {
         const conversation = this.messages[conversationIndex];
-        console.log('✅ Found conversation for incoming message:', conversation.conversation_id);
         
         // Update last message info
         conversation.last_message = messageData.message_text || (messageData.attachments?.length > 0 ? `Sent ${messageData.attachments.length} attachment(s)` : 'New message');
@@ -513,12 +543,10 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         // If sender is not current user, increment unread count
         if (messageData.sender_id !== this.currentUserId) {
           conversation.unread_count++;
-          console.log('📬 Incremented unread count for conversation:', conversation.conversation_id);
         }
         
         // If this conversation is currently selected, add message to the chat
         if (this.selectedChat && this.selectedChat.conversation_id === messageData.conversation_id) {
-          console.log('💬 Adding message to current chat window');
           const newMessage: ChatMessage = {
             message_id: messageData.message_id,
             sender_id: messageData.sender_id,
@@ -527,7 +555,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             message_text: messageData.message_text,
             created_at: messageData.created_at,
             is_read: false,
-            attachments: messageData.attachments || [],
+            attachments: this.normalizeAttachments(messageData.attachments || []),
             is_system_message: messageData.is_system_message || false,
             system_message_type: messageData.system_message_type
           };
@@ -551,7 +579,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             }, 100);
           }
         } else {
-          console.log('📝 Message added to conversation list but not to current chat window');
         }
         
         // Move conversation to top (create new array reference)
@@ -566,7 +593,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         // Force change detection
         this.cdr.detectChanges();
       } else {
-        console.warn('❌ No conversation found for incoming message:', messageData.conversation_id);
       }
     });
   }
@@ -583,100 +609,59 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   handleProductStatusChange(data: any) {
-    console.log('🔄 Product status change received:', data);
-    console.log('🆔 Current user ID:', this.currentUserId, '(type:', typeof this.currentUserId, ')');
-    console.log('🎯 Target user ID:', data.other_user_id, '(type:', typeof data.other_user_id, ')');
-    console.log('🔍 All conversations:', this.messages.map(c => ({
-      id: c.conversation_id,
-      other_user: c.other_user_id,
-      other_name: c.other_user_name,
-      buyer_id: c.buyer_id,
-      seller_id: c.seller_id
-    })));
-    
     // Check if this status change affects the current user and conversation
     if (data.conversation_id && data.status && (data.status === 'sold' || data.status === 'traded')) {
-      console.log('✅ Status is sold/traded, checking if this affects current user...');
-      
       // Find the conversation that was affected
       const affectedConversation = this.messages.find(conv => conv.conversation_id === data.conversation_id);
-      console.log('🔍 Found affected conversation:', affectedConversation);
-      
+
       // Convert IDs to same type for comparison
       const currentUserId = parseInt(this.currentUserId.toString());
-      
+
       // Check if current user is the BUYER in this conversation
       const isBuyer = affectedConversation?.buyer_id === currentUserId;
-      
-      console.log('🔢 User role check:', {
-        current_user_id: currentUserId,
-        conversation_buyer_id: affectedConversation?.buyer_id,
-        conversation_seller_id: affectedConversation?.seller_id,
-        is_buyer: isBuyer,
-        is_seller: affectedConversation?.seller_id === currentUserId
-      });
-      
+
       // Only show rating button to the BUYER
       if (affectedConversation && isBuyer) {
-        console.log('🎯 Current user is the BUYER - checking if already rated...');
-        
         // Check if user has already rated this conversation
         const conversationKey = `rated_${data.conversation_id}_${this.currentUserId}`;
         const hasAlreadyRated = localStorage.getItem(conversationKey) === 'true';
-        
+
         if (hasAlreadyRated) {
-          console.log('❌ User has already rated this conversation - button will not show');
           this.showRatingButton = false;
           return; // Exit early
         }
-        
-        console.log('✅ User has NOT rated yet - showing rating button');
-        
+
         // Select this conversation if it's not already selected
         if (!this.selectedChat || this.selectedChat.conversation_id !== data.conversation_id) {
-          console.log('📱 Auto-selecting the affected conversation');
           const conversationIndex = this.messages.findIndex(conv => conv.conversation_id === data.conversation_id);
           if (conversationIndex !== -1) {
             this.selectChat(conversationIndex);
           }
         }
-        
+
         // Show rating button ONLY for the buyer who hasn't rated yet
         this.showRatingButton = true;
-        console.log('⭐ Rating button is now visible for the BUYER in completed transaction');
-        
+
         // Automatically open rating modal after a short delay
         setTimeout(() => {
-          console.log('⏰ Checking if buyer has already rated...');
           // Check if user hasn't already rated this transaction
           this.checkIfAlreadyRated(data.conversation_id).then((alreadyRated) => {
-            console.log('📊 Already rated result:', alreadyRated);
             if (!alreadyRated) {
-              console.log('🌟 Automatically opening rating modal for buyer');
               // Automatically show the rating modal
               this.showRatingModal = true;
             } else {
-              console.log('⚠️ Buyer has already rated this transaction');
             }
           }).catch((error) => {
-            console.error('❌ Error checking rating status:', error);
             // If there's an error checking, still show the modal
             this.showRatingModal = true;
           });
         }, 1000); // Short delay to let conversation selection complete
-        
+
       } else if (affectedConversation) {
-        console.log('❌ Current user is the SELLER - rating button hidden');
-        console.log('💡 Only buyers can rate the seller after a transaction');
         this.showRatingButton = false;
       } else {
-        console.log('❌ Affected conversation not found');
       }
     } else {
-      console.log('❌ Status change conditions not met');
-      console.log('   - Has conversation_id:', !!data.conversation_id);
-      console.log('   - Has status:', !!data.status);
-      console.log('   - Status is sold/traded:', data.status === 'sold' || data.status === 'traded');
     }
   }
 
@@ -739,19 +724,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.checkForRatingOpportunity();
     
     // Check product ownership for seller-only features
-    console.log('🔄 selectChat: Checking product ownership for conversation:', this.selectedChat.conversation_id);
     this.checkProductOwnership();
-    
-    // Log current ownership status for debugging
-    setTimeout(() => {
-      console.log('🔍 selectChat: Current ownership status:', {
-        conversation_id: this.selectedChat?.conversation_id,
-        product_id: this.selectedChat?.product_id,
-        cached_status: this.productOwnershipStatus[this.selectedChat?.conversation_id || 0],
-        current_user: this.currentUserId,
-        isProductOwner_result: this.isProductOwner()
-      });
-    }, 1000);
   }
 
   backToChatList() {
@@ -766,7 +739,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     const chatToDelete = this.messages[index];
     if (!chatToDelete) return;
     
-    console.log('🗑️ Deleting chat:', chatToDelete.other_user_name);
     
     const deleteData = {
       conversation_id: chatToDelete.conversation_id,
@@ -775,7 +747,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.apiService.deleteConversation(deleteData).subscribe({
       next: (response) => {
-        console.log('✅ Delete response:', response);
         if (response.status === 'success') {
           // Remove chat from the list
           this.messages.splice(index, 1);
@@ -799,7 +770,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             message
           );
         } else {
-          console.error('❌ Failed to delete chat:', response.message);
           this.notificationService.showError(
             'Delete Failed',
             response.message || 'Failed to delete conversation'
@@ -807,7 +777,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error deleting chat:', error);
         this.notificationService.showError(
           'Delete Failed',
           'An error occurred while deleting the conversation'
@@ -882,7 +851,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
                 sender_name: this.currentUserName,
                 sender_avatar: this.currentUserAvatarUrl,
                 message_text: originalMessage,
-                attachments: response.data.attachments || [],
+                attachments: this.normalizeAttachments(response.data.attachments || []),
                 created_at: response.data.created_at,
                 is_read: false
               };
@@ -911,8 +880,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
               }
 
               // Emit socket event for real-time messaging
-              console.log('📡 Checking socket connection for real-time messaging...');
-              console.log('🔗 Socket connected:', this.socketService.isConnected());
               
               if (this.socketService.isConnected()) {
                 const messageToEmit = {
@@ -925,19 +892,14 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
                   sender_avatar: localStorage.getItem('profile_image') || ''
                 };
                 
-                console.log('📤 Emitting socket message:', messageToEmit);
                 
                 const socketEmitted = this.socketService.emit('send_message', messageToEmit);
 
                 // Log for debugging but don't show notifications
                 if (!socketEmitted) {
-                  console.warn('❌ Socket emit failed - message sent via API but real-time delivery may be delayed');
                 } else {
-                  console.log('✅ Socket message emitted successfully');
                 }
               } else {
-                console.warn('❌ Socket not connected - message sent via API but real-time features unavailable');
-                console.log('🔄 Attempting to reconnect socket...');
                 this.socketService.connect();
               }
 
@@ -959,7 +921,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('Error sending message:', error);
           this.newMessage = originalMessage; // Restore message on failure
           this.attachmentPreviews = originalAttachments; // Restore attachments on failure
           
@@ -1009,7 +970,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error marking messages as read:', error);
       }
     });
   }
@@ -1023,7 +983,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.apiService.getProductById(chat.product_id).subscribe({
       next: (prodRes) => {
-        const product = prodRes?.data?.[0] || {};
+        const product = (prodRes && prodRes.data && Array.isArray(prodRes.data) && prodRes.data.length > 0) ? prodRes.data[0] : {};
         const productName = chat.product_name || product.product_name || 'This product';
         const price = (product.price ?? chat.price ?? 0).toFixed(2);
         const location = product.location || product.product_location || 'N/A';
@@ -1032,11 +992,11 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         const verb = status === 'sold' ? 'sold' : 'traded';
 
         const systemMessageText = `This ${productName} ${verb} to you\n\n` +
-          `📦 Product Details:\n` +
-          `💰 Price: ${price}\n` +
-          `📍 Location: ${location}\n` +
-          `🔧 Condition: ${condition}\n` +
-          `📝 Type: ${type}`;
+          `ðŸ“¦ Product Details:\n` +
+          `ðŸ’° Price: â‚±${price}\n` +
+          `ðŸ“ Location: ${location}\n` +
+          `ðŸ”§ Condition: ${condition}\n` +
+          `ðŸ“ Type: ${type}`;
 
         const messageData = {
           conversation_id: chat.conversation_id,
@@ -1089,7 +1049,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       error: () => {
         // Fallback: send minimal message if product fetch fails
         const verb = status === 'sold' ? 'sold' : 'traded';
-        const systemMessageText = `This ${chat.product_name} ${verb} to you\n\n📦 Product Details:\n💰 Price: ${(chat.price || 0).toFixed(2)}\n📍 Location: N/A\n🔧 Condition: Second hand\n📝 Type: ${verb === 'sold' ? 'Sale' : 'Trade'}`;
+        const systemMessageText = `This ${chat.product_name} ${verb} to you\n\nðŸ“¦ Product Details:\nðŸ’° Price: â‚±${(chat.price || 0).toFixed(2)}\nðŸ“ Location: N/A\nðŸ”§ Condition: Second hand\nðŸ“ Type: ${verb === 'sold' ? 'Sale' : 'Trade'}`;
         const messageData = {
           conversation_id: chat.conversation_id,
           sender_id: this.currentUserId,
@@ -1106,10 +1066,44 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   onInputFocus() {
     this.isTyping = true;
+    this.isMessageInputFocused = true;
   }
 
   onInputBlur() {
     this.isTyping = false;
+    this.isMessageInputFocused = false;
+  }
+
+  isCurrentUserSellerInChat(): boolean {
+    return !!this.selectedChat && this.currentUserId === this.selectedChat.seller_id;
+  }
+
+  getGuidedMessagesForCurrentRole(): string[] {
+    return this.isCurrentUserSellerInChat() ? this.sellerGuidedMessages : this.buyerGuidedMessages;
+  }
+
+  shouldShowGuidedMessages(): boolean {
+    return !!this.selectedChat &&
+      !this.newMessage.trim() &&
+      this.attachmentPreviews.length === 0 &&
+      !this.isMessageInputFocused &&
+      this.accountStatusService.canPerformAction('send_message');
+  }
+
+  selectGuidedMessage(message: string): void {
+    if (!this.selectedChat) {
+      this.notificationService.showError('No Chat Selected', 'Please select a conversation first');
+      return;
+    }
+
+    if (!this.accountStatusService.canPerformAction('send_message')) {
+      this.notificationService.showWarning('Messaging Restricted', 'You cannot send messages right now.');
+      return;
+    }
+
+    // Guided messages are one-tap quick replies: set and send immediately.
+    this.newMessage = message;
+    this.sendMessage();
   }
 
   /**
@@ -1194,14 +1188,13 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isNearBottom = isAtBottom;
     this.showScrollToBottomButton = !isAtBottom && element.scrollHeight > element.clientHeight;
     
-    console.log('📜 Scroll event:', {
-      scrollTop: element.scrollTop,
-      clientHeight: element.clientHeight,
-      scrollHeight: element.scrollHeight,
-      isAtBottom: isAtBottom,
-      showButton: this.showScrollToBottomButton,
-      userScrolling: this.isUserScrolling
-    });
+    //   scrollTop: element.scrollTop,
+    //   clientHeight: element.clientHeight,
+    //   scrollHeight: element.scrollHeight,
+    //   isAtBottom: isAtBottom,
+    //   showButton: this.showScrollToBottomButton,
+    //   userScrolling: this.isUserScrolling
+    // });
   }
 
   /**
@@ -1224,7 +1217,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       setTimeout(() => {
         const isAtBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 10;
         this.isNearBottom = isAtBottom;
-        console.log('📍 Manual scroll completed, at bottom:', isAtBottom);
       }, 500);
     }
   }
@@ -1235,34 +1227,42 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   debugScrollState(): void {
     if (this.chatContainer) {
       const element = this.chatContainer.nativeElement;
-      console.log('🐛 SCROLL DEBUG:', {
-        shouldAutoScroll: this.shouldAutoScroll,
-        isUserScrolling: this.isUserScrolling,
-        isNearBottom: this.isNearBottom,
-        showScrollButton: this.showScrollToBottomButton,
-        scrollTop: element.scrollTop,
-        scrollHeight: element.scrollHeight,
-        clientHeight: element.clientHeight,
-        distanceFromBottom: element.scrollHeight - (element.scrollTop + element.clientHeight)
-      });
+      //   shouldAutoScroll: this.shouldAutoScroll,
+      //   isUserScrolling: this.isUserScrolling,
+      //   isNearBottom: this.isNearBottom,
+      //   showScrollButton: this.showScrollToBottomButton,
+      //   scrollTop: element.scrollTop,
+      //   scrollHeight: element.scrollHeight,
+      //   clientHeight: element.clientHeight,
+      //   distanceFromBottom: element.scrollHeight - (element.scrollTop + element.clientHeight)
+      // });
     }
   }
 
   getAvatarUrl(profileImage: string | null, name: string): string {
+    const safeName = name || 'User';
+
     if (profileImage && profileImage.trim() !== '') {
+      if (profileImage.startsWith('data:')) {
+        return profileImage;
+      }
+
       // If it's a full URL, return as-is
       if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
         return profileImage;
       }
-      // For profile images stored under uploads/, serve from images subdomain
-      const stripped = profileImage.replace(/^\/?uploads[\/]/, '');
-      return `http://images.cyclemart.shop/${stripped}`;
+
+      // For relative paths stored under uploads/, serve from the API uploads base URL
+      const stripped = profileImage
+        .replace(/^\/?api\/uploads[\/\\]/, '')
+        .replace(/^\/?uploads[\/\\]/, '');
+      return `${environment.apiUploadsBaseUrl}${stripped}`;
     }
     
     // Generate avatar using UI Avatars
     const colors = ['6BA3BE', '34D399', 'F59E0B', '8B5CF6', 'EF4444', '10B981'];
-    const color = colors[name.length % colors.length];
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${color}&color=fff`;
+    const color = colors[safeName.length % colors.length];
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=${color}&color=fff`;
   }
 
   getProductImageUrl(productImages: string): string {
@@ -1278,10 +1278,9 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         const firstImage = imagesArray[0];
         // Remove any extra path prefixes from the image name
         const cleanImageName = firstImage.replace(/^uploads[\/\\]/, '');
-        return `http://api.cyclemart.shop/CycleMart-api/api/uploads/${cleanImageName}`;
+        return `${environment.apiUploadsBaseUrl}${cleanImageName}`;
       }
     } catch (e) {
-      console.warn('Failed to parse product images:', productImages);
     }
     
     return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
@@ -1297,9 +1296,9 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic text
     
     // Enhance product information sections
-    if (formatted.includes('📦 Product Information:')) {
+    if (formatted.includes('ðŸ“¦ Product Information:')) {
       formatted = formatted.replace(
-        /(📦 Product Information:.*?)(?=\n\n|$)/s,
+        /(ðŸ“¦ Product Information:.*?)(?=\n\n|$)/s,
         '<div class="bg-blue-50 border-l-4 border-blue-400 p-3 my-2 rounded-r-lg">$1</div>'
       );
     }
@@ -1346,17 +1345,15 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Debug method to log messages in template
    */
   logMessage(msg: any, index: number): string {
-    console.log(`🎨 TEMPLATE RENDERING MESSAGE ${index}:`, {
-      message_id: msg.message_id,
-      sender_id: msg.sender_id,
-      is_system_message: msg.is_system_message,
-      system_message_type: msg.system_message_type,
-      has_text: !!msg.message_text,
-      text_preview: msg.message_text?.substring(0, 50)
-    });
+    //   message_id: msg.message_id,
+    //   sender_id: msg.sender_id,
+    //   is_system_message: msg.is_system_message,
+    //   system_message_type: msg.system_message_type,
+    //   has_text: !!msg.message_text,
+    //   text_preview: msg.message_text?.substring(0, 50)
+    // });
     
     if (msg.is_system_message) {
-      console.log(`🟢🟢🟢 RENDERING SYSTEM MESSAGE ${index} �🟢�`);
     }
     
     return '';
@@ -1385,30 +1382,27 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Confirm the status change from modal
    */
   confirmStatusChange() {
-    console.log('🔷🔷🔷 === CONFIRM STATUS CHANGE STARTED === 🔷🔷🔷');
     
     if (!this.selectedChat || !this.pendingStatusChange) {
-      console.error('❌ No selected chat or pending status:', {
-        hasSelectedChat: !!this.selectedChat,
-        pendingStatus: this.pendingStatusChange
-      });
+      //   hasSelectedChat: !!this.selectedChat,
+      //   pendingStatus: this.pendingStatusChange
+      // });
       return;
     }
     
     const selectedChat = this.selectedChat; // Store reference for type safety
     const newStatus = this.pendingStatusChange;
     
-    console.log('📋 Status change details:', {
-      conversationId: selectedChat.conversation_id,
-      productId: selectedChat.product_id,
-      productName: selectedChat.product_name,
-      newStatus: newStatus,
-      buyerId: selectedChat.buyer_id,
-      sellerId: selectedChat.seller_id,
-      otherUserId: selectedChat.other_user_id,
-      otherUserName: selectedChat.other_user_name,
-      currentUserId: this.currentUserId
-    });
+    //   conversationId: selectedChat.conversation_id,
+    //   productId: selectedChat.product_id,
+    //   productName: selectedChat.product_name,
+    //   newStatus: newStatus,
+    //   buyerId: selectedChat.buyer_id,
+    //   sellerId: selectedChat.seller_id,
+    //   otherUserId: selectedChat.other_user_id,
+    //   otherUserName: selectedChat.other_user_name,
+    //   currentUserId: this.currentUserId
+    // });
     
     // Close modal
     this.showStatusConfirmationModal = false;
@@ -1418,14 +1412,15 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         product_id: selectedChat.product_id,
         sale_status: newStatus,
         uploader_id: this.currentUserId,
-        for_type: 'sale' // Default for_type since it's required
+        for_type: 'sale', // Default for_type since it's required
+        conversation_id: selectedChat.conversation_id, // Track which conversation made the sale
+        buyer_id: selectedChat.buyer_id, // Track the buyer from this conversation
+        seller_id: selectedChat.seller_id // Track the seller from this conversation
       };
 
-      console.log('📤 Sending status update to API:', updateData);
 
       this.apiService.updateSaleStatus(updateData).subscribe({
         next: (response) => {
-          console.log('📥 Status update API response:', response);
           
           if (response.status === 'success') {
             let successText = '';
@@ -1452,14 +1447,13 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             this.productSaleStatus[conversationId] = newStatus;
             
             // Log the status change
-            console.log('Product status updated:', {
-              product_id: selectedChat.product_id,
-              product_name: selectedChat.product_name,
-              new_status: newStatus,
-              timestamp: new Date().toISOString(),
-              user_id: this.currentUserId,
-              dropdown_will_be: (newStatus === 'sold' || newStatus === 'traded') ? 'HIDDEN' : 'VISIBLE'
-            });
+            //   product_id: selectedChat.product_id,
+            //   product_name: selectedChat.product_name,
+            //   new_status: newStatus,
+            //   timestamp: new Date().toISOString(),
+            //   user_id: this.currentUserId,
+            //   dropdown_will_be: (newStatus === 'sold' || newStatus === 'traded') ? 'HIDDEN' : 'VISIBLE'
+            // });
 
             // Show rating modal to the other party when item is marked as sold or traded
             // The person who marks the status is typically the seller
@@ -1467,14 +1461,11 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             if ((newStatus === 'sold' || newStatus === 'traded') && this.selectedChat) {
                 // Send automated sale/trade message to buyer
                 this.sendSystemConfirmationMessage(selectedChat, newStatus);
-              console.log('🟢🟢🟢 CONDITION MET: Status is sold/traded 🟢🟢🟢');
-              console.log('🚀 Status marked by seller:', this.currentUserId, 'Buyer (other party):', selectedChat.other_user_id);
-              console.log('📊 Conditions check:', {
-                isSold: newStatus === 'sold',
-                isTraded: newStatus === 'traded',
-                hasSelectedChat: !!this.selectedChat,
-                selectedChatId: this.selectedChat?.conversation_id
-              });
+              //   isSold: newStatus === 'sold',
+              //   isTraded: newStatus === 'traded',
+              //   hasSelectedChat: !!this.selectedChat,
+              //   selectedChatId: this.selectedChat?.conversation_id
+              // });
               
               this.notificationService.showInfo(
                 'Transaction Complete',
@@ -1495,22 +1486,48 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
                   timestamp: new Date().toISOString()
                 };
                 
-                console.log('📡 Emitting product status changed via socket to buyer:', statusChangeData);
                 // Align event name with listener 'product_status_changed'
                 this.socketService.emit('product_status_changed', statusChangeData);
                 
                 // Add confirmation that emit was called
-                console.log('✅ Socket emit called successfully - buyer will receive notification');
               } else {
-                console.warn('⚠️ Socket not connected, cannot send real-time notification');
-                console.log('🔄 Attempting to reconnect socket...');
                 // Try to reconnect socket
                 this.socketService.connect();
               }
               
               // Rating button visibility is now handled by buyer check in checkProductStatus()
               // Don't show rating button to seller - only buyers can rate sellers
-              console.log('💡 Rating button will only be visible to the BUYER, not the seller');
+            } else if (newStatus === 'reserved' && this.selectedChat) {
+              const reservedMessageText = `${selectedChat.product_name} has been reserved.`;
+              const systemMessage: any = {
+                message_id: Date.now(),
+                sender_id: 0,
+                sender_name: 'System',
+                sender_avatar: '',
+                message_text: reservedMessageText,
+                created_at: new Date().toISOString(),
+                is_read: false,
+                attachments: [],
+                is_system_message: true,
+                system_message_type: 'reserved'
+              };
+
+              this.selectedChat.messages = [...(this.selectedChat.messages || []), systemMessage];
+              this.selectedChat = { ...this.selectedChat };
+
+              if (this.socketService.isConnected()) {
+                this.socketService.emit('product_status_changed', {
+                  conversation_id: selectedChat.conversation_id,
+                  product_id: selectedChat.product_id,
+                  product_name: selectedChat.product_name,
+                  status: newStatus,
+                  changed_by: this.currentUserId,
+                  other_user_id: selectedChat.other_user_id,
+                  timestamp: new Date().toISOString()
+                });
+              } else {
+                this.socketService.connect();
+              }
             }
           } else {
             this.notificationService.showError(
@@ -1520,7 +1537,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('Error updating product status:', error);
           this.notificationService.showError(
             'Update Failed',
             'Failed to update product status. Please check your connection and try again.'
@@ -1572,13 +1588,183 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
+   * Open reservation modal to select duration
+   */
+  openReservationModal() {
+    if (!this.selectedChat) return;
+    
+    // Reset to default 24 hours
+    this.selectedReservationDuration = 24;
+    this.showReservationModal = true;
+    this.showStatusDropdown = false; // Close status dropdown if open
+  }
+
+  /**
+   * Close reservation modal
+   */
+  closeReservationModal() {
+    this.showReservationModal = false;
+    this.selectedReservationDuration = 24;
+  }
+
+  /**
+   * Confirm reservation with selected duration
+   */
+  confirmReservation() {
+    if (!this.selectedChat || !this.selectedReservationDuration) {
+      this.notificationService.showError(
+        'Reservation Failed',
+        'Please select a reservation duration'
+      );
+      return;
+    }
+
+    const reservationData = {
+      product_id: this.selectedChat.product_id,
+      buyer_id: this.selectedChat.other_user_id, // The person you're messaging
+      seller_id: this.currentUserId, // You (the product owner)
+      duration_hours: this.selectedReservationDuration
+    };
+
+    this.closeReservationModal();
+
+    this.apiService.reserveProduct(reservationData).subscribe({
+      next: (response) => {
+        if (response.status === 'success') {
+          this.notificationService.showSuccess(
+            'Product Reserved',
+            `${this.selectedChat!.product_name} has been reserved for ${this.selectedReservationDuration} hours!`
+          );
+
+          if (this.selectedChat) {
+            const reservedMessageText = `'${this.selectedChat.product_name}' has been reserved for ${this.selectedReservationDuration} hours.`;
+            const systemMessage: any = {
+              message_id: Date.now(),
+              sender_id: 0,
+              sender_name: 'System',
+              sender_avatar: '',
+              message_text: reservedMessageText,
+              created_at: new Date().toISOString(),
+              is_read: false,
+              attachments: [],
+              is_system_message: true,
+              system_message_type: 'reserved'
+            };
+
+            this.selectedChat.messages = [...(this.selectedChat.messages || []), systemMessage];
+            this.selectedChat = { ...this.selectedChat };
+          }
+
+          // Update local sale status
+          if (this.selectedChat) {
+            this.productSaleStatus[this.selectedChat.conversation_id] = 'reserved';
+          }
+
+          // Reload conversations to reflect changes
+          this.loadConversations();
+
+          // Emit socket event for real-time update
+          if (this.socketService.isConnected()) {
+            this.socketService.emit('product_status_changed', {
+              product_id: this.selectedChat!.product_id,
+              new_status: 'reserved',
+              conversation_id: this.selectedChat!.conversation_id,
+              buyer_id: reservationData.buyer_id,
+              seller_id: reservationData.seller_id
+            });
+          }
+        } else {
+          this.notificationService.showError(
+            'Reservation Failed',
+            response.message || 'Failed to reserve product. Please try again.'
+          );
+        }
+      },
+      error: (error) => {
+        this.notificationService.showError(
+          'Reservation Failed',
+          error.error?.message || 'Failed to reserve product. Please check your connection and try again.'
+        );
+      }
+    });
+  }
+
+  /**
+   * Open cancel reservation confirmation modal
+   */
+  openCancelReservationModal() {
+    if (!this.selectedChat) return;
+    this.showCancelReservationModal = true;
+  }
+
+  /**
+   * Close cancel reservation modal
+   */
+  closeCancelReservationModal() {
+    this.showCancelReservationModal = false;
+  }
+
+  /**
+   * Confirm and cancel an active reservation
+   */
+  confirmCancelReservation() {
+    if (!this.selectedChat) return;
+
+    this.showCancelReservationModal = false;
+
+    const cancelData = {
+      product_id: this.selectedChat.product_id,
+      user_id: this.currentUserId,
+      reason: 'Seller cancelled reservation'
+    };
+
+    this.apiService.cancelReservation(cancelData).subscribe({
+      next: (response) => {
+        if (response.status === 'success') {
+          this.notificationService.showSuccess(
+            'Reservation Cancelled',
+            `Reservation for ${this.selectedChat!.product_name} has been cancelled.`
+          );
+
+          // Update local sale status
+          if (this.selectedChat) {
+            this.productSaleStatus[this.selectedChat.conversation_id] = 'available';
+          }
+
+          // Reload conversations
+          this.loadConversations();
+
+          // Emit socket event
+          if (this.socketService.isConnected()) {
+            this.socketService.emit('product_status_changed', {
+              product_id: this.selectedChat!.product_id,
+              new_status: 'available',
+              conversation_id: this.selectedChat!.conversation_id
+            });
+          }
+        } else {
+          this.notificationService.showError(
+            'Cancellation Failed',
+            response.message || 'Failed to cancel reservation.'
+          );
+        }
+      },
+      error: (error) => {
+        this.notificationService.showError(
+          'Cancellation Failed',
+          'Failed to cancel reservation. Please try again.'
+        );
+      }
+    });
+  }
+
+  /**
    * Archive a specific chat conversation
    */
   archiveChat(index: number) {
     const chatToArchive = this.messages[index];
     if (!chatToArchive) return;
     
-    console.log('📦 Archiving chat:', chatToArchive.other_user_name);
     
     const archiveData = {
       conversation_id: chatToArchive.conversation_id,
@@ -1587,7 +1773,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.apiService.archiveConversation(archiveData).subscribe({
       next: (response) => {
-        console.log('✅ Archive response:', response);
         if (response.status === 'success') {
           // Move chat to archived messages
           this.archivedMessages.push(chatToArchive);
@@ -1611,7 +1796,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             `Conversation with ${chatToArchive.other_user_name} has been archived`
           );
         } else {
-          console.error('❌ Failed to archive chat:', response.message);
           this.notificationService.showError(
             'Archive Failed',
             response.message || 'Failed to archive conversation'
@@ -1619,7 +1803,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error archiving chat:', error);
         this.notificationService.showError(
           'Archive Failed',
           'An error occurred while archiving the conversation'
@@ -1636,14 +1819,12 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     
     if (this.showArchivedMessages) {
       // Load and show archived messages
-      console.log('📦 Loading archived messages');
       this.loadArchivedConversations().then(() => {
         this.notificationService.showInfo(
           'Archived Messages',
           `Showing ${this.archivedMessages.length} archived conversations`
         );
       }).catch(error => {
-        console.error('❌ Failed to load archived messages:', error);
         this.notificationService.showError(
           'Load Failed',
           'Failed to load archived conversations'
@@ -1651,7 +1832,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       });
     } else {
       // Show active messages
-      console.log('📨 Showing active messages');
       this.notificationService.showInfo(
         'Active Messages',
         `Showing ${this.messages.length} active conversations`
@@ -1664,11 +1844,9 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   loadArchivedConversations(): Promise<void> {
     this.isLoading = true;
-    console.log('🔍 Loading archived conversations for user ID:', this.currentUserId);
     return new Promise((resolve, reject) => {
       this.apiService.getUserArchivedConversations(this.currentUserId).subscribe({
         next: (response) => {
-          console.log('📦 Archived conversations API response:', response);
           if (response.status === 'success') {
             this.archivedMessages = response.data.map((conv: any) => ({
               conversation_id: conv.conversation_id,
@@ -1687,13 +1865,12 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
               seller_id: conv.seller_id  // Track seller_id from conversation
             }));
             
-            console.log('📋 Loaded archived conversations:', this.archivedMessages.map(c => ({
-              id: c.conversation_id,
-              other_user: c.other_user_name,
-              product: c.product_name,
-              buyer_id: c.buyer_id,
-              seller_id: c.seller_id
-            })));
+            //   id: c.conversation_id,
+            //   other_user: c.other_user_name,
+            //   product: c.product_name,
+            //   buyer_id: c.buyer_id,
+            //   seller_id: c.seller_id
+            // })));
           } else {
             this.archivedMessages = [];
           }
@@ -1701,7 +1878,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           resolve();
         },
         error: (error) => {
-          console.error('❌ Error loading archived conversations:', error);
           this.archivedMessages = [];
           this.isLoading = false;
           reject(error);
@@ -1717,7 +1893,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     const chatToRestore = this.archivedMessages[index];
     if (!chatToRestore) return;
     
-    console.log('🔄 Restoring chat:', chatToRestore.other_user_name);
     
     const restoreData = {
       conversation_id: chatToRestore.conversation_id,
@@ -1726,7 +1901,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.apiService.restoreConversation(restoreData).subscribe({
       next: (response) => {
-        console.log('✅ Restore response:', response);
         if (response.status === 'success') {
           // Move chat back to active messages
           this.messages.unshift(chatToRestore); // Add to beginning of active messages
@@ -1737,7 +1911,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             `Conversation with ${chatToRestore.other_user_name} has been restored`
           );
         } else {
-          console.error('❌ Failed to restore chat:', response.message);
           this.notificationService.showError(
             'Restore Failed',
             response.message || 'Failed to restore conversation'
@@ -1745,7 +1918,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error restoring chat:', error);
         this.notificationService.showError(
           'Restore Failed',
           'An error occurred while restoring the conversation'
@@ -1761,7 +1933,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     const chatToDelete = this.archivedMessages[index];
     if (!chatToDelete) return;
     
-    console.log('🗑️ Permanently deleting archived chat:', chatToDelete.other_user_name);
     
     const deleteData = {
       conversation_id: chatToDelete.conversation_id,
@@ -1770,7 +1941,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.apiService.deleteConversation(deleteData).subscribe({
       next: (response) => {
-        console.log('✅ Delete archived response:', response);
         if (response.status === 'success') {
           // Remove chat from archived list
           this.archivedMessages.splice(index, 1);
@@ -1784,7 +1954,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             message
           );
         } else {
-          console.error('❌ Failed to delete archived chat:', response.message);
           this.notificationService.showError(
             'Delete Failed',
             response.message || 'Failed to delete conversation'
@@ -1792,7 +1961,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error deleting archived chat:', error);
         this.notificationService.showError(
           'Delete Failed',
           'An error occurred while deleting the conversation'
@@ -1806,16 +1974,12 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   openRatingModalDirectly() {
     if (!this.selectedChat) {
-      console.log('❌ No chat selected for rating');
       return;
     }
     
-    console.log('⭐ Opening rating modal directly for conversation:', this.selectedChat.conversation_id);
-    console.log('👤 Rating user:', this.selectedChat.other_user_name);
     
     // Open modal immediately without checks
     this.showRatingModal = true;
-    console.log('✅ Rating modal opened directly');
   }
 
   /**
@@ -1823,24 +1987,18 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   openRatingModal() {
     if (!this.selectedChat) {
-      console.log('❌ No chat selected for rating');
       return;
     }
     
-    console.log('⭐ Opening rating modal for conversation:', this.selectedChat.conversation_id);
-    console.log('👤 Rating user:', this.selectedChat.other_user_name);
     
     // Check if user has already rated before opening modal
     this.checkIfAlreadyRated(this.selectedChat.conversation_id).then((alreadyRated) => {
       if (alreadyRated) {
-        console.log('⚠️ User has already rated this transaction');
         this.showRatingButton = false; // Hide the button since already rated
       } else {
         this.showRatingModal = true;
-        console.log('✅ Rating modal opened successfully');
       }
     }).catch((error) => {
-      console.error('Error checking rating status:', error);
       // If there's an error checking, allow the modal to open
       this.showRatingModal = true;
     });
@@ -1853,7 +2011,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.showRatingModal = false;
     // Keep the rating button visible so user can rate later
     // The button will only be hidden after successful rating submission
-    console.log('⭐ Rating modal closed - star button remains visible for later rating');
   }
 
   /**
@@ -1873,7 +2030,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Handle rating submission
    */
   onRatingSubmitted(ratingData: any) {
-    console.log('⭐ Rating submitted successfully:', ratingData);
     
     // Hide the rating button after rating is submitted
     this.showRatingButton = false;
@@ -1885,10 +2041,8 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (this.selectedChat) {
       const conversationKey = `rated_${this.selectedChat.conversation_id}_${this.currentUserId}`;
       localStorage.setItem(conversationKey, 'true');
-      console.log('💾 Stored rating completion flag:', conversationKey);
     }
     
-    console.log('✅ Rating process completed - button hidden permanently');
   }
 
   /**
@@ -1898,34 +2052,25 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     let attempts = 0;
     const maxAttempts = 30; // Wait up to 3 seconds
     
-    console.log('🎯 Looking for conversation ID:', conversationId);
     
     // Wait for conversations to load, then select the specific conversation
     const checkAndSelect = () => {
       attempts++;
-      console.log(`🔍 Attempt ${attempts}/${maxAttempts} - Current conversations:`, 
-        this.messages.map(c => c.conversation_id));
+        // this.messages.map(c => c.conversation_id));
       
       const conversation = this.messages.find(c => c.conversation_id === conversationId);
       if (conversation) {
         const index = this.messages.indexOf(conversation);
         this.selectChat(index);
-        console.log('✅ Found and selected conversation:', conversationId);
       } else if (attempts >= maxAttempts) {
         // If still not found after max attempts, reload conversations
-        console.warn('⚠️ Conversation not found after initial load, reloading...', conversationId);
         this.loadConversations().then(() => {
           // Try one more time after reload
-          console.log('🔄 After reload, conversations:', this.messages.map(c => c.conversation_id));
           const retryConversation = this.messages.find(c => c.conversation_id === conversationId);
           if (retryConversation) {
             const index = this.messages.indexOf(retryConversation);
             this.selectChat(index);
-            console.log('✅ Found conversation after reload:', conversationId);
           } else {
-            console.error('❌ Conversation not found even after reload:', conversationId);
-            console.log('📊 Available conversations:', this.messages);
-            console.log('🆔 Current user ID:', this.currentUserId);
             
             // Show user-friendly error
             this.notificationService.showError(
@@ -1934,7 +2079,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             );
           }
         }).catch(error => {
-          console.error('❌ Error reloading conversations:', error);
           this.notificationService.showError(
             'Error Loading Conversations',
             'Unable to load conversations. Please refresh the page and try again.'
@@ -1956,7 +2100,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   isProductOwner(): boolean {
     if (!this.selectedChat || !this.currentUserId) {
-      console.log('❌ isProductOwner: No selected chat or current user');
       return false;
     }
     
@@ -1973,27 +2116,23 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         
         // Hide dropdown if product is sold or traded (final statuses)
         if (saleStatus === 'sold' || saleStatus === 'traded') {
-          console.log('🔒 isProductOwner: Product is', saleStatus, '- hiding dropdown');
           return false;
         }
         
         // Show dropdown if product is reserved or available (changeable statuses)
-        console.log('✅ isProductOwner: Product is', saleStatus, '- showing dropdown');
       }
       
-      console.log('📊 isProductOwner: Using cached result', {
-        conversation_id: conversationId,
-        product_id: productId,
-        current_user_id: this.currentUserId,
-        is_product_owner: isOwner,
-        sale_status: this.productSaleStatus[conversationId],
-        dropdown_visible: isOwner && this.productSaleStatus[conversationId] !== 'sold' && this.productSaleStatus[conversationId] !== 'traded'
-      });
+      //   conversation_id: conversationId,
+      //   product_id: productId,
+      //   current_user_id: this.currentUserId,
+      //   is_product_owner: isOwner,
+      //   sale_status: this.productSaleStatus[conversationId],
+      //   dropdown_visible: isOwner && this.productSaleStatus[conversationId] !== 'sold' && this.productSaleStatus[conversationId] !== 'traded'
+      // });
       return isOwner;
     }
     
     // If no cached data, fetch product details to get uploader_id
-    console.log('🔍 isProductOwner: Need to fetch product uploader_id for product:', productId);
     this.checkProductOwnership();
     
     // Return false while fetching (safe default)
@@ -2005,32 +2144,33 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   private checkProductOwnership() {
     if (!this.selectedChat) {
-      console.warn('⚠️ checkProductOwnership: No selected chat');
       return;
     }
     
     const productId = this.selectedChat.product_id;
     const conversationId = this.selectedChat.conversation_id;
     
-    console.log('🔍 Fetching product ownership data:', {
-      product_id: productId,
-      conversation_id: conversationId,
-      current_user_id: this.currentUserId
-    });
+    //   product_id: productId,
+    //   conversation_id: conversationId,
+    //   current_user_id: this.currentUserId
+    // });
     
     this.apiService.getProductById(productId).subscribe({
       next: (response) => {
-        console.log('📦 API Response:', response);
         
         // Handle different response structures
-        const product = response.data?.[0] || response;
+        const product = (response && response.data && Array.isArray(response.data) && response.data.length > 0) ? response.data[0] : response;
         
         if (product && product.uploader_id) {
           // Simple comparison: current user ID vs product uploader ID
           const isOwner = product.uploader_id === this.currentUserId;
+          const forType = this.normalizeForType(product.for_type);
           
           // Cache the ownership result
           this.productOwnershipStatus[conversationId] = isOwner;
+
+          // Cache the listing type so status options can be filtered correctly
+          this.productForType[conversationId] = forType;
           
           // Cache the sale status
           this.productSaleStatus[conversationId] = product.sale_status || 'available';
@@ -2038,29 +2178,48 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           // Determine if dropdown should be visible
           const shouldShowDropdown = isOwner && product.sale_status !== 'sold' && product.sale_status !== 'traded';
           
-          console.log('✅ Product ownership determined:', {
-            product_id: productId,
-            product_name: product.product_name,
-            uploader_id: product.uploader_id,
-            current_user_id: this.currentUserId,
-            comparison: `${this.currentUserId} === ${product.uploader_id}`,
-            is_owner: isOwner,
-            sale_status: product.sale_status,
-            mark_status_visibility: shouldShowDropdown ? '✅ VISIBLE' : '❌ HIDDEN'
-          });
+          //   product_id: productId,
+          //   product_name: product.product_name,
+          //   uploader_id: product.uploader_id,
+          //   current_user_id: this.currentUserId,
+          //   comparison: `${this.currentUserId} === ${product.uploader_id}`,
+          //   is_owner: isOwner,
+          //   sale_status: product.sale_status,
+          //   mark_status_visibility: shouldShowDropdown ? 'âœ… VISIBLE' : 'âŒ HIDDEN'
+          // });
           
         } else {
-          console.warn('⚠️ Product missing uploader_id - defaulting to non-owner:', product);
           this.productOwnershipStatus[conversationId] = false;
+          this.productForType[conversationId] = 'both';
           this.productSaleStatus[conversationId] = 'available';
         }
       },
       error: (error) => {
-        console.error('❌ Error fetching product data:', error);
         this.productOwnershipStatus[conversationId] = false;
+        this.productForType[conversationId] = 'both';
         this.productSaleStatus[conversationId] = 'available';
       }
     });
+  }
+
+  private normalizeForType(forType: any): 'sale' | 'trade' | 'both' {
+    const normalized = String(forType || 'both').trim().toLowerCase();
+    if (normalized === 'sale' || normalized === 'trade' || normalized === 'both') {
+      return normalized;
+    }
+    return 'both';
+  }
+
+  canShowSoldOption(): boolean {
+    if (!this.selectedChat) return false;
+    const forType = this.productForType[this.selectedChat.conversation_id] || this.normalizeForType(this.selectedChat.for_type);
+    return forType === 'sale' || forType === 'both';
+  }
+
+  canShowTradedOption(): boolean {
+    if (!this.selectedChat) return false;
+    const forType = this.productForType[this.selectedChat.conversation_id] || this.normalizeForType(this.selectedChat.for_type);
+    return forType === 'trade' || forType === 'both';
   }
 
 
@@ -2079,11 +2238,9 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   checkForRatingOpportunity() {
     if (!this.selectedChat) {
-      console.log('❌ No selected chat - cannot check rating opportunity');
       return;
     }
 
-    console.log('🔍 Checking rating opportunity for conversation:', this.selectedChat.conversation_id);
     
     // Reset rating button state first
     this.showRatingButton = false;
@@ -2108,7 +2265,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('Error checking rating status:', error);
           // On error, assume user hasn't rated to give them the opportunity
           resolve(false);
         }
@@ -2122,16 +2278,13 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   private checkProductStatus() {
     if (!this.selectedChat) {
-      console.log('❌ No selected chat - cannot check product status');
       return;
     }
 
-    console.log('🔍 Checking product status for conversation:', this.selectedChat.conversation_id);
-    console.log('👥 Conversation participants:', {
-      buyer_id: this.selectedChat.buyer_id,
-      seller_id: this.selectedChat.seller_id,
-      current_user_id: this.currentUserId
-    });
+    //   buyer_id: this.selectedChat.buyer_id,
+    //   seller_id: this.selectedChat.seller_id,
+    //   current_user_id: this.currentUserId
+    // });
 
     // Get product details to check current status
     this.apiService.getProductById(this.selectedChat.product_id).subscribe({
@@ -2139,12 +2292,11 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         if (response.status === 'success' && response.data && response.data.length > 0) {
           const product = response.data[0];
           
-          console.log('📦 Product data retrieved:', {
-            product_id: product.product_id,
-            sale_status: product.sale_status,
-            uploader_id: product.uploader_id,
-            current_user_id: this.currentUserId
-          });
+          //   product_id: product.product_id,
+          //   sale_status: product.sale_status,
+          //   uploader_id: product.uploader_id,
+          //   current_user_id: this.currentUserId
+          // });
           
           // Check if product is sold or traded
           if (product.sale_status === 'sold' || product.sale_status === 'traded') {
@@ -2152,14 +2304,13 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
             // The buyer is the one who is NOT the seller (uploader)
             const isBuyer = this.selectedChat?.buyer_id === this.currentUserId;
             
-            console.log('🎯 Rating button visibility check:', {
-              product_status: product.sale_status,
-              current_user_is_buyer: isBuyer,
-              current_user_is_seller: product.uploader_id === this.currentUserId,
-              buyer_id_from_conversation: this.selectedChat?.buyer_id,
-              seller_id_from_conversation: this.selectedChat?.seller_id,
-              current_user_id: this.currentUserId
-            });
+            //   product_status: product.sale_status,
+            //   current_user_is_buyer: isBuyer,
+            //   current_user_is_seller: product.uploader_id === this.currentUserId,
+            //   buyer_id_from_conversation: this.selectedChat?.buyer_id,
+            //   seller_id_from_conversation: this.selectedChat?.seller_id,
+            //   current_user_id: this.currentUserId
+            // });
             
             // Show rating button ONLY to the buyer
             if (isBuyer) {
@@ -2169,26 +2320,20 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
               
               if (hasAlreadyRated) {
                 this.showRatingButton = false;
-                console.log('❌ Rating button HIDDEN - User has already rated this conversation');
               } else {
                 this.showRatingButton = true;
-                console.log('⭐ Rating button VISIBLE - Current user is the buyer in a sold/traded transaction');
               }
             } else {
               this.showRatingButton = false;
-              console.log('❌ Rating button HIDDEN - Current user is NOT the buyer (is the seller)');
             }
           } else {
             this.showRatingButton = false;
-            console.log('❌ Rating button hidden - product status is:', product.sale_status);
           }
         } else {
           this.showRatingButton = false;
-          console.log('❌ Rating button hidden - product not found');
         }
       },
       error: (error) => {
-        console.error('Error checking product status:', error);
         this.showRatingButton = false;
       }
     });
@@ -2200,21 +2345,10 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Debug socket connection for troubleshooting
    */
   debugSocket() {
-    console.log('=== SOCKET DEBUG INFORMATION ===');
-    console.log('🔗 Socket connected:', this.socketService.isConnected());
-    console.log('🆔 Current user ID:', this.currentUserId);
-    console.log('👤 Username:', localStorage.getItem('username'));
-    console.log('🔌 Socket ID:', this.socketService.getSocketId());
     
     if (this.selectedChat) {
-      console.log('💬 Selected chat:', {
-        conversation_id: this.selectedChat.conversation_id,
-        other_user_id: this.selectedChat.other_user_id,
-        other_user_name: this.selectedChat.other_user_name
-      });
       
       // Test socket emit
-      console.log('📤 Testing socket emit...');
       const testData = {
         conversation_id: this.selectedChat.conversation_id,
         sender_id: this.currentUserId,
@@ -2226,27 +2360,21 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       };
       
       const emitResult = this.socketService.emit('send_message', testData);
-      console.log('📡 Socket emit result:', emitResult);
       
       if (!emitResult) {
-        console.warn('❌ Socket emit failed - attempting to reconnect...');
         this.socketService.connect();
       }
     } else {
-      console.warn('⚠️ No chat selected for socket test');
     }
     
     // Test server connection
     fetch('http://localhost:3000/health')
       .then(response => response.json())
       .then(data => {
-        console.log('🏥 Server health check:', data);
       })
       .catch(error => {
-        console.error('❌ Server health check failed:', error);
       });
     
-    console.log('=== END SOCKET DEBUG ===');
   }
 
   /**
@@ -2344,7 +2472,10 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Open attachment in modal
    */
   openAttachmentModal(attachment: Attachment) {
-    this.selectedAttachment = attachment;
+    this.selectedAttachment = {
+      ...attachment,
+      url: this.getAttachmentUrl(attachment)
+    };
     this.showAttachmentModal = true;
   }
 
@@ -2356,18 +2487,50 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.selectedAttachment = null;
   }
 
+  getAttachmentUrl(attachment: Attachment): string {
+    if (attachment?.url) {
+      return attachment.url;
+    }
+
+    if (attachment?.path) {
+      if (attachment.path.startsWith('http://') || attachment.path.startsWith('https://')) {
+        return attachment.path;
+      }
+      return `${this.attachmentsBaseUrl}${attachment.path.replace(/^\/+/, '')}`;
+    }
+
+    return '';
+  }
+
+  private normalizeAttachments(attachments: any[]): Attachment[] {
+    if (!Array.isArray(attachments)) {
+      return [];
+    }
+
+    return attachments.map((attachment: any) => {
+      const normalized: Attachment = {
+        type: attachment?.type === 'video' ? 'video' : 'image',
+        path: attachment?.path || '',
+        name: attachment?.name,
+        size: attachment?.size,
+        url: attachment?.url
+      };
+
+      normalized.url = this.getAttachmentUrl(normalized);
+      return normalized;
+    });
+  }
+
   /**
    * Open user report modal
    */
   openUserReportModal() {
     if (!this.selectedChat) {
-      console.log('🔴 No chat selected for user report');
       return;
     }
 
     const reportedUserInfo = this.getReportedUserInfo();
     if (!reportedUserInfo) {
-      console.log('🔴 No user info available for reporting');
       this.notificationService.showError(
         'Report Error', 
         'Unable to identify the user to report'
@@ -2375,11 +2538,30 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       return;
     }
 
-    console.log('🟢 Opening user report modal for:', reportedUserInfo);
-    
-    // Reset form and show modal
-    this.resetUserReportForm();
-    this.showUserReportModal = true;
+    // Ensure we have the latest product sale status before showing report options
+    const convId = this.selectedChat.conversation_id;
+    const productId = this.selectedChat.product_id;
+
+    this.apiService.getProductById(productId).subscribe({
+      next: (res) => {
+        const product = (res && res.data && Array.isArray(res.data) && res.data.length > 0) ? res.data[0] : res;
+        this.productSaleStatus[convId] = product?.sale_status || 'available';
+
+        // Reset form and set default report type based on sale status
+        this.resetUserReportForm();
+        if (!this.isPostPurchaseAllowed(convId)) {
+          this.userReportForm.report_type = 'user_behavior';
+        }
+        this.showUserReportModal = true;
+      },
+      error: () => {
+        // On error, fall back to safe default: only user behavior allowed
+        this.productSaleStatus[convId] = this.productSaleStatus[convId] || 'available';
+        this.resetUserReportForm();
+        this.userReportForm.report_type = 'user_behavior';
+        this.showUserReportModal = true;
+      }
+    });
   }
 
   /**
@@ -2523,7 +2705,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         const base64 = await this.fileToBase64(file);
         base64Files.push(base64);
       } catch (error) {
-        console.error('Error converting file to base64:', error);
       }
     }
     
@@ -2581,7 +2762,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         status: 'pending'
       };
 
-      console.log('Submitting user report:', reportData);
 
       // Submit report via API
       this.apiService.submitReport(reportData).subscribe({
@@ -2601,7 +2781,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
           this.isSubmittingReport = false;
         },
         error: (error) => {
-          console.error('Error submitting user report:', error);
           this.notificationService.showError(
             'Submission Failed',
             'An error occurred while submitting your report. Please try again.'
@@ -2610,7 +2789,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
         }
       });
     } catch (error) {
-      console.error('Error preparing user report:', error);
       this.notificationService.showError(
         'Submission Failed',
         'An error occurred while preparing your report. Please try again.'
@@ -2623,7 +2801,6 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Handle user report submitted
    */
   onUserReportSubmitted(reportData: any) {
-    console.log('User report submitted:', reportData);
     this.notificationService.showSuccess(
       'Report Submitted',
       'Your report has been submitted successfully.'
@@ -2641,5 +2818,15 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       full_name: this.selectedChat.other_user_name,
       profile_image: this.selectedChat.other_user_avatar
     };
+  }
+
+  /**
+   * Determine if post-purchase reporting should be allowed for a conversation
+   */
+  isPostPurchaseAllowed(conversationId?: number): boolean {
+    const convId = conversationId ?? this.selectedChat?.conversation_id;
+    if (!convId) return false;
+    const status = this.productSaleStatus[convId];
+    return status === 'sold' || status === 'traded';
   }
 }

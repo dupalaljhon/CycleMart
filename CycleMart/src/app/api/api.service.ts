@@ -1,15 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
   // 🔹 made public so it can be used in components (for image paths)
-  // public baseUrl = 'http://api.cyclemart.shop/CycleMart-api/api';
-  public baseUrl = 'http://api.cyclemart.shop/CycleMart-api/api';
-  
+  public baseUrl = environment.apiBaseUrl;
+
   constructor(private http: HttpClient) {}
 
   // 🔹 Login request
@@ -48,6 +48,11 @@ getAllUsers(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/all-users`);
 }
 
+// 🔹 Fetch user violation/report details for admin modal
+getUserViolationDetails(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/user-violation-details?user_id=${userId}`);
+}
+
 
 // 🔹 Edit profile
 editProfile(data: any): Observable<any> {
@@ -58,6 +63,11 @@ editProfile(data: any): Observable<any> {
 //fetch all products
 getProductsByUser(userId: number): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/products?uploader_id=${userId}`);
+}
+
+// Get all sold/traded products purchased by user
+getProductsBoughtByUser(userId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/purchased-products?buyer_id=${userId}`);
 }
 
 // Get single product by ID
@@ -75,9 +85,87 @@ getAllProductsForAdmin(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/admin-products`);
 }
 
+// Get pending products for approval
+getPendingProducts(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/pending-products`);
+}
+
+// Get listing auto-approval configuration
+getListingAutoApprovalConfig(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/listing-auto-approval-config`);
+}
+
+// Update listing auto-approval configuration
+updateListingAutoApprovalConfig(isEnabled: boolean): Observable<any> {
+  const adminData = this.getAdminData();
+  return this.http.post<any>(`${this.baseUrl}/listing-auto-approval-config`, {
+    enabled: isEnabled,
+    admin_id: adminData.admin_id,
+    admin_role: adminData.role
+  });
+}
+
+// Approve product
+approveProduct(productId: number): Observable<any> {
+  const adminData = this.getAdminData();
+  return this.http.post<any>(`${this.baseUrl}/approve-product`, {
+    product_id: productId,
+    admin_id: adminData.admin_id,
+    admin_role: adminData.role
+  });
+}
+
+// Reject product
+rejectProduct(productId: number, reason: string, violationCode: string = 'other'): Observable<any> {
+  const adminData = this.getAdminData();
+  return this.http.post<any>(`${this.baseUrl}/reject-product`, {
+    product_id: productId,
+    admin_id: adminData.admin_id,
+    admin_role: adminData.role,
+    rejection_reason: reason,
+    violation_code: violationCode
+  });
+}
+
+private getAdminData() {
+  const token = localStorage.getItem('admin_token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        admin_id: payload.admin_id,
+        role: payload.role
+      };
+    } catch (e) {
+      return { admin_id: null, role: null };
+    }
+  }
+
+  // Fallback for moderators using normal user login (no admin JWT)
+  const adminId = localStorage.getItem('admin_id');
+  const role = localStorage.getItem('role');
+  if (adminId) {
+    const parsedId = parseInt(adminId, 10);
+    return {
+      admin_id: isNaN(parsedId) ? null : parsedId,
+      role: role || 'moderator'
+    };
+  }
+
+  return { admin_id: null, role: null };
+}
+
 // Add product
 addProduct(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}/addProduct`, data);
+  const token = localStorage.getItem('authToken') || localStorage.getItem('admin_token');
+  const headers = token
+    ? new HttpHeaders({
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      })
+    : new HttpHeaders({ 'Content-Type': 'application/json' });
+
+  return this.http.post<any>(`${this.baseUrl}/addProduct`, data, { headers });
 }
 
 // Update product
@@ -129,8 +217,22 @@ getChartData(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/chart-data`);
 }
 
-getRecentActivities(limit: number = 50): Observable<any> {
-  return this.http.get<any>(`${this.baseUrl}/recent-activities?limit=${limit}`);
+getRecentActivities(
+  limit: number = 50,
+  filters?: { startDate?: string; endDate?: string }
+): Observable<any> {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+
+  if (filters?.startDate) {
+    params.set('start_date', filters.startDate);
+  }
+
+  if (filters?.endDate) {
+    params.set('end_date', filters.endDate);
+  }
+
+  return this.http.get<any>(`${this.baseUrl}/recent-activities?${params.toString()}`);
 }
 
 // 🔹 Admin Management Methods
@@ -271,14 +373,123 @@ deleteUserNotification(notificationId: number): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}/deleteUserNotification`, { notification_id: notificationId });
 }
 
-// 🔹 Get unread counts for messages and notifications
-getUnreadCounts(userId: number): Observable<any> {
-  return this.http.get<any>(`${this.baseUrl}/unread-counts?user_id=${userId}`);
-}
+  // 🔹 Get unread counts for messages and notifications
+  getUnreadCounts(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/unread-counts?user_id=${userId}`);
+  }
 
-// 🔹 Admin User Violation Methods
-markUserViolation(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}/mark-user-violation`, data);
-}
+  // 🔹 Admin User Violation Methods
+  markUserViolation(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/mark-user-violation`, data);
+  }
+
+  // 🔹 Check User Restriction
+  checkUserRestriction(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/user-restriction?user_id=${userId}`);
+  }
+
+  // 🔹 Dynamic Dropdown: Get all active bicycle brands
+  getBicycleBrands(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/bicycle-brands`);
+  }
+
+  // 🔹 Dynamic Dropdown: Get bicycle parts filtered by brand
+  getBicyclePartsByBrand(brandId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/bicycle-parts?brand_id=${brandId}`);
+  }
+
+  // 🔹 Dynamic Dropdown: Get part specifications (max 5 shown)
+  getPartSpecifications(partId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/part-specifications?part_id=${partId}`);
+  }
+
+  /**
+   * ================================================================================================
+   * RESERVATION SYSTEM API METHODS
+   * ================================================================================================
+   */
+
+  // 🔹 Check for expired reservations (called on listing page load)
+  checkExpiredReservations(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/check-expired-reservations`);
+  }
+
+  // 🔹 Reserve a product
+  reserveProduct(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/reserve-product`, data);
+  }
+
+  // 🔹 Cancel a reservation
+  cancelReservation(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/cancel-reservation`, data);
+  }
+
+  // 🔹 Get reservation details for a product
+  getReservationDetails(productId: number): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/reservation-details`, { product_id: productId });
+  }
+
+  // 🔹 Get reservation history (for a product or user)
+  getReservationHistory(productId?: number, userId?: number): Observable<any> {
+    const data: any = {};
+    if (productId) data.product_id = productId;
+    if (userId) data.user_id = userId;
+    return this.http.post<any>(`${this.baseUrl}/reservation-history`, data);
+  }
+
+  /**
+   * ================================================================================================
+   * TRANSACTION/BUYER INFORMATION API METHODS
+   * ================================================================================================
+   */
+
+  // 🔹 Get buyer information for a sold/traded product
+  getProductBuyer(productId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}product-buyer?product_id=${productId}`);
+  }
+
+  /**
+   * ================================================================================================
+   * MODERATOR APPLICATION API METHODS
+   * ================================================================================================
+   */
+
+  // 🔹 Submit moderator application
+  submitModeratorApplication(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/moderator-application/submit`, data);
+  }
+
+  // 🔹 Get user's moderator application
+  getUserModeratorApplication(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/moderator-application?user_id=${userId}`);
+  }
+
+  // 🔹 Get all moderator applications (admin)
+  getAllModeratorApplications(status?: string): Observable<any> {
+    const url = status 
+      ? `${this.baseUrl}/moderator-applications?status=${status}`
+      : `${this.baseUrl}/moderator-applications`;
+    return this.http.get<any>(url);
+  }
+
+  // 🔹 Get moderator application by ID
+  getModeratorApplicationById(applicationId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/moderator-application?id=${applicationId}`);
+  }
+
+  // 🔹 Review moderator application (approve/reject)
+  reviewModeratorApplication(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/moderator-application/review`, data);
+  }
+
+  // 🔹 Get pending moderator applications count
+  getPendingModeratorApplicationsCount(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/pending-moderator-applications-count`);
+  }
+
+  // 🔹 Landing page visit counter
+  incrementLandingPageVisit(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/landing-visit-counter?action=increment`);
+  }
 
 }

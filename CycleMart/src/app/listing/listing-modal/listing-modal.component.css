@@ -1,4 +1,106 @@
 /* Modal animations */
+.listing-modal-landing {
+  --landing-primary: #2e7d32;
+  --landing-primary-dark: #25692a;
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-surface: #ffffff;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+}
+
+.listing-modal-landing .bg-\[\#6BA3BE\] {
+  background-color: var(--landing-primary) !important;
+}
+
+.listing-modal-landing .listing-modal-header {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.25);
+}
+
+.listing-modal-landing .focus\:ring-\[\#6BA3BE\]:focus {
+  --tw-ring-color: rgba(46, 125, 50, 0.3) !important;
+}
+
+.listing-modal-landing .bg-gradient-to-br,
+.listing-modal-landing .bg-gradient-to-r,
+.listing-modal-landing .from-indigo-50,
+.listing-modal-landing .via-purple-50,
+.listing-modal-landing .to-pink-50,
+.listing-modal-landing .from-blue-50,
+.listing-modal-landing .to-indigo-50,
+.listing-modal-landing .from-purple-50,
+.listing-modal-landing .to-pink-50,
+.listing-modal-landing .from-green-400,
+.listing-modal-landing .to-green-600,
+.listing-modal-landing .from-green-500,
+.listing-modal-landing .to-green-700 {
+  background-image: none !important;
+  background-color: #f7fbf7 !important;
+}
+
+.listing-modal-landing .text-gray-800,
+.listing-modal-landing .text-gray-900,
+.listing-modal-landing .text-black {
+  color: var(--landing-text) !important;
+}
+
+.listing-modal-landing .text-gray-700,
+.listing-modal-landing .text-gray-600,
+.listing-modal-landing .text-gray-500,
+.listing-modal-landing .text-indigo-600,
+.listing-modal-landing .text-indigo-700,
+.listing-modal-landing .text-purple-700,
+.listing-modal-landing .text-blue-700,
+.listing-modal-landing .text-blue-600,
+.listing-modal-landing .text-purple-600,
+.listing-modal-landing .text-yellow-800,
+.listing-modal-landing .text-yellow-900 {
+  color: var(--landing-muted) !important;
+}
+
+.listing-modal-landing .border-indigo-200,
+.listing-modal-landing .border-indigo-300,
+.listing-modal-landing .border-blue-200,
+.listing-modal-landing .border-purple-200,
+.listing-modal-landing .border-yellow-300,
+.listing-modal-landing .border-gray-200,
+.listing-modal-landing .border-gray-300 {
+  border-color: var(--landing-soft-border) !important;
+}
+
+.listing-modal-landing .bg-indigo-500,
+.listing-modal-landing .from-indigo-500,
+.listing-modal-landing .to-purple-500 {
+  background-image: none !important;
+  background-color: var(--landing-primary) !important;
+}
+
+.listing-modal-landing .hover\:from-green-600:hover,
+.listing-modal-landing .hover\:to-green-700:hover,
+.listing-modal-landing .hover\:bg-\[\#5a92a5\]:hover,
+.listing-modal-landing .hover\:bg-\[\#5a8fa4\]:hover {
+  background-image: none !important;
+  background-color: var(--landing-primary-dark) !important;
+}
+
+/* Button tuning: primary green actions + softer secondary cancel */
+.listing-modal-landing .bg-gray-500 {
+  background-color: #ffffff !important;
+  border: 1px solid var(--landing-soft-border) !important;
+}
+
+.listing-modal-landing .bg-gray-500.text-white {
+  color: var(--landing-text) !important;
+}
+
+.listing-modal-landing .hover\:bg-gray-600:hover {
+  background-color: var(--landing-soft) !important;
+  color: var(--landing-text) !important;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }

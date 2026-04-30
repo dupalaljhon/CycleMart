@@ -8,23 +8,78 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+require_once __DIR__ . '/api/config/database.php';
+
 // Get parameters from URL
 $token = $_GET['token'] ?? '';
 $email = $_GET['email'] ?? '';
 
+$state = 'error';
+$title = 'Verification Failed';
+$message = 'Unable to verify account.';
+$user_email = '';
+$verification_time = date('Y-m-d H:i:s');
+
 // Validate parameters
-if (empty($token) || empty($email)) {
-    $error = "Missing verification parameters";
+if (empty($token)) {
+    $message = 'Missing verification token.';
 } else {
-    // Here you would typically:
-    // 1. Connect to your database
-    // 2. Verify the token exists and hasn't expired
-    // 3. Mark the user as verified
-    // 4. Delete the verification token
-    
-    // For now, we'll simulate a successful verification
-    $success = true;
-    $user_email = htmlspecialchars($email);
+    try {
+        $pdo = (new Connection())->connect();
+
+        // 1) Try verifying by token first
+        $stmt = $pdo->prepare("SELECT id, email, full_name, is_verified, token_expires_at FROM users WHERE verification_token = :token LIMIT 1");
+        $stmt->execute([':token' => $token]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user) {
+            $user_email = htmlspecialchars($user['email']);
+
+            if ((int)$user['is_verified'] === 1) {
+                $state = 'already';
+                $title = 'Already Verified';
+                $message = 'Your account is already verified. You can log in now.';
+            } elseif (strtotime($user['token_expires_at']) < time()) {
+                $state = 'expired';
+                $title = 'Verification Link Expired';
+                $message = 'This verification link has expired. Please request a new verification email.';
+            } else {
+                $updateStmt = $pdo->prepare("UPDATE users SET is_verified = 1, verification_token = NULL, token_expires_at = NULL WHERE id = :id");
+                $updateStmt->execute([':id' => $user['id']]);
+
+                $state = 'success';
+                $title = 'Email Verified Successfully!';
+                $message = 'Your account has been activated. You can now log in and use CycleMart.';
+            }
+        } else {
+            // 2) Token may have been consumed already. If email is available and already verified, show verified state.
+            if (!empty($email)) {
+                $emailStmt = $pdo->prepare("SELECT email, is_verified FROM users WHERE email = :email LIMIT 1");
+                $emailStmt->execute([':email' => $email]);
+                $emailUser = $emailStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($emailUser && (int)$emailUser['is_verified'] === 1) {
+                    $user_email = htmlspecialchars($emailUser['email']);
+                    $state = 'already';
+                    $title = 'Already Verified';
+                    $message = 'This account has already been verified. The verification button is now disabled.';
+                } else {
+                    $state = 'error';
+                    $title = 'Invalid Verification Link';
+                    $message = 'The verification link is invalid or has already been used.';
+                }
+            } else {
+                $state = 'error';
+                $title = 'Invalid Verification Link';
+                $message = 'The verification link is invalid or has already been used.';
+            }
+        }
+    } catch (Throwable $e) {
+        $state = 'error';
+        $title = 'System Error';
+        $message = 'A system error occurred while verifying your account. Please try again later.';
+        error_log('verify.php error: ' . $e->getMessage());
+    }
 }
 ?>
 
@@ -37,7 +92,7 @@ if (empty($token) || empty($email)) {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #6BA3BE 0%, #4a8ba8 100%);
+            background: linear-gradient(135deg, #e8f3ea 0%, #d9eadc 100%);
             margin: 0;
             padding: 20px;
             min-height: 100vh;
@@ -50,17 +105,18 @@ if (empty($token) || empty($email)) {
             max-width: 500px;
             width: 100%;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(46, 125, 50, 0.18);
             overflow: hidden;
+            border: 1px solid #d6e7d8;
         }
         .header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #2e7d32 0%, #3f9a45 100%);
             color: white;
             padding: 30px 20px;
             text-align: center;
         }
         .header.error {
-            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+            background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
         }
         .content {
             padding: 40px 30px;
@@ -74,18 +130,18 @@ if (empty($token) || empty($email)) {
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
-            color: #333;
+            color: #1f2937;
         }
         .message {
             font-size: 16px;
-            color: #666;
+            color: #374151;
             line-height: 1.6;
             margin-bottom: 30px;
         }
         .btn {
             display: inline-block;
             padding: 12px 30px;
-            background: #6BA3BE;
+            background: #2e7d32;
             color: white;
             text-decoration: none;
             border-radius: 6px;
@@ -93,61 +149,69 @@ if (empty($token) || empty($email)) {
             transition: background 0.3s ease;
         }
         .btn:hover {
-            background: #5a92a5;
+            background: #256b2a;
         }
         .footer {
-            background: #f8f9fa;
+            background: #f3f7f4;
             padding: 20px;
             text-align: center;
-            color: #6c757d;
+            color: #4b5563;
             font-size: 14px;
+            border-top: 1px solid #d6e7d8;
         }
         .details {
-            background: #f8f9fa;
+            background: #f3f7f4;
             padding: 15px;
             border-radius: 6px;
             margin: 20px 0;
             font-size: 14px;
-            color: #495057;
+            color: #374151;
+            border: 1px solid #d6e7d8;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <?php if (isset($error)): ?>
+        <?php if ($state === 'error' || $state === 'expired'): ?>
             <!-- Error State -->
             <div class="header error">
-                <div class="icon">❌</div>
-                <h1>Verification Failed</h1>
+                <div class="icon"><?php echo $state === 'expired' ? '⌛' : '❌'; ?></div>
+                <h1><?php echo htmlspecialchars($title); ?></h1>
             </div>
             <div class="content">
-                <div class="title">Unable to Verify Account</div>
-                <div class="message"><?php echo htmlspecialchars($error); ?></div>
-                <a href="#" class="btn">Contact Support</a>
+                <div class="title"><?php echo htmlspecialchars($title); ?></div>
+                <div class="message"><?php echo htmlspecialchars($message); ?></div>
+                <?php if ($state === 'expired'): ?>
+                    <a href="http://localhost:4200/resend-verification" class="btn">Request New Verification Email</a>
+                <?php else: ?>
+                    <a href="http://localhost:4200/login" class="btn">Go to Login</a>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <!-- Success State -->
             <div class="header">
                 <div class="icon">✅</div>
-                <h1>Email Verified Successfully!</h1>
+                <h1><?php echo htmlspecialchars($title); ?></h1>
             </div>
             <div class="content">
                 <div class="title">Welcome to Cycle MRT</div>
                 <div class="message">
-                    Thank you for verifying your email address. Your account has been successfully activated.
+                    <?php echo htmlspecialchars($message); ?>
                 </div>
                 
                 <div class="details">
                     <strong>Verified Email:</strong> <?php echo $user_email; ?><br>
-                    <strong>Verification Time:</strong> <?php echo date('Y-m-d H:i:s'); ?><br>
-                    <strong>Token:</strong> <?php echo htmlspecialchars(substr($token, 0, 10) . '...'); ?>
+                    <strong>Verification Time:</strong> <?php echo htmlspecialchars($verification_time); ?><br>
+                    <strong>Status:</strong> <?php echo $state === 'already' ? 'Verified (Already Confirmed)' : 'Verified'; ?>
                 </div>
                 
-                <div class="message">
-                    You can now log in to your account and start exploring our premium bike parts and cycling accessories.
-                </div>
+                <button class="btn" style="opacity:0.7; cursor:not-allowed; pointer-events:none; margin-bottom:12px;" disabled>
+                    Verified
+                </button>
+                <br>
                 
-                <a href="http://cyclemart.shop/login" class="btn">Go to Login</a>
+                <a href="http://localhost:4200/login" class="btn">Go to Login</a>
+                <!-- <a href="http://cyclemart.shop/login" class="btn">Go to Login</a> -->
             </div>
         <?php endif; ?>
         

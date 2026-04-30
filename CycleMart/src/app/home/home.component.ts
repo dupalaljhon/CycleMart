@@ -1,9 +1,11 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+﻿import { Component, OnInit, HostListener } from '@angular/core';
 import { SidenavComponent } from "../sidenav/sidenav.component";
 import { RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api/api.service';
+import { ApplyModeratorComponent } from '../user-dashboard/apply-moderator/apply-moderator.component';
+import { environment } from '../../environments/environment';
 
 import { NotificationService } from '../services/notification.service';
 import { AccountStatusService } from '../services/account-status.service';
@@ -12,7 +14,7 @@ import { ReportsComponent } from '../reports/reports.component';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, SidenavComponent, ReportsComponent], // ✅ Only standalone pieces
+  imports: [CommonModule, FormsModule, SidenavComponent, ReportsComponent, ApplyModeratorComponent], // âœ… Only standalone pieces
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
@@ -32,6 +34,9 @@ export class HomeComponent implements OnInit {
   showModal: boolean = false;
   selectedProduct: any = null;
   currentImageIndex: number = 0;
+  showImageZoomModal: boolean = false;
+  zoomImageUrl: string = '';
+  zoomImageAlt: string = '';
 
   // Video state
   currentVideoIndex: number = 0;
@@ -41,6 +46,17 @@ export class HomeComponent implements OnInit {
   // Report modal state
   showReportModal: boolean = false;
   reportTargetProduct: any = null;
+
+  // Mobile-only image zoom state (use Angular-controlled overlay to avoid router/hash issues)
+  mobileZoomId: number | null = null;
+  // Whether the viewport is considered mobile (matches md breakpoint)
+  isMobileDisplay: boolean = window.innerWidth < 768;
+  // Optional override controlled by other UI/toggles. If set to 'web', mobile features hidden.
+  viewMode: 'mobile' | 'web' | null = null;
+  // Modal image zoom state
+  showModalImageZoom: boolean = false;
+  modalZoomedImageUrl: string = '';
+  modalZoomedImageAlt: string = '';
 
   // Alert modal state
   showAlertModal: boolean = false;
@@ -70,6 +86,13 @@ export class HomeComponent implements OnInit {
   sellerReviews: any[] = [];
   loadingReviews: boolean = false;
 
+  // Floating moderator card state (not persisted; returns on page refresh)
+  showModeratorBanner: boolean = true;
+  showApplyModeratorModal: boolean = false;
+
+  // Rules reminder modal state
+  showRulesReminderModal: boolean = false;
+
   constructor(
     public apiService: ApiService,
     private router: Router,
@@ -77,8 +100,81 @@ export class HomeComponent implements OnInit {
     public accountStatusService: AccountStatusService
   ) {}
 
+  // Navigate to moderator application page
+  navigateToModeratorApplication() {
+    this.openModeratorApplicationModal();
+  }
+
+  openModeratorApplicationModal() {
+    this.showApplyModeratorModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeModeratorApplicationModal() {
+    this.showApplyModeratorModal = false;
+    document.body.style.overflow = 'auto';
+  }
+
+  dismissModeratorBanner(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.showModeratorBanner = false;
+  }
+
   ngOnInit() {
+    this.openRulesReminderModal();
     this.loadActiveProducts();
+    this.updateMobileState();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.updateMobileState();
+  }
+
+  @HostListener('window:storage', ['$event'])
+  onStorageEvent(event: StorageEvent) {
+    if (event.key === 'viewMode') {
+      this.updateMobileState();
+    }
+  }
+
+  private updateMobileState() {
+    this.isMobileDisplay = window.innerWidth < 768;
+    const vm = localStorage.getItem('viewMode');
+    if (vm === 'web') {
+      this.viewMode = 'web';
+    } else if (vm === 'mobile') {
+      this.viewMode = 'mobile';
+    } else {
+      this.viewMode = null;
+    }
+    console.log('updateMobileState:', { windowWidth: window.innerWidth, isMobileDisplay: this.isMobileDisplay, viewMode: this.viewMode });
+  }
+
+  getCurrentUserId(): number {
+    return Number(localStorage.getItem('id') || 0);
+  }
+
+  isOwnedByCurrentUser(product: any): boolean {
+    if (!product) return false;
+
+    const currentUserId = this.getCurrentUserId();
+    const ownerId = Number(product.uploader_id || product.seller_id || 0);
+
+    return !!currentUserId && !!ownerId && currentUserId === ownerId;
+  }
+
+  openRulesReminderModal() {
+    this.showRulesReminderModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeRulesReminderModal() {
+    this.showRulesReminderModal = false;
+    document.body.style.overflow = 'auto';
   }
 
   loadActiveProducts() {
@@ -87,30 +183,31 @@ export class HomeComponent implements OnInit {
     
     this.apiService.getAllActiveProducts().subscribe({
       next: (response) => {
-        console.log('API Response:', response);
         
         // Check if response has data
         if (response && response.data && Array.isArray(response.data)) {
           this.items = response.data.map((product: any) => {
-            // Parse product images from JSON string
+            // Parse product images from JSON string or use array as-is
             let productImages: string[] = [];
             try {
-              if (product.product_images) {
+              if (Array.isArray(product.product_images)) {
+                productImages = product.product_images;
+              } else if (typeof product.product_images === 'string' && product.product_images) {
                 productImages = JSON.parse(product.product_images);
               }
-            } catch (e) {
-              console.warn('Failed to parse product images:', product.product_images);
+            } catch {
               productImages = [];
             }
 
-            // Parse product videos from JSON string
+            // Parse product videos from JSON string or use array as-is
             let productVideos: string[] = [];
             try {
-              if (product.product_videos) {
+              if (Array.isArray(product.product_videos)) {
+                productVideos = product.product_videos;
+              } else if (typeof product.product_videos === 'string' && product.product_videos) {
                 productVideos = JSON.parse(product.product_videos);
               }
-            } catch (e) {
-              console.warn('Failed to parse product videos:', product.product_videos);
+            } catch {
               productVideos = [];
             }
 
@@ -118,8 +215,6 @@ export class HomeComponent implements OnInit {
               ? this.getImageUrl(productImages[0]) 
               : 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
             
-            console.log('Product image URL:', imageUrl);
-            console.log('Product videos count:', productVideos.length);
 
             return {
               id: product.product_id,
@@ -131,6 +226,7 @@ export class HomeComponent implements OnInit {
               brand_name: product.brand_name || 'no brand',
               custom_brand: product.custom_brand || '',
               brand_display: this.formatBrandDisplay(product.brand_name, product.custom_brand),
+              part_display: product.bicycle_part_name || product.part_name || '',
               price: parseFloat(product.price),
               saleType: this.formatSaleType(product.for_type),
               category: this.formatCategory(product.category),
@@ -150,7 +246,6 @@ export class HomeComponent implements OnInit {
               specifications: product.specifications || [] // Include specifications from backend
             };
           });
-          console.log('Processed items:', this.items);
           this.filteredItems = [...this.items]; // Initialize filtered items
           
           // Load ratings for all sellers
@@ -163,7 +258,6 @@ export class HomeComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading products:', error);
         this.error = `Failed to load products: ${error.message || error.statusText || 'Unknown error'}`;
         this.loading = false;
       }
@@ -179,7 +273,6 @@ export class HomeComponent implements OnInit {
       if (sellerId) {
         this.apiService.getUserAverageRatings(sellerId).subscribe({
           next: (response) => {
-            console.log(`Ratings for seller ${sellerId}:`, response);
             
             if (response.status === 'success' && response.data && response.data.length > 0) {
               const ratingData = response.data[0];
@@ -203,7 +296,6 @@ export class HomeComponent implements OnInit {
                 }
               });
               
-              console.log(`✅ Updated rating for seller ${sellerId}: ${averageRating} stars (${totalRatings} reviews)`);
             } else {
               // No ratings found, set to 0 or "No ratings"
               this.items.forEach(item => {
@@ -220,11 +312,9 @@ export class HomeComponent implements OnInit {
                 }
               });
               
-              console.log(`ℹ️ No ratings found for seller ${sellerId}`);
             }
           },
           error: (error) => {
-            console.error(`Error loading ratings for seller ${sellerId}:`, error);
             // Set rating to 0 on error
             this.items.forEach(item => {
               if (item.uploader_id === sellerId) {
@@ -246,27 +336,57 @@ export class HomeComponent implements OnInit {
   }
 
   getImageUrl(imageName: string): string {
-    // Remove any extra path prefixes from the image name
-    const cleanImageName = imageName.replace(/^uploads[\/\\]/, '');
-    // Create the correct path to the uploads folder (which is inside the api directory)
-    return `http://api.cyclemart.shop/CycleMart-api/api/uploads/${cleanImageName}`;
+    if (!imageName) {
+      return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
+    }
+
+    if (imageName.startsWith('data:') || imageName.startsWith('http://') || imageName.startsWith('https://')) {
+      return imageName;
+    }
+
+    let cleanImageName = imageName.replace(/^\/+/, '');
+    cleanImageName = cleanImageName.replace(/^api\//, '');
+    cleanImageName = cleanImageName.replace(/^uploads[\/\\]/, '');
+    cleanImageName = cleanImageName.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanImageName}`;
   }
 
-  getProfileImageUrl(profileImage: string | null, username?: string): string | null {
+  // Format specification names: replace underscores with spaces and capitalize
+  formatSpecName(specName: string): string {
+    if (!specName) return '';
+    return specName
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  getProfileImageUrl(profileImage: string | null, username?: string): string {
     if (!profileImage || profileImage.trim() === '') {
-      // Return null when no profile image exists
-      return null;
+      return this.generateAvatarUrl(username || 'User');
     }
-    
+
     // Handle base64 images (actual uploaded images)
     if (profileImage.startsWith('data:')) {
       return profileImage;
     }
-    
+
+    // If it's already a full URL, return as is
+    if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
+      return profileImage;
+    }
+
     // Remove any extra path prefixes from the image name
-    const cleanImageName = profileImage.replace(/^uploads[\/\\]/, '');
-    // Serve profile images from images subdomain (uploads root)
-    return `http://images.cyclemart.shop/${cleanImageName}`;
+    const cleanImageName = profileImage.replace(/^\/?(api\/)?uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanImageName}`;
+  }
+
+  private generateAvatarUrl(name: string): string {
+    const colors = ['6BA3BE', '34D399', 'F59E0B', '8B5CF6', 'EF4444', '10B981'];
+    const color = colors[name.length % colors.length];
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${color}&color=fff`;
   }
 
   formatSaleType(forType: string): string {
@@ -279,16 +399,7 @@ export class HomeComponent implements OnInit {
   }
 
   getSaleTypeBadgeClass(saleType: string): string {
-    switch(saleType) {
-      case 'For Sale':
-        return 'bg-black hover:bg-gray-800';
-      case 'For Trade':
-        return 'bg-gray-600 hover:bg-gray-700';
-      case 'For Sale or Trade':
-        return 'bg-gray-800 hover:bg-black';
-      default:
-        return 'bg-gray-500 hover:bg-gray-600';
-    }
+    return 'cm-tag-unified-strong';
   }
 
   formatCategory(category: string): string {
@@ -332,13 +443,11 @@ export class HomeComponent implements OnInit {
   }
 
   onImageError(event: any, item: any) {
-    console.error('Image failed to load:', item.image, event);
     // Set a fallback image
     event.target.src = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
   }
 
   onImageLoad(event: any, item: any) {
-    console.log('Image loaded successfully:', item.image);
   }
 
   // Search functionality
@@ -364,8 +473,7 @@ export class HomeComponent implements OnInit {
     }
 
     // Apply current sorting after filtering
-    this.applySorting();
-    console.log('Search results:', this.filteredItems.length, 'items found for query:', this.searchQuery);
+    // this.applySorting();
   }
 
   clearSearch() {
@@ -398,7 +506,6 @@ export class HomeComponent implements OnInit {
   onSortChange(event: any) {
     this.currentSortOption = event.target.value;
     this.applySorting();
-    console.log('Sorting changed to:', this.currentSortOption);
   }
 
   applySorting() {
@@ -437,7 +544,6 @@ export class HomeComponent implements OnInit {
     }
     
     const endTime = performance.now();
-    console.log(`Sorting completed in ${(endTime - startTime).toFixed(2)}ms`);
   }
 
   getSortDisplayName(): string {
@@ -581,15 +687,12 @@ export class HomeComponent implements OnInit {
   // Debug function to test product selection
   testProductClick(product: any, event: any) {
     event.stopPropagation();
-    console.log('🔍 TEST CLICK - Product clicked:', product.product_name, 'ID:', product.id);
-    console.log('🔍 TEST CLICK - Full product object:', product);
     this.openProductModal(product);
   }
 
   // Debug function to test contact seller
   testContactSeller(product: any, event: any) {
     event.stopPropagation();
-    console.log('🔍 TEST CONTACT - Testing contactSeller with product:', product);
     this.contactSeller(product);
   }
 
@@ -605,15 +708,6 @@ export class HomeComponent implements OnInit {
 
   // Modal methods
   openProductModal(product: any) {
-    console.log('=== Opening modal for product ===');
-    console.log('Product ID:', product.id);
-    console.log('Product Name:', product.product_name);
-    console.log('Product Images:', product.productImages);
-    console.log('Product Videos:', product.productVideos);
-    console.log('Product Specifications:', product.specifications);
-    console.log('Specifications count:', product.specifications?.length || 0);
-    console.log('Full product object:', product);
-    
     // Create a deep copy of the product to avoid reference issues
     this.selectedProduct = JSON.parse(JSON.stringify(product));
     this.currentImageIndex = 0;
@@ -630,10 +724,6 @@ export class HomeComponent implements OnInit {
     
     this.showModal = true;
     
-    console.log('Selected product after assignment:', this.selectedProduct);
-    console.log('Modal state - showModal:', this.showModal);
-    console.log('===================================');
-    
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
   }
@@ -645,6 +735,72 @@ export class HomeComponent implements OnInit {
     this.currentVideoIndex = 0;
     this.currentMediaType = 'image';
     // Restore body scroll
+    document.body.style.overflow = 'auto';
+  }
+
+  openImageZoom(product: any, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    this.zoomImageUrl = product?.image || this.getImageUrl(product?.productImages?.[0]);
+    this.zoomImageAlt = product?.product_name || 'Product image';
+    this.showImageZoomModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  // Open mobile zoom overlay (prevents router/hash interference)
+  openMobileZoom(product: any, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    console.log('openMobileZoom called:', { productId: product?.id, isMobileDisplay: this.isMobileDisplay, viewMode: this.viewMode });
+    this.mobileZoomId = product?.id || null;
+    document.body.style.overflow = 'hidden';
+  }
+
+  // Close mobile zoom overlay
+  closeMobileZoom(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    console.log('closeMobileZoom called');
+    this.mobileZoomId = null;
+    document.body.style.overflow = 'auto';
+  }
+
+  // Modal image zoom handlers
+  openModalImageZoom(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    console.log('openModalImageZoom called');
+    this.modalZoomedImageUrl = this.getCurrentImageUrl();
+    this.modalZoomedImageAlt = this.selectedProduct?.product_name || 'Product image';
+    this.showModalImageZoom = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeModalImageZoom(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    console.log('closeModalImageZoom called');
+    this.showModalImageZoom = false;
+    this.modalZoomedImageUrl = '';
+    this.modalZoomedImageAlt = '';
+    document.body.style.overflow = 'auto';
+  }
+
+  closeImageZoom() {
+    this.showImageZoomModal = false;
+    this.zoomImageUrl = '';
+    this.zoomImageAlt = '';
     document.body.style.overflow = 'auto';
   }
 
@@ -700,10 +856,21 @@ export class HomeComponent implements OnInit {
   }
 
   getVideoUrl(videoPath: string): string {
-    if (videoPath.startsWith('data:')) {
-      return videoPath; // Base64 video
+    if (!videoPath) {
+      return '';
     }
-    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
+
+    // Check if it's already a complete URL or base64
+    if (videoPath.startsWith('http://') || videoPath.startsWith('https://') || videoPath.startsWith('data:')) {
+      return videoPath;
+    }
+
+    let cleanPath = videoPath.replace(/^\/+/, '');
+    cleanPath = cleanPath.replace(/^api\//, '');
+    cleanPath = cleanPath.replace(/^uploads[\/\\]/, '');
+    cleanPath = cleanPath.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   // Media type switching
@@ -719,23 +886,19 @@ export class HomeComponent implements OnInit {
    * Contact seller function - creates or finds existing conversation and navigates to messages
    */
   contactSeller(product: any) {
-    console.log('🔵 contactSeller called with product:', product);
     
     const currentUserId = parseInt(localStorage.getItem('id') || '0');
     const sellerId = product.uploader_id;
     
-    console.log('🔵 User IDs - Current:', currentUserId, 'Seller:', sellerId);
     
     // Check if user is trying to message themselves
     if (currentUserId === sellerId) {
-      console.log('🔵 Cannot message yourself - showing alert');
       this.showAlert('Cannot Message Yourself', 'You cannot message yourself!', 'warning');
       return;
     }
 
     // Check if user is logged in
     if (!currentUserId) {
-      console.log('🔵 User not logged in - showing login alert');
       this.showAlert('Login Required', 'Please login to message the seller', 'warning', () => {
         this.router.navigate(['/login']);
       });
@@ -745,24 +908,14 @@ export class HomeComponent implements OnInit {
     // Get the correct product ID - try both property names
     const productId = product.product_id || product.id;
     
-    console.log('🔵 Product ID resolved to:', productId);
-    console.log('🔵 Contacting seller:', {
-      productId: productId,
-      productName: product.product_name,
-      sellerId: sellerId,
-      buyerId: currentUserId,
-      fullProduct: product
-    });
 
     // Validate required data
     if (!productId) {
-      console.log('🔵 Missing product ID - showing error');
       this.showAlert('Missing Information', 'Product ID is missing. Please refresh the page and try again.', 'error');
       return;
     }
 
     if (!sellerId) {
-      console.log('🔵 Missing seller ID - showing error');
       this.showAlert('Missing Information', 'Seller information is missing. Please try again.', 'error');
       return;
     }
@@ -774,14 +927,9 @@ export class HomeComponent implements OnInit {
       seller_id: sellerId
     };
 
-    console.log('🔵 Making API call with data:', conversationData);
     this.apiService.createConversation(conversationData).subscribe({
       next: (response) => {
-        console.log('🔄 Conversation creation response:', response);
-        console.log('📋 Conversation data sent:', conversationData);
         if (response.status === 'success') {
-          console.log('✅ Conversation creation successful:', response.data);
-          console.log('✅ Navigating to conversation ID:', response.data.conversation_id);
           
           // Add a small delay to ensure the message is processed
           setTimeout(() => {
@@ -795,26 +943,19 @@ export class HomeComponent implements OnInit {
 
             navigationPromise.then(
               (navigationSuccessful) => {
-                if (navigationSuccessful) {
-                  console.log('✅ Navigation successful to /messages');
-                } else {
-                  console.error('❌ Navigation failed - navigationSuccessful:', navigationSuccessful);
+                if (!navigationSuccessful) {
                   this.showAlert('Navigation Error', 'Unable to navigate to messages. Please try going to Messages manually.', 'error');
                 }
               }
             ).catch((navigationError) => {
-              console.error('❌ Navigation exception:', navigationError);
               this.showAlert('Navigation Error', 'Unable to navigate to messages. Please try going to Messages manually.', 'error');
             });
           }, 500); // Small delay to allow backend processing
         } else {
-          console.error('❌ Failed to create conversation:', response.message);
           this.showAlert('Conversation Error', `Failed to start conversation: ${response.message}`, 'error');
         }
       },
       error: (error) => {
-        console.error('❌ Error creating conversation:', error);
-        console.error('❌ Full error object:', JSON.stringify(error, null, 2));
         
         let errorMessage = 'Error starting conversation. Please try again.';
         if (error.error && error.error.message) {
@@ -833,7 +974,12 @@ export class HomeComponent implements OnInit {
    */
   openReportModal(product: any, event: any) {
     event.stopPropagation(); // Prevent opening product modal
-    console.log('Opening report modal for product:', product.product_name);
+
+    if (this.isOwnedByCurrentUser(product)) {
+      this.showAlert('Not Allowed', 'You cannot report your own listing.', 'warning');
+      return;
+    }
+
     
     this.reportTargetProduct = product;
     this.showReportModal = true;
@@ -846,8 +992,11 @@ export class HomeComponent implements OnInit {
    * Open report modal from within the product modal
    */
   openReportModalFromProductModal() {
-    console.log('Opening report modal from product modal');
-    console.log('Selected product:', this.selectedProduct);
+    if (this.isOwnedByCurrentUser(this.selectedProduct)) {
+      this.showAlert('Not Allowed', 'You cannot report your own listing.', 'warning');
+      return;
+    }
+
     
     // Set the report target to the currently selected product
     this.reportTargetProduct = this.selectedProduct;
@@ -865,7 +1014,6 @@ export class HomeComponent implements OnInit {
   }
 
   closeReportModal() {
-    console.log('Closing report modal');
     this.showReportModal = false;
     this.reportTargetProduct = null;
     
@@ -874,7 +1022,6 @@ export class HomeComponent implements OnInit {
   }
 
   onReportSubmitted(reportData: any) {
-    console.log('Report submitted:', reportData);
     // You could show a success message here or refresh data if needed
   }
 
@@ -1062,12 +1209,27 @@ export class HomeComponent implements OnInit {
     }
   }
 
+  @HostListener('document:keydown.escape')
+  onEscapePress() {
+    if (this.showImageZoomModal) {
+      this.closeImageZoom();
+      return;
+    }
+
+    if (this.showRulesReminderModal) {
+      this.closeRulesReminderModal();
+      return;
+    }
+
+    if (this.showApplyModeratorModal) {
+      this.closeModeratorApplicationModal();
+    }
+  }
+
   // ===== PROFILE MODAL METHODS =====
 
   // Open profile modal with seller information
   openProfileModal(product: any) {
-    console.log('Opening profile modal for:', product.seller);
-    console.log('Product data:', product); // Debug log to see available fields
     
     // Reset modal state
     this.profileModalActiveTab = 'reviews';
@@ -1089,20 +1251,17 @@ export class HomeComponent implements OnInit {
       loading: true // Add loading state
     };
     
-    console.log('Initial seller profile:', this.selectedSellerProfile);
     
     this.showProfileModal = true;
     
     // Load detailed seller information from API
     if (product.uploader_id) {
-      console.log('Loading seller details for uploader_id:', product.uploader_id);
       this.loadSellerDetails(product.uploader_id);
       // Load reviews by default since Reviews tab is active
       this.loadSellerReviews(this.selectedSellerProfile);
       // Also pre-load other listings for better UX
       this.loadSellerOtherListings(product.uploader_id);
     } else {
-      console.error('No uploader_id found in product data');
       this.selectedSellerProfile.loading = false;
     }
   }
@@ -1112,7 +1271,6 @@ export class HomeComponent implements OnInit {
     // Get user details
     this.apiService.getUser(uploaderId).subscribe({
       next: (userResponse) => {
-        console.log('User details response:', userResponse);
         if (userResponse && userResponse.data && userResponse.data.length > 0) {
           const userData = userResponse.data[0]; // API returns array
           
@@ -1126,18 +1284,15 @@ export class HomeComponent implements OnInit {
             seller_profile_image: userData.profile_image || this.selectedSellerProfile.seller_profile_image
           };
           
-          console.log('Updated seller profile with user data:', this.selectedSellerProfile);
         }
       },
       error: (error) => {
-        console.error('Error loading user details:', error);
       }
     });
 
     // Get user ratings
     this.apiService.getUserAverageRatings(uploaderId).subscribe({
       next: (ratingsResponse) => {
-        console.log('Ratings response:', ratingsResponse);
         if (ratingsResponse && ratingsResponse.data && ratingsResponse.data.length > 0) {
           const ratingsData = ratingsResponse.data[0]; // API returns array
           this.selectedSellerProfile = {
@@ -1156,7 +1311,6 @@ export class HomeComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error loading ratings:', error);
         this.selectedSellerProfile = {
           ...this.selectedSellerProfile,
           average_rating: 0,
@@ -1178,7 +1332,6 @@ export class HomeComponent implements OnInit {
 
   // Open reviews modal for selected seller
   viewSellerReviews(sellerProfile: any) {
-    console.log('Viewing reviews for seller:', sellerProfile.seller_name);
     
     this.selectedSellerForReviews = sellerProfile;
     this.showReviewsModal = true;
@@ -1198,15 +1351,12 @@ export class HomeComponent implements OnInit {
     this.loadingReviews = true;
     this.sellerReviews = [];
     
-    console.log('Loading reviews for seller:', sellerProfile);
     
     // Use uploader_id from the seller profile to get actual reviews
     if (sellerProfile.uploader_id) {
       this.apiService.getUserRatings(sellerProfile.uploader_id).subscribe({
         next: (response) => {
-          console.log('Seller reviews response:', response);
           if (response && response.data && Array.isArray(response.data)) {
-            console.log('Raw review data:', response.data);
             this.sellerReviews = response.data.map((review: any) => ({
               // Reviewer information
               reviewer_name: review.buyer_name || review.reviewer_name || 'Anonymous',
@@ -1232,22 +1382,18 @@ export class HomeComponent implements OnInit {
               // Keep original data for any additional fields
               ...review
             }));
-            console.log('Mapped seller reviews:', this.sellerReviews);
           } else {
-            console.log('No review data found or invalid format');
             this.sellerReviews = [];
           }
           this.loadingReviews = false;
         },
         error: (error) => {
-          console.error('Error loading seller reviews:', error);
           this.sellerReviews = [];
           this.loadingReviews = false;
         }
       });
     } else {
       // Fallback: No seller ID available
-      console.log('No uploader_id available for reviews');
       this.sellerReviews = [];
       this.loadingReviews = false;
     }
@@ -1255,7 +1401,11 @@ export class HomeComponent implements OnInit {
 
   // Message seller from profile modal
   messageSellerFromProfile(sellerProfile: any) {
-    console.log('Messaging seller from profile:', sellerProfile.seller_name);
+
+    if (this.isOwnedByCurrentUser(sellerProfile)) {
+      this.showAlert('Cannot Message Yourself', 'You cannot message yourself.', 'warning');
+      return;
+    }
     
     // Close profile modal first
     this.closeProfileModal();
@@ -1331,7 +1481,6 @@ export class HomeComponent implements OnInit {
     
     this.apiService.getProductsByUser(uploaderId).subscribe({
       next: (response) => {
-        console.log('Other listings response:', response);
         if (response && response.data) {
           // Filter out inactive products and enrich with seller info
           this.sellerOtherListings = response.data
@@ -1352,7 +1501,6 @@ export class HomeComponent implements OnInit {
         this.loadingOtherListings = false;
       },
       error: (error) => {
-        console.error('Error loading other listings:', error);
         this.sellerOtherListings = [];
         this.loadingOtherListings = false;
       }
@@ -1361,7 +1509,6 @@ export class HomeComponent implements OnInit {
 
   // View specific product from other listings
   viewProductFromListings(product: any) {
-    console.log('Opening product from other listings:', product);
     
     // Enrich the product data to ensure it has all required fields for the modal
     const enrichedProduct = {
@@ -1431,7 +1578,6 @@ export class HomeComponent implements OnInit {
       const images = JSON.parse(productImages || '[]');
       return Array.isArray(images) ? images : [];
     } catch (error) {
-      console.error('Error parsing product images:', error);
       return [];
     }
   }
@@ -1442,7 +1588,6 @@ export class HomeComponent implements OnInit {
       const videos = JSON.parse(productVideos || '[]');
       return Array.isArray(videos) ? videos : [];
     } catch (error) {
-      console.error('Error parsing product videos:', error);
       return [];
     }
   }
@@ -1455,33 +1600,19 @@ export class HomeComponent implements OnInit {
 
   // Debug method to test ratings API (can be removed in production)
   testRatingsAPI(sellerId: number) {
-    console.log('Testing ratings API for seller:', sellerId);
     this.apiService.getUserRatings(sellerId).subscribe({
       next: (response) => {
-        console.log('Direct API test response:', response);
         if (response && response.data) {
-          console.log('Sample rating data:', response.data[0]);
         }
       },
       error: (error) => {
-        console.error('API test error:', error);
       }
     });
   }
 
   // Debug method to log product modal data (can be removed in production)
   debugProductModal(product: any) {
-    console.log('=== Product Modal Debug ===');
-    console.log('Product ID:', product.id || product.product_id);
-    console.log('Product Name:', product.product_name);
-    console.log('Seller Name:', product.seller || product.seller_name);
-    console.log('Seller Profile Image:', product.seller_profile_image);
-    console.log('Product Images (raw):', product.product_images);
-    console.log('Product Videos (raw):', product.product_videos);
-    console.log('Product Images (parsed):', product.productImages);
-    console.log('Product Videos (parsed):', product.productVideos);
-    console.log('Full Product Object:', product);
-    console.log('========================');
+    // Debugging disabled - enable console logs if needed
   }
 
   // ===== RATING DISPLAY HELPER METHODS =====
@@ -1580,7 +1711,6 @@ export class HomeComponent implements OnInit {
         return this.getImageUrl(firstImage);
       }
     } catch (error) {
-      console.error('Error parsing product images:', error);
     }
     
     return 'https://via.placeholder.com/150x150/f3f4f6/9ca3af?text=No+Image'; // fallback image

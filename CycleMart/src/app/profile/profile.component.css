@@ -1,3 +1,267 @@
+.profile-landing {
+  --landing-primary: #2f8a39;
+  --landing-primary-dark: #2f8a39;
+  --landing-button-shadow: rgba(47, 138, 57, 0.24);
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-surface: #ffffff;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+  color: var(--landing-text);
+}
+
+/* Match Home component typography and text hierarchy */
+.profile-landing h1,
+.profile-landing h2,
+.profile-landing h3,
+.profile-landing h4,
+.profile-landing h5,
+.profile-landing h6,
+.profile-landing .font-bold,
+.profile-landing .font-semibold,
+.profile-landing .text-black,
+.profile-landing .text-gray-900 {
+  color: var(--landing-text) !important;
+}
+
+.profile-landing .text-gray-600,
+.profile-landing .text-gray-700,
+.profile-landing .text-gray-500 {
+  color: var(--landing-muted) !important;
+}
+
+/* Match Home component card language */
+.profile-landing .bg-white {
+  background-color: var(--landing-surface) !important;
+}
+
+.profile-landing .shadow-xl,
+.profile-landing .shadow-lg,
+.profile-landing .shadow-md {
+  box-shadow: 0 12px 28px rgba(33, 33, 33, 0.07) !important;
+}
+
+.profile-landing .rounded-2xl,
+.profile-landing .rounded-xl,
+.profile-landing .rounded-lg {
+  border-radius: 14px !important;
+}
+
+.profile-landing .border,
+.profile-landing .border-2,
+.profile-landing .border-black,
+.profile-landing .border-gray-300,
+.profile-landing .border-gray-400,
+.profile-landing .border-gray-200 {
+  border-color: var(--landing-soft-border) !important;
+}
+
+/* Match Home button color behavior */
+.profile-landing .bg-black {
+  background-color: var(--landing-primary) !important;
+  border-color: var(--landing-primary) !important;
+}
+
+.profile-landing .hover\:bg-black:hover,
+.profile-landing .hover\:bg-gray-800:hover {
+  background-color: var(--landing-primary) !important;
+}
+
+.profile-landing .bg-gray-100,
+.profile-landing .bg-gray-50 {
+  background-color: #f7fbf7 !important;
+}
+
+.profile-landing .focus\:ring-gray-400:focus,
+.profile-landing .focus\:ring-black:focus {
+  --tw-ring-color: rgba(46, 125, 50, 0.3) !important;
+}
+
+.edit-profile-overlay {
+  background: radial-gradient(circle at 18% 14%, rgba(46, 125, 50, 0.16), transparent 44%),
+              radial-gradient(circle at 82% 88%, rgba(46, 125, 50, 0.1), transparent 40%),
+              rgba(15, 25, 18, 0.55) !important;
+}
+
+.edit-profile-card {
+  border-color: var(--landing-soft-border) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 28px 58px rgba(33, 33, 33, 0.2) !important;
+}
+
+.edit-profile-card .border-black {
+  border-color: var(--landing-primary) !important;
+}
+
+.edit-profile-card .ring-black {
+  --tw-ring-color: var(--landing-primary) !important;
+}
+
+.edit-profile-header {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.edit-profile-title {
+  letter-spacing: 0.01em;
+}
+
+.edit-profile-subtitle {
+  color: rgba(255, 255, 255, 0.86) !important;
+  margin-top: 2px;
+}
+
+.edit-profile-header-badge {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.edit-profile-close {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.edit-profile-close:hover {
+  background: rgba(255, 255, 255, 0.24) !important;
+}
+
+.edit-profile-content {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+}
+
+.edit-profile-grid {
+  align-items: start;
+}
+
+.edit-profile-left-panel,
+.edit-profile-right-panel {
+  background: #ffffff;
+  border: 1px solid var(--landing-soft-border);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.edit-profile-left-panel {
+  background: linear-gradient(180deg, #f8fcf9 0%, #ffffff 100%);
+}
+
+.edit-profile-right-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdfb 100%);
+}
+
+.edit-profile-fields-grid {
+  gap: 1rem;
+}
+
+.edit-profile-form {
+  padding-top: 1.35rem;
+}
+
+.edit-profile-section-title {
+  color: var(--landing-text) !important;
+  border-bottom: 1px solid var(--landing-soft-border);
+  padding-bottom: 0.5rem;
+}
+
+.edit-profile-input {
+  background: #ffffff;
+  border-color: var(--landing-soft-border) !important;
+  color: var(--landing-text);
+  box-shadow: 0 1px 0 rgba(15, 25, 18, 0.03);
+  border-radius: 12px !important;
+  min-height: 46px;
+}
+
+.edit-profile-input:focus {
+  border-color: var(--landing-primary) !important;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18) !important;
+}
+
+.edit-profile-form label {
+  color: #3f4752 !important;
+  font-weight: 600;
+}
+
+.edit-profile-form p.text-xs {
+  color: #66707e !important;
+}
+
+.edit-profile-secondary-btn {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--landing-primary-dark) !important;
+  box-shadow: 0 8px 18px var(--landing-button-shadow) !important;
+}
+
+.edit-profile-secondary-btn:hover {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+}
+
+.edit-profile-actions {
+  border-top-color: var(--landing-soft-border) !important;
+  background: #f7fbf7;
+  padding: 1.25rem;
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  margin-bottom: -1.5rem;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+.profile-landing .edit-profile-save-btn {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  border: 1px solid var(--landing-primary-dark);
+  box-shadow: 0 10px 22px var(--landing-button-shadow) !important;
+  border-radius: 12px !important;
+  min-height: 48px;
+  color: #ffffff !important;
+  letter-spacing: 0.01em;
+}
+
+.profile-landing .edit-profile-save-btn:hover {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  transform: none !important;
+  color: #ffffff !important;
+}
+
+.profile-landing .edit-profile-cancel-btn {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  border-color: var(--landing-primary-dark) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  min-height: 48px;
+  box-shadow: 0 8px 18px var(--landing-button-shadow) !important;
+}
+
+.profile-landing .edit-profile-cancel-btn:hover {
+  background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--landing-primary-dark) !important;
+  transform: none !important;
+}
+
+/* Fallback unscoped rules: modal may render outside .profile-landing container */
+.edit-profile-save-btn,
+.edit-profile-save-btn:hover,
+.edit-profile-save-btn:focus,
+.edit-profile-save-btn:active,
+.edit-profile-cancel-btn,
+.edit-profile-cancel-btn:hover,
+.edit-profile-cancel-btn:focus,
+.edit-profile-cancel-btn:active {
+  background: linear-gradient(135deg, #2f8a39 0%, #2f8a39 100%) !important;
+  border-color: #2f8a39 !important;
+  color: #ffffff !important;
+}
+
+.edit-profile-save-btn:active,
+.edit-profile-cancel-btn:active,
+.edit-profile-secondary-btn:active {
+  transform: none !important;
+}
+
 /* Enhanced Edit Profile Modal Styles */
 .modal-backdrop {
   backdrop-filter: blur(2px);
@@ -32,11 +296,11 @@
 
 .form-input:focus {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(107, 163, 190, 0.15);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
 }
 
 .save-button {
-  background: linear-gradient(135deg, #6BA3BE 0%, #5a92a5 100%);
+  background: var(--landing-primary);
   position: relative;
   overflow: hidden;
 }
@@ -76,12 +340,12 @@
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-  background: #6BA3BE;
+  background: var(--landing-primary);
   border-radius: 3px;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-  background: #5a92a5;
+  background: var(--landing-primary-dark);
 }
 
 /* Input field enhancements */
@@ -94,7 +358,7 @@
 }
 
 .form-field input:focus + label {
-  color: #6BA3BE;
+  color: var(--landing-primary);
 }
 
 /* Email change warning animation */
@@ -109,14 +373,14 @@
 
 /* Button hover effects */
 .btn-gradient {
-  background: linear-gradient(135deg, #6BA3BE 0%, #5a92a5 100%);
+  background: var(--landing-primary);
   transition: all 0.3s ease;
 }
 
 .btn-gradient:hover {
-  background: linear-gradient(135deg, #5a92a5 0%, #4a8ba8 100%);
+  background: var(--landing-primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(107, 163, 190, 0.3);
+  box-shadow: 0 8px 25px rgba(46, 125, 50, 0.3);
 }
 
 /* Profile image upload area enhancement */
@@ -138,7 +402,7 @@
 
 /* Success message styling */
 .success-banner {
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: var(--landing-primary);
   animation: slideInFromTop 0.5s ease-out;
 }
 
@@ -155,8 +419,48 @@
 
 /* Error message styling */
 .error-banner {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  background: #212121;
   animation: shake 0.5s ease-in-out;
+}
+
+/* Landing-like palette overrides for profile template utility classes */
+.profile-landing .bg-black {
+  background-color: var(--landing-primary) !important;
+}
+
+.profile-landing .hover\:bg-gray-800:hover,
+.profile-landing .hover\:bg-black:hover {
+  background-color: var(--landing-primary) !important;
+}
+
+.profile-landing .ring-black,
+.profile-landing .border-black {
+  border-color: var(--landing-primary) !important;
+}
+
+.profile-landing .text-black {
+  color: var(--landing-text) !important;
+}
+
+.profile-landing .text-gray-600,
+.profile-landing .text-gray-700,
+.profile-landing .text-gray-500 {
+  color: var(--landing-muted) !important;
+}
+
+.profile-landing .bg-gray-100,
+.profile-landing .bg-gray-50 {
+  background-color: #f7fbf7 !important;
+}
+
+.profile-landing .border-gray-300,
+.profile-landing .border-gray-400,
+.profile-landing .border-gray-200 {
+  border-color: #d6ead8 !important;
+}
+
+.profile-landing .focus\:ring-gray-400:focus {
+  --tw-ring-color: rgba(46, 125, 50, 0.3) !important;
 }
 
 @keyframes shake {

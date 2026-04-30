@@ -1,10 +1,10 @@
-<div class="flex h-screen">
+<div class="profile-landing flex h-screen bg-[#f5f5f5]">
   <!-- Sidenav -->
   <app-sidenav></app-sidenav>
 
   <!-- Page content -->
-  <div class="flex-1 bg-white overflow-y-auto">
-    <div class="min-h-screen bg-white text-black">
+  <div class="flex-1  bg-[#f5f5f5] overflow-y-auto">
+    <div class="min-h-screen bg-[#f5f5f5] text-black">
       <!-- Profile Header -->
       <div class="mx-auto max-w-4xl px-4 pt-10">
         <div class="flex flex-col items-center rounded-2xl bg-white p-8 shadow-xl border border-black">
@@ -51,7 +51,7 @@
             <p class="text-base text-gray-600 mt-1" *ngIf="phone">📞 {{ phone }}</p>
             
             <!-- Address -->
-            <p class="text-base text-gray-600 mt-1 italic" *ngIf="street || barangay || city || province">
+            <p class="text-base text-gray-600 mt-1 italic" *ngIf="street || barangay || city">
               📍 {{ formatFullAddress() }}
             </p>
             
@@ -194,7 +194,7 @@
             </div> -->
 
             <!-- Seller Rating Details -->
-            <div class="space-y-4 col-span-2" *ngIf="totalRatings > 0">
+            <div class="space-y-4 col-span-2 pt-6" *ngIf="totalRatings > 0">
               <label class="text-sm font-medium text-black">Seller Performance Ratings</label>
               
               <!-- Overall Statistics -->
@@ -251,7 +251,7 @@
                           [src]="getProductImageUrl(rating.product_images)" 
                           [alt]="rating.product_name"
                           class="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                          (error)="onImageError($event)"
+                          (error)="onProductImageError($event)"
                           (load)="onImageLoad($event)"
                           (click)="enlargeImage(getProductImageUrl(rating.product_images), rating.product_name)"
                           title="Click to enlarge image">
@@ -324,16 +324,26 @@
 </div> -->
 
 <!-- Edit Profile Modal -->
-<div *ngIf="isEditModalOpen" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
-  <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden modal-container border border-black">
+<div *ngIf="isEditModalOpen" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop edit-profile-overlay flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden modal-container border border-black edit-profile-card">
     <!-- Modal Header -->
-    <div class="bg-black text-white p-6">
-      <div class="flex justify-between items-center">
-        <h3 class="text-2xl font-bold">✏️ Edit Profile</h3>
+    <div class="bg-black text-white p-6 edit-profile-header">
+      <div class="flex justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+          <div class="edit-profile-header-badge w-10 h-10 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold edit-profile-title">Edit Profile</h3>
+            <p class="edit-profile-subtitle text-sm">Keep your account details updated and accurate</p>
+          </div>
+        </div>
         <button
           type="button"
           (click)="closeModal()"
-          class="text-white hover:text-gray-300 transition-colors p-1 hover:bg-white hover:bg-opacity-20 rounded-full"
+          class="text-white hover:text-gray-300 transition-colors p-1 hover:bg-white hover:bg-opacity-20 rounded-full edit-profile-close"
         >
           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -343,14 +353,14 @@
     </div>
 
     <!-- Modal Content -->
-    <div class="overflow-y-auto max-h-[calc(90vh-120px)] modal-content">
-      <form (ngSubmit)="saveProfile()" class="p-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 grid-responsive">
+    <div class="overflow-y-auto max-h-[calc(90vh-120px)] modal-content edit-profile-content">
+      <form (ngSubmit)="saveProfile()" class="p-6 edit-profile-form">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 grid-responsive edit-profile-grid">
           
           <!-- Profile Image Section (Left Column) -->
-          <div class="lg:col-span-1">
+          <div class="lg:col-span-1 edit-profile-left-panel">
             <div class="text-center">
-              <h4 class="text-lg font-semibold text-black mb-4">Profile Picture</h4>
+              <h4 class="text-lg font-semibold text-black mb-4 edit-profile-section-title">Profile Picture</h4>
               
               <!-- Profile Image Preview -->
               <div class="relative mx-auto mb-4 profile-image-container">
@@ -389,7 +399,7 @@
               <button
                 type="button"
                 (click)="triggerFileInput()"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg transition-all duration-300 text-sm font-medium shadow-md hover:bg-gray-800"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg transition-all duration-300 text-sm font-medium shadow-md hover:bg-gray-800 edit-profile-secondary-btn"
               >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
@@ -408,21 +418,21 @@
           </div>
 
           <!-- Form Fields Section (Right Two Columns) -->
-          <div class="lg:col-span-2">
-            <h4 class="text-lg font-semibold text-black mb-4">Personal Information</h4>
+          <div class="lg:col-span-2 edit-profile-right-panel">
+            <h4 class="text-lg font-semibold text-black mb-4 edit-profile-section-title">Personal Information</h4>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 edit-profile-fields-grid">
               <!-- Full Name -->
               <div class="md:col-span-2 form-field">
                 <label class="block text-sm font-medium text-black mb-2">
-                  <span class="text-red-500">*</span> Full Name
+                   Full Name<span class="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   [(ngModel)]="full_name"
                   name="full_name"
                   required
-                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input"
+                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input edit-profile-input"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -430,14 +440,14 @@
               <!-- Email -->
               <div class="md:col-span-2 form-field">
                 <label class="block text-sm font-medium text-black mb-2">
-                  <span class="text-red-500">*</span> Email Address
+                   Email Address <span class="text-red-500">*</span>
                 </label>
-                <input
+                <input  
                   type="email"
                   [(ngModel)]="editEmail"
                   name="email"
                   required
-                  [class]="'w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input ' + 
+                  [class]="'w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input edit-profile-input ' + 
                            (editEmail !== originalEmail ? 'border-yellow-400 bg-yellow-50' : 'border-black')"
                   placeholder="Enter your email address"
                 />
@@ -451,81 +461,81 @@
               
               <!-- Phone -->
               <div class="form-field">
-                <label class="block text-sm font-medium text-black mb-2">Phone Number</label>
+                <label class="block text-sm font-medium text-black mb-2">Phone Number<span class="text-red-500">*</span></label>
                 <input
                   type="tel"
                   [(ngModel)]="phone"
                   name="phone"
-                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input"
+                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input edit-profile-input"
                   placeholder="Enter your phone number"
                 />
               </div>
               
               <!-- Street Address -->
               <div class="form-field">
-                <label class="block text-sm font-medium text-black mb-2">Street Address</label>
+                <label class="block text-sm font-medium text-black mb-2">Street Address<span class="text-red-500">*</span></label>
                 <input
                   type="text"
                   [(ngModel)]="street"
                   name="street"
-                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input"
+                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input edit-profile-input"
                   placeholder="Enter your street address"
                 />
               </div>
               
-              <!-- Barangay -->
+              <!-- Barangay Dropdown -->
               <div class="form-field">
-                <label class="block text-sm font-medium text-black mb-2">Barangay</label>
-                <input
-                  type="text"
+                <label class="block text-sm font-medium text-black mb-2">
+                  Barangay
+                  <span class="text-red-500">*</span>
+                </label>
+                <select
                   [(ngModel)]="barangay"
                   name="barangay"
-                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input"
-                  placeholder="Enter your barangay"
-                />
+                  required
+                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input edit-profile-input appearance-none cursor-pointer"
+                  style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232e7d32%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.7rem top 50%; background-size: 0.65rem auto;"
+                >
+                  <option value="" disabled>Select your barangay</option>
+                  <option *ngFor="let brgy of olongapoBarangays" [value]="brgy">{{ brgy }}</option>
+                </select>
+                <p class="text-xs text-gray-600 mt-1">Choose from 17 barangays in Olongapo City</p>
               </div>
               
-              <!-- City -->
+              <!-- City (Auto-filled and Read-only) -->
               <div class="form-field">
-                <label class="block text-sm font-medium text-black mb-2">City / Municipality</label>
+                <label class="block text-sm font-medium text-black mb-2">
+                  City / Municipality
+                  <span class="text-green-600 text-xs ml-1">(Auto-filled)</span>
+                </label>
                 <input
                   type="text"
                   [(ngModel)]="city"
                   name="city"
-                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input"
-                  placeholder="Enter your city or municipality"
+                  readonly
+                  disabled
+                  class="w-full p-3 border border-black rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed opacity-75"
                 />
-              </div>
-              
-              <!-- Province -->
-              <div class="form-field">
-                <label class="block text-sm font-medium text-black mb-2">Province</label>
-                <input
-                  type="text"
-                  [(ngModel)]="province"
-                  name="province"
-                  class="w-full p-3 border border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-black transition-all duration-200 form-input"
-                  placeholder="Enter your province (e.g., Zambales)"
-                />
+                <p class="text-xs text-gray-600 mt-1">All users must be in Olongapo City</p>
               </div>
             </div>
           </div>
         </div>
         
         <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-3 pt-8 border-t border-black mt-8">
+        <div class="flex flex-col sm:flex-row gap-3 pt-8 border-t border-black mt-8 edit-profile-actions">
           <button
             type="submit"
-            class="flex-1 bg-black text-white py-3 px-6 rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-gray-800 transform hover:-translate-y-0.5 transition-all duration-300"
+            class="flex-1 bg-black text-white py-3 px-6 rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-gray-800 transform hover:-translate-y-0.5 transition-all duration-300 edit-profile-save-btn"
           >
-            💾 Save Changes
+            Save Changes
           </button>
           <button
             type="button"
             (click)="closeModal()"
-            class="flex-1 bg-white text-black py-3 px-6 rounded-lg font-medium border-2 border-black hover:bg-black hover:text-white transition-all duration-200"
+            class="flex-1 bg-white text-black py-3 px-6 rounded-lg font-medium border-2 border-black hover:bg-black hover:text-white transition-all duration-200 edit-profile-cancel-btn"
           >
-            ❌ Cancel
+            Cancel
           </button>
         </div>
       </form>

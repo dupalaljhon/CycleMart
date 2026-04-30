@@ -1,0 +1,646 @@
+<div class="min-h-screen bg-gray-100 flex">
+
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <div class="flex-1 p-8">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="text-4xl font-bold text-gray-900">Listing Approval</h1>
+          <p class="text-gray-600 mt-2 text-lg">Review and approve pending bicycle listings</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="bg-white border border-gray-300 px-4 py-3 rounded-xl shadow-sm min-w-[290px]">
+            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Auto Listing Moderation</p>
+            <div class="mt-2 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                (click)="toggleAutoApproval()"
+                [disabled]="isUpdatingAutoApproval"
+                class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none"
+                [class.bg-[#2e7d32]]="isAutoApprovalEnabled"
+                [class.bg-gray-300]="!isAutoApprovalEnabled">
+                <span
+                  class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200"
+                  [class.translate-x-8]="isAutoApprovalEnabled"
+                  [class.translate-x-1]="!isAutoApprovalEnabled"></span>
+              </button>
+              <div class="text-sm leading-tight">
+                <p class="font-bold" [class.text-[#1b5e20]]="isAutoApprovalEnabled" [class.text-gray-600]="!isAutoApprovalEnabled">
+                  {{ isAutoApprovalEnabled ? 'ON' : 'OFF' }}
+                </p>
+                <p class="text-xs text-gray-500">{{ isUpdatingAutoApproval ? 'Saving...' : 'Admin controlled' }}</p>
+              </div>
+            </div>
+            <p class="text-[11px] text-gray-500 mt-2">
+              Regex auto-reject for prohibited words and contact details. Auto-approve when listing criteria pass.
+            </p>
+          </div>
+
+          <div *ngIf="!isLoading && pendingListings.length > 0" class="bg-[#2e7d32] text-white px-6 py-4 rounded-xl shadow-lg">
+            <p class="text-sm font-medium">Pending Listings</p>
+            <p class="text-4xl font-bold">{{ pendingListings.length }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="text-center py-20">
+        <div class="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-[#2e7d32]"></div>
+        <p class="mt-6 text-gray-600 text-lg font-medium">Loading pending listings...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && pendingListings.length === 0" class="text-center py-20 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-300">
+        <div class="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">All Clear!</h3>
+        <p class="text-gray-600 text-lg">No pending listings at the moment. All submissions have been reviewed.</p>
+      </div>
+
+      <!-- Pending Listings Grid -->
+      <div *ngIf="!isLoading && pendingListings.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+        <div *ngFor="let listing of pendingListings" class="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#2e7d32] transform hover:-translate-y-1 group">
+          <!-- Image -->
+          <div class="h-48 bg-gray-200 relative overflow-hidden">
+            <img *ngIf="listing.product_images && listing.product_images.length > 0" 
+                 [src]="getImageUrl(listing.product_images[0])" 
+                 [alt]="listing.product_name"
+                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+            <div *ngIf="!listing.product_images || listing.product_images.length === 0"
+                 class="flex items-center justify-center h-full text-gray-400">
+              <div class="text-center">
+                <svg class="w-20 h-20 mx-auto mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p class="text-sm font-medium">No Image</p>
+              </div>
+            </div>
+            <!-- Pending Badge -->
+            <div class="absolute top-3 right-3">
+              <span class="bg-white text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-[#2e7d32] flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Pending
+              </span>
+            </div>
+            <!-- Image Count Badge -->
+            <div *ngIf="listing.product_images && listing.product_images.length > 1" 
+                 class="absolute top-3 left-3 bg-white text-black px-3 py-1.5 rounded-full text-xs font-semibold border border-[#2e7d32] flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              {{ listing.product_images.length }}
+            </div>
+            <!-- Video Badge -->
+            <div *ngIf="listing.product_videos && listing.product_videos.length > 0" 
+                 class="absolute bottom-3 left-3 bg-white text-black px-3 py-1.5 rounded-full text-xs font-semibold border border-[#2e7d32] flex items-center gap-1.5 shadow-lg">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              {{ listing.product_videos.length }} Video{{ listing.product_videos.length > 1 ? 's' : '' }}
+            </div>
+            <!-- Overlay -->
+            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+
+          <!-- Content -->
+          <div class="p-4">
+            <h3 class="font-bold text-lg text-gray-900 line-clamp-2 mb-2 min-h-[3rem]">{{ listing.product_name }}</h3>
+            
+            <!-- Brand & Part Badges -->
+            <div class="mb-3 flex flex-wrap gap-2">
+              <span class="inline-flex items-center bg-white text-black px-3 py-1 rounded-full text-xs font-semibold border border-[#2e7d32]">
+                <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                </svg>
+                {{ getBrandDisplay(listing) }}
+              </span>
+              <span *ngIf="getPartDisplay(listing)" class="inline-flex items-center bg-white text-black px-3 py-1 rounded-full text-xs font-semibold border border-[#2e7d32]">
+                <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                {{ getPartDisplay(listing) }}
+              </span>
+              <span *ngIf="getPartCategoryDisplay(listing)" class="inline-flex items-center bg-white text-black px-3 py-1 rounded-full text-xs font-semibold border border-[#2e7d32]">
+                {{ getPartCategoryDisplay(listing) }}
+              </span>
+            </div>
+            
+            <!-- Price -->
+            <div class="mb-3">
+              <p class="text-2xl font-bold text-[#1b5e20]">
+                ₱{{ listing.price | number:'1.0-0' }}
+              </p>
+            </div>
+            
+            <!-- Info Grid -->
+            <div class="space-y-2 mb-3 text-sm">
+              <div class="flex items-center text-gray-700 bg-gray-50 rounded-lg px-3 py-2">
+                <svg class="w-4 h-4 mr-2 text-[#1b5e20] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span class="font-medium text-gray-600 mr-1">Seller:</span>
+                <span class="truncate">{{ listing.seller_name }}</span>
+              </div>
+              
+              <div class="flex items-center text-gray-700 bg-gray-50 rounded-lg px-3 py-2">
+                <svg class="w-4 h-4 mr-2 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span class="font-medium text-gray-600 mr-1">Type:</span>
+                <span class="capitalize">{{ listing.for_type }}</span>
+              </div>
+              
+              <div class="flex items-center text-gray-700 bg-gray-50 rounded-lg px-3 py-2">
+                <svg class="w-4 h-4 mr-2 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="truncate text-xs">{{ listing.created_at | date:'short' }}</span>
+              </div>
+            </div>
+
+            <div class="mb-3 p-2.5 rounded-lg border border-amber-200 bg-amber-50" *ngIf="listing.auto_review_failures && listing.auto_review_failures.length > 0">
+              <p class="text-[11px] font-semibold text-amber-800 uppercase tracking-wide">Why Still Pending</p>
+              <p class="text-xs text-amber-900 leading-snug mt-1">{{ listing.auto_review_summary }}</p>
+              <p class="text-[11px] text-amber-700 mt-1" *ngIf="listing.auto_review_failures.length > 1">
+                +{{ listing.auto_review_failures.length - 1 }} more criteria issue(s)
+              </p>
+            </div>
+
+            <!-- Actions -->
+            <button (click)="viewDetails(listing)" 
+                    class="w-full bg-[#2e7d32] hover:bg-[#1b5e20] text-white px-4 py-2.5 rounded-xl transition-all duration-200 text-sm font-bold shadow-md hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              Review Details
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Details Modal -->
+  <div *ngIf="selectedListing" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4" (click)="closeDetails()">
+    <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="sticky top-0 bg-[#2e7d32] px-6 py-5 flex justify-between items-center z-10 shadow-lg">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Review Listing</h2>
+          <p class="text-green-100 text-sm mt-1">Carefully review all details before approval</p>
+        </div>
+        <button (click)="closeDetails()" class="text-white hover:bg-white/20 p-2 rounded-full transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-8">
+        <!-- Image Gallery -->
+        <div *ngIf="selectedListing.product_images && selectedListing.product_images.length > 0" class="mb-8">
+          <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Product Images
+          </h4>
+          <div class="relative h-[28rem] bg-gray-200 rounded-2xl overflow-hidden shadow-inner">
+            <img [src]="getImageUrl(selectedListing.product_images[currentImageIndex])" 
+                 [alt]="selectedListing.product_name"
+                 class="w-full h-full object-contain">
+            
+            <!-- Navigation Arrows -->
+            <button *ngIf="selectedListing.product_images.length > 1" 
+                    (click)="prevImage()" 
+                    class="absolute left-4 top-1/2 -translate-y-1/2 bg-white text-gray-800 p-3 rounded-full shadow-lg hover:bg-gray-100 transition-all hover:scale-110">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <button *ngIf="selectedListing.product_images.length > 1" 
+                    (click)="nextImage()" 
+                    class="absolute right-4 top-1/2 -translate-y-1/2 bg-white text-gray-800 p-3 rounded-full shadow-lg hover:bg-gray-100 transition-all hover:scale-110">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+             
+            <!-- Image Counter -->
+            <div class="absolute bottom-6 right-6 bg-black bg-opacity-70 text-white px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm">
+              {{ currentImageIndex + 1 }} / {{ selectedListing.product_images.length }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Gallery -->
+        <div *ngIf="selectedListing.product_videos && selectedListing.product_videos.length > 0" class="mb-8">
+          <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            Product Videos ({{ selectedListing.product_videos.length }})
+          </h4>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngFor="let video of selectedListing.product_videos; let i = index" 
+                 class="relative bg-gray-900 rounded-xl overflow-hidden shadow-lg">
+              
+              <video 
+                [src]="getVideoUrl(video)" 
+                class="w-full h-full object-cover aspect-video"
+                controls
+                preload="metadata"
+                (error)="onVideoError($event, video)">
+                Your browser does not support the video tag.
+              </video>
+              <div class="absolute top-2 left-2 bg-[#2e7d32] text-white rounded-lg px-3 py-1.5 text-xs font-bold shadow-md">
+                Video {{ i + 1 }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Debug: No Videos Message -->
+        <div *ngIf="!selectedListing.product_videos || selectedListing.product_videos.length === 0" class="mb-8 p-4 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl">
+          <div class="flex items-center justify-center gap-3 text-gray-500">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            <span class="font-medium">No videos uploaded for this product</span>
+          </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="space-y-4">
+          <!-- Title and Brand -->
+          <div class="bg-green-50 p-4 rounded-2xl border border-green-200">
+            <h3 class="text-3xl font-bold text-gray-900 mb-2">{{ selectedListing.product_name }}</h3>
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="bg-white text-black px-4 py-2 rounded-full text-sm font-bold border border-[#2e7d32]">
+                {{ getBrandDisplay(selectedListing) }}
+              </span>
+              <span *ngIf="getPartDisplay(selectedListing)" class="bg-white text-black px-4 py-2 rounded-full text-sm font-bold border border-[#2e7d32]">
+                {{ getPartDisplay(selectedListing) }}
+              </span>
+              <span *ngIf="getPartCategoryDisplay(selectedListing)" class="bg-white text-black px-4 py-2 rounded-full text-sm font-bold border border-[#2e7d32]">
+                {{ getPartCategoryDisplay(selectedListing) }}
+              </span>
+              <span class="bg-white text-black px-4 py-2 rounded-full text-sm font-bold border border-[#2e7d32]">
+                {{ getForTypeDisplay(selectedListing.for_type) }}
+              </span>
+              <span class="bg-white text-black px-4 py-2 rounded-full text-sm font-bold border border-[#2e7d32]">
+                {{ getConditionDisplay(selectedListing.condition) }}
+              </span>
+              <span class="bg-white text-black px-4 py-2 rounded-full text-sm font-bold border border-[#2e7d32]">
+                Qty: {{ selectedListing.quantity }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Price -->
+          <div class="bg-white p-4 rounded-2xl shadow-lg border-2 border-green-200">
+            <p class="text-[#1b5e20] text-sm font-semibold mb-1">Product Price</p>
+            <p class="text-4xl font-bold text-gray-900">₱{{ selectedListing.price | number:'1.0-0' }}</p>
+          </div>
+
+          <!-- Description -->
+          <div class="bg-white border-2 border-gray-200 rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-[#1b5e20]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+              </svg>
+              <h4 class="font-bold text-gray-900 text-lg">Description</h4>
+            </div>
+            <p class="text-gray-700 whitespace-pre-line leading-relaxed">{{ selectedListing.description }}</p>
+          </div>
+
+          <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4" *ngIf="selectedListing.auto_review_failures && selectedListing.auto_review_failures.length > 0">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"></path>
+              </svg>
+              <h4 class="font-bold text-amber-900 text-lg">Auto-Review Criteria Not Met</h4>
+            </div>
+            <ul class="list-disc ml-5 text-sm text-amber-900 space-y-1">
+              <li *ngFor="let reason of selectedListing.auto_review_failures">{{ reason }}</li>
+            </ul>
+          </div>
+
+          <!-- Location -->
+          <div class="bg-white border-2 border-gray-200 rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-[#1b5e20]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              <h4 class="font-bold text-gray-900 text-lg">Location</h4>
+            </div>
+            <p class="text-gray-700">{{ selectedListing.location }}</p>
+          </div>
+
+          <!-- Component Specifications -->
+          <div *ngIf="selectedListing.specifications && selectedListing.specifications.length > 0" class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+              <div>
+                <h4 class="font-bold text-gray-900 text-xl">Component Specifications</h4>
+                <p class="text-sm text-green-700">Detailed technical specifications for this component</p>
+              </div>
+              <span class="ml-auto bg-[#2e7d32] text-white px-3 py-1 rounded-full text-sm font-bold">
+                {{ selectedListing.specifications.length }} specs
+              </span>
+            </div>
+            
+            <!-- Specifications Table -->
+            <div class="bg-white rounded-xl shadow-inner overflow-hidden border border-green-200">
+              <table class="w-full">
+                <thead class="bg-gradient-to-r from-[#2e7d32] to-green-700 text-white">
+                  <tr>
+                    <th class="text-left py-3 px-4 font-semibold text-sm uppercase tracking-wider">Specification</th>
+                    <th class="text-left py-3 px-4 font-semibold text-sm uppercase tracking-wider">Value</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr *ngFor="let spec of selectedListing.specifications; let i = index" 
+                      [class.bg-gray-50]="i % 2 === 0"
+                      [class.bg-white]="i % 2 === 1"
+                      class="hover:bg-green-50 transition-colors">
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-gray-700 text-sm uppercase tracking-wide">
+                        {{ formatSpecName(spec.name || spec.spec_name) }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="text-gray-900 font-semibold">
+                        {{ spec.value || spec.spec_value }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Specifications Summary Note -->
+            <div class="mt-4 flex items-start gap-2 bg-green-100 border border-green-300 rounded-lg p-3">
+              <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-sm text-green-800">
+                <strong>Note:</strong> These specifications were provided by the seller during listing creation. 
+                Please verify all technical details are accurate before approval.
+              </p>
+            </div>
+          </div>
+
+          <!-- Bicycle Taxonomy Information -->
+          <div *ngIf="selectedListing.bicycle_brand_name || selectedListing.bicycle_part_name" class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              <h4 class="font-bold text-gray-900 text-lg">Bicycle Component Details</h4>
+            </div>
+            <div class="space-y-4">
+              <div *ngIf="selectedListing.bicycle_brand_name" class="bg-white rounded-lg p-4 border border-green-200">
+                <span class="text-gray-600 font-medium text-sm block mb-1">Brand:</span>
+                <span class="text-gray-900 font-bold text-lg">{{ selectedListing.bicycle_brand_name }}</span>
+                <p *ngIf="selectedListing.bicycle_brand_description" class="text-gray-600 text-sm mt-2">{{ selectedListing.bicycle_brand_description }}</p>
+              </div>
+              <div *ngIf="selectedListing.bicycle_part_name" class="bg-white rounded-lg p-4 border border-green-200">
+                <span class="text-gray-600 font-medium text-sm block mb-1">Component Type:</span>
+                <span class="text-gray-900 font-bold text-lg">{{ selectedListing.bicycle_part_name }}</span>
+                <span *ngIf="selectedListing.bicycle_part_category" class="ml-2 bg-[#2e7d32] text-white px-3 py-1 rounded-full text-xs font-semibold">{{ selectedListing.bicycle_part_category }}</span>
+                <p *ngIf="selectedListing.bicycle_part_description" class="text-gray-600 text-sm mt-2">{{ selectedListing.bicycle_part_description }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seller Information -->
+          <div class="bg-green-50 border-2 border-green-200 rounded-2xl p-6">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+              <h4 class="font-bold text-gray-900 text-lg">Seller Information</h4>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <span class="text-gray-600 font-medium w-24">Name:</span>
+                <span class="text-gray-900 font-semibold">{{ selectedListing.seller_name }}</span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-gray-600 font-medium w-24">Email:</span>
+                <span class="text-gray-900 font-semibold">{{ selectedListing.seller_email }}</span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-gray-600 font-medium w-24">Submitted:</span>
+                <span class="text-gray-900 font-semibold">{{ selectedListing.created_at | date:'medium' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-4 mt-8 pt-6 border-t-2 border-gray-200">
+          <button (click)="openApproveModal(selectedListing)" 
+                  class="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Approve Listing
+          </button>
+          <button (click)="openRejectModal(selectedListing)" 
+                  class="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Reject Listing
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approve Confirmation Modal -->
+  <div *ngIf="showApproveModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" (click)="closeApproveModal()">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl transform transition-all" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="bg-green-600 px-6 py-5 rounded-t-2xl">
+        <div class="flex items-center gap-3">
+          <div class="bg-white/20 p-2 rounded-full">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-white">Approve Listing</h3>
+            <p class="text-green-100 text-sm">Confirm listing approval</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-6">
+        <div class="flex items-start gap-3 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-4">
+          <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div>
+            <p class="text-green-800 font-semibold mb-1">Are you sure you want to approve this listing?</p>
+            <p class="text-green-700 text-sm">Once approved, this listing will be visible to all users on the marketplace.</p>
+          </div>
+        </div>
+        
+        <div *ngIf="selectedListing" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <p class="text-sm text-gray-600 mb-2">Listing Details:</p>
+          <p class="text-lg font-bold text-gray-900">{{ selectedListing.product_name }}</p>
+          <p class="text-sm text-gray-600 mt-1">by {{ selectedListing.seller_name }}</p>
+        </div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="flex gap-3 px-6 pb-6">
+        <button (click)="closeApproveModal()" 
+                class="flex-1 bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 transition-all font-semibold">
+          Cancel
+        </button>
+        <button (click)="approveListing()" 
+                class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105">
+          Confirm Approval
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rejection Modal -->
+  <div *ngIf="showRejectModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" (click)="closeRejectModal()">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl transform transition-all" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="bg-red-600 px-6 py-5 rounded-t-2xl">
+        <div class="flex items-center gap-3">
+          <div class="bg-white/20 p-2 rounded-full">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-white">Reject Listing</h3>
+            <p class="text-red-100 text-sm">Please provide a clear reason for rejection</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-6">
+        <!-- Violation Code Selector -->
+        <div class="mb-5">
+          <label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Violation Type <span class="text-red-500">*</span>
+          </label>
+          <select [(ngModel)]="violationCode" 
+                  class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all appearance-none bg-white cursor-pointer">
+            <option *ngFor="let code of violationCodes" [value]="code.value">
+              {{ code.label }} - {{ code.description }}
+            </option>
+          </select>
+          <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="font-semibold">Multiple violations may result in temporary or permanent restrictions</span>
+          </p>
+        </div>
+
+        <!-- Rejection Reason -->
+        <label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+          <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Detailed Reason <span class="text-red-500">*</span>
+        </label>
+        <textarea [(ngModel)]="rejectionReason" 
+                  rows="5" 
+                  class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all resize-none"
+                  placeholder="Please provide a detailed and constructive reason for rejecting this listing. This will help the seller understand what needs to be improved."></textarea>
+        <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          The seller will receive this message via notification
+        </p>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="flex gap-3 px-6 pb-6">
+        <button (click)="closeRejectModal()" 
+                class="flex-1 bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 transition-all font-semibold">
+          Cancel
+        </button>
+        <button (click)="rejectListing()" 
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                [disabled]="!rejectionReason.trim()">
+          Confirm Rejection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[70] p-4" (click)="closeSuccessModal()">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl transform transition-all animate-bounce-in" (click)="$event.stopPropagation()">
+      <!-- Success Header -->
+      <div [ngClass]="successType === 'approved' ? 'bg-green-600' : 'bg-red-600'" class="px-6 py-5 rounded-t-2xl">
+        <div class="flex items-center gap-3">
+          <div class="bg-white/20 p-2 rounded-full">
+            <svg *ngIf="successType === 'approved'" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <svg *ngIf="successType === 'rejected'" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-white">{{ successType === 'approved' ? 'Success!' : 'Notification' }}</h3>
+            <p [ngClass]="successType === 'approved' ? 'text-green-100' : 'text-red-100'" class="text-sm">Action completed</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Success Body -->
+      <div class="p-8 text-center">
+        <p class="text-lg text-gray-700 font-medium">{{ successMessage }}</p>
+        <div class="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+          <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Auto-closing in 3 seconds...</span>
+        </div>
+      </div>
+      
+      <!-- Success Footer -->
+      <div class="px-6 pb-6">
+        <button (click)="closeSuccessModal()" 
+                [ngClass]="successType === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+                class="w-full text-white px-6 py-3 rounded-xl transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105">
+          Close Now
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

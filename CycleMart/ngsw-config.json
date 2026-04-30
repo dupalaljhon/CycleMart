@@ -32,7 +32,10 @@
     {
       "name": "api-performance",
       "urls": [
-        "http://localhost/**"
+        "http://localhost:3001/api/**",
+        "http://localhost:3001/uploads/**",
+        "https://api.cyclemart.shop/api/**",
+        "https://api.cyclemart.shop/uploads/**"
       ],
       "cacheConfig": {
         "maxSize": 100,
@@ -44,7 +47,10 @@
     {
       "name": "api-freshness",
       "urls": [
-        "http://localhost/CycleMart-api/**"
+        "http://localhost:3001/api/**",
+        "http://localhost:3001/uploads/**",
+        "https://api.cyclemart.shop/api/**",
+        "https://api.cyclemart.shop/uploads/**"
       ],
       "cacheConfig": {
         "maxSize": 50,

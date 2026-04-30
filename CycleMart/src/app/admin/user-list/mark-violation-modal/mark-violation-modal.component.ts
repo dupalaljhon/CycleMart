@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+﻿import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -40,12 +40,53 @@ export class MarkViolationModalComponent {
   reason: string = '';
   isSubmitting: boolean = false;
   errorMessage: string = '';
+  showSanctionGuide: boolean = true;
+  openGuidelineIndex: number | null = 0;
 
   violationLevels = [
     { value: 1, label: 'Level 1 - Warning ', status: 'active', description: 'User receives a warning, account remains active' },
     { value: 2, label: 'Level 2 - Restricted ', status: 'restricted', description: 'User account will be restricted with limited access' },
     { value: 3, label: 'Level 3 - Suspended ', status: 'suspended', description: 'User account will be temporarily suspended' },
     { value: 4, label: 'Level 4 - Permanently Banned ', status: 'banned', description: 'User account will be permanently banned' }
+  ];
+
+  sanctionGuidelines = [
+    {
+      title: 'Level 1 - Warning (Minor, First Offense)',
+      summary: 'Use for incomplete details, misleading captions, or low-impact rule slips.',
+      points: [
+        'Apply when the issue appears unintentional and has limited marketplace impact.',
+        'Require correction and remind the user of the specific violated policy.',
+        'Escalate only if the same behavior repeats after warning.'
+      ]
+    },
+    {
+      title: 'Level 2 - Restricted (Repeated or Moderate Offense)',
+      summary: 'Use for repeated minor violations or moderate misconduct affecting trust.',
+      points: [
+        'Apply when a user repeats warned behavior or posts prohibited listing content.',
+        'Restrict posting and interaction privileges for a clear corrective period.',
+        'Explain what must change before full privileges are restored.'
+      ]
+    },
+    {
+      title: 'Level 3 - Suspended (Serious or Continuous Abuse)',
+      summary: 'Use for severe misconduct, harassment, fraud indicators, or repeated defiance.',
+      points: [
+        'Apply when user actions materially harm buyers, sellers, or platform safety.',
+        'Suspend account access while final review is documented by moderators.',
+        'Reinstate only when evidence supports compliance and risk is controlled.'
+      ]
+    },
+    {
+      title: 'Level 4 - Permanent Ban (Critical Abuse)',
+      summary: 'Use for confirmed scams, repeated severe abuse, or irreversible trust breach.',
+      points: [
+        'Apply when violation patterns indicate sustained malicious behavior.',
+        'Document complete evidence trail before finalizing permanent ban.',
+        'Use only when lower sanctions are no longer effective or risk is unacceptable.'
+      ]
+    }
   ];
 
   constructor(
@@ -56,6 +97,14 @@ export class MarkViolationModalComponent {
 
   getSelectedLevelInfo() {
     return this.violationLevels.find(level => level.value === this.violationLevel);
+  }
+
+  toggleSanctionGuide(): void {
+    this.showSanctionGuide = !this.showSanctionGuide;
+  }
+
+  toggleGuideline(index: number): void {
+    this.openGuidelineIndex = this.openGuidelineIndex === index ? null : index;
   }
 
   onCancel(): void {
@@ -99,7 +148,6 @@ export class MarkViolationModalComponent {
       error: (error) => {
         this.isSubmitting = false;
         this.errorMessage = error.error?.message || error.message || 'An error occurred while marking violation';
-        console.error('Error marking violation:', error);
       }
     });
   }

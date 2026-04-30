@@ -1,289 +1,414 @@
-
-<div class="flex h-screen">
-  <!-- Sidenav -->
+<div class="flex h-screen admin-dashboard-shell">
   <app-admin-sidenav></app-admin-sidenav>
 
-  <!-- Main Content -->
-  <div class="flex-1 p-6 bg-gray-100 overflow-y-auto">
-    <!-- Header Section -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
-          <p class="text-gray-600">Welcome to CycleMart Admin Dashboard</p>
+  <div class="flex-1 p-4 md:p-6 lg:p-8 dashboard-main overflow-y-auto">
+    <div class="dashboard-hero rounded-2xl p-5 md:p-7 mb-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+        <div class="hero-copy">
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/80 text-green-800 border border-green-200 mb-3">
+            Admin Command Center
+          </span>
+          <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">CycleMart Dashboard</h1>
+          <p class="text-slate-600 mt-2">Monitor platform growth, moderate risks, and track live marketplace activity.</p>
         </div>
-        <!-- Search bar -->
-        <div class="flex items-center">
+
+        <div class="hero-search flex items-center bg-white border border-green-200 rounded-xl px-3 py-2 shadow-sm">
+          <svg class="w-5 h-5 text-green-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
           <input
             type="text"
-            placeholder="Search..."
-            class="flex-1 p-2 rounded-md border border-gray-300 mr-2"
+            placeholder="Search users, reports, listings"
+            class="w-full lg:w-72 outline-none text-slate-700 placeholder:text-slate-400 bg-transparent"
           />
-          <button class="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-            🔍
+          <button class="ml-2 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-green-700 hover:bg-green-800 transition-colors">
+            Search
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <!-- Total Users Card -->
-      <div class="stat-card bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-blue-100 text-sm">Total Users</p>
-            <p class="text-3xl font-bold">{{ dashboardStats.total_users | number }}</p>
-            <div class="mt-2 text-xs text-blue-100">
-              <span class="bg-blue-400/30 px-2 py-1 rounded">+{{ dashboardStats.new_users_week }} this week</span>
-              <span class="ml-1 bg-blue-400/30 px-2 py-1 rounded">+{{ dashboardStats.new_users_day }} today</span>
-            </div>
-          </div>
-          <svg class="w-8 h-8 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-          </svg>
-        </div>
-      </div>
-      
-      <!-- Active Listings Card -->
-      <div class="stat-card bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-green-100 text-sm">Active Listings</p>
-            <p class="text-3xl font-bold">{{ dashboardStats.active_listings | number }}</p>
-            <div class="mt-2 text-xs text-green-100">
-              <span class="bg-green-400/30 px-2 py-1 rounded">+{{ dashboardStats.new_listings_week }} this week</span>
-              <span class="ml-1 bg-green-400/30 px-2 py-1 rounded">+{{ dashboardStats.new_listings_day }} today</span>
-            </div>
-          </div>
-          <svg class="w-8 h-8 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-          </svg>
-        </div>
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-2xl font-extrabold text-slate-900">Executive View</h2>
+        <p class="text-sm text-slate-500">Top-level platform health, growth, and listing snapshot</p>
       </div>
 
-      <!-- Pending Products Card -->
-      <!-- <div class="stat-card bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-6 rounded-lg shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-yellow-100 text-sm">Pending Approval</p>
-            <p class="text-3xl font-bold">{{ dashboardStats.pending_products | number }}</p>
-            <div class="mt-2 text-xs text-yellow-100">
-              <span class="bg-yellow-400/30 px-2 py-1 rounded">Total: {{ dashboardStats.total_products }} listings</span>
-            </div>
-          </div>
-          <svg class="w-8 h-8 text-yellow-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-        </div>
-      </div> -->
-
-      <!-- Total Reports Card -->
-      <div class="stat-card bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-lg shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-red-100 text-sm">Total Reports</p>
-            <p class="text-3xl font-bold">{{ dashboardStats.total_reports | number }}</p>
-            <div class="mt-2 text-xs text-red-100">
-              <span class="bg-red-400/30 px-2 py-1 rounded">{{ dashboardStats.product_reports }} products</span>
-              <span class="ml-1 bg-red-400/30 px-2 py-1 rounded">{{ dashboardStats.user_reports }} users</span>
-            </div>
-          </div>
-          <svg class="w-8 h-8 text-red-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <!-- Monthly Growth Chart -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="h-80">
-          <canvas #monthlyGrowthCanvas></canvas>
-        </div>
-      </div>
-
-      <!-- Product Categories Chart -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="h-80">
-          <canvas #categoriesCanvas></canvas>
-        </div>
-      </div>
-
-      <!-- Reports by Reason Chart -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="h-80">
-          <canvas #reportsCanvas></canvas>
-        </div>
-      </div>
-
-      <!-- Most Reported Accounts -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <span class="text-2xl">🚨</span>
-          <span>Top 10 Most Reported Accounts</span>
-        </h3>
-        <div *ngIf="chartData.most_reported_accounts && chartData.most_reported_accounts.length > 0" 
-             class="space-y-2 max-h-72 overflow-y-auto">
-          <div *ngFor="let account of chartData.most_reported_accounts; let i = index" 
-               class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
-              <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                   [ngClass]="{
-                     'bg-red-100 text-red-700': i === 0,
-                     'bg-orange-100 text-orange-700': i === 1,
-                     'bg-yellow-100 text-yellow-700': i === 2,
-                     'bg-gray-100 text-gray-700': i > 2
-                   }">
-                #{{ i + 1 }}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-6 dashboard-grid">
+        <div class="stat-card stat-users text-white p-5 rounded-2xl">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm text-emerald-100">Total Users</p>
+              <p class="text-4xl font-extrabold tracking-tight mt-1">{{ dashboardStats.total_users | number }}</p>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                <span class="badge-soft">+{{ dashboardStats.new_users_week }} this week</span>
+                <span class="badge-soft">+{{ dashboardStats.new_users_day }} today</span>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="font-semibold text-gray-800 truncate">{{ account.full_name }}</p>
-                <p class="text-xs text-gray-500 truncate">{{ account.email }}</p>
-                <div class="flex items-center gap-2 mt-1">
-                  <span class="text-xs px-2 py-0.5 rounded-full font-medium"
-                        [ngClass]="{
-                          'bg-green-100 text-green-800': account.account_status === 'active',
-                          'bg-orange-100 text-orange-800': account.account_status === 'restricted',
-                          'bg-red-100 text-red-800': account.account_status === 'suspended',
-                          'bg-gray-900 text-white': account.account_status === 'banned'
-                        }">
-                    {{ account.account_status | uppercase }}
-                  </span>
-                  <span class="text-xs text-gray-600">
-                    {{ account.violation_count }} violation{{ account.violation_count !== 1 ? 's' : '' }}
-                  </span>
+            </div>
+            <div class="icon-chip">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-listings text-white p-5 rounded-2xl">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm text-emerald-100">Active Listings</p>
+              <p class="text-4xl font-extrabold tracking-tight mt-1">{{ dashboardStats.active_listings | number }}</p>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                <span class="badge-soft">+{{ dashboardStats.new_listings_week }} this week</span>
+                <span class="badge-soft">+{{ dashboardStats.new_listings_day }} today</span>
+              </div>
+            </div>
+            <div class="icon-chip">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-reports text-white p-5 rounded-2xl">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm text-amber-100">Total Reports</p>
+              <p class="text-4xl font-extrabold tracking-tight mt-1">{{ dashboardStats.total_reports | number }}</p>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                <span class="badge-soft">{{ dashboardStats.product_reports }} products</span>
+                <span class="badge-soft">{{ dashboardStats.user_reports }} users</span>
+              </div>
+            </div>
+            <div class="icon-chip">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <section class="chart-card rounded-2xl p-5">
+          <div class="card-head">
+            <h3>Monthly Growth</h3>
+            <p>Users and products over time</p>
+          </div>
+          <div class="h-80 mt-3">
+            <canvas #monthlyGrowthCanvas></canvas>
+          </div>
+        </section>
+
+        <section class="chart-card rounded-2xl p-5">
+          <div class="card-head">
+            <h3>Category Distribution</h3>
+            <p>Current listing mix by category</p>
+          </div>
+          <div class="h-80 mt-3">
+            <canvas #categoriesCanvas></canvas>
+          </div>
+        </section>
+
+        <section class="chart-card rounded-2xl p-5 lg:col-span-2">
+          <div class="card-head">
+            <h3>Listing Status Snapshot</h3>
+            <p>Active vs pending vs other listings</p>
+          </div>
+          <div class="h-72 mt-3">
+            <canvas #listingStatusCanvas></canvas>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-2xl font-extrabold text-slate-900">Operations View</h2>
+        <p class="text-sm text-slate-500">Workload, activity patterns, and live platform events</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        <section class="chart-card rounded-2xl p-5">
+          <div class="card-head">
+            <h3>Report Pipeline</h3>
+            <p>Pending and resolved report workload</p>
+          </div>
+          <div class="h-72 mt-3">
+            <canvas #reportPipelineCanvas></canvas>
+          </div>
+        </section>
+
+        <section class="chart-card rounded-2xl p-5">
+          <div class="card-head">
+            <h3>Activity Type Mix</h3>
+            <p>Breakdown of events from the live feed</p>
+          </div>
+          <div class="h-72 mt-3">
+            <canvas #activityTypeCanvas></canvas>
+          </div>
+        </section>
+
+        <section class="chart-card rounded-2xl p-5 lg:col-span-2">
+          <div class="card-head mb-4">
+            <div class="heatmap-headline-row">
+              <div>
+                <h3>Activity Heatmap - {{ heatmapTitle }}</h3>
+                <p>Event intensity by day and time bucket</p>
+              </div>
+
+              <div class="heatmap-controls">
+                <label class="heatmap-control-label">Month</label>
+                <select
+                  class="heatmap-select"
+                  [ngModel]="monthFilterMode"
+                  (ngModelChange)="onMonthFilterModeChange($event)"
+                >
+                  <option value="current">Current Month</option>
+                  <option value="previous">Previous Month</option>
+                  <option value="custom">Custom Month</option>
+                </select>
+
+                <input
+                  *ngIf="monthFilterMode === 'custom'"
+                  type="month"
+                  class="heatmap-month-input"
+                  [(ngModel)]="customMonth"
+                  (change)="onCustomMonthChange()"
+                />
+
+                <label class="compare-toggle">
+                  <input type="checkbox" [(ngModel)]="compareMode" (change)="onCompareModeChange()" />
+                  <span>Compare vs previous period</span>
+                </label>
+              </div>
+            </div>
+
+            <div *ngIf="compareMode" class="compare-summary mt-3">
+              <span class="compare-chip" [ngClass]="getDeltaBadgeClass()">
+                {{ heatmapEventDelta >= 0 ? '+' : '' }}{{ heatmapEventDelta }} events
+                ({{ heatmapEventDelta >= 0 ? '+' : '' }}{{ heatmapEventDeltaPercent | number: '1.0-1' }}%)
+              </span>
+              <span class="compare-subtitle">Compared with {{ compareHeatmapTitle }}</span>
+            </div>
+          </div>
+
+          <div class="heatmap-grid-wrap">
+            <div class="heatmap-grid">
+              <div class="heatmap-head heatmap-corner"></div>
+              <div class="heatmap-head" *ngFor="let day of heatmapDays">{{ day }}</div>
+
+              <ng-container *ngFor="let bucket of heatmapBuckets">
+                <div class="heatmap-row-label">{{ bucket.label }}</div>
+                <div
+                  *ngFor="let day of heatmapDays"
+                  class="heatmap-cell"
+                  [ngStyle]="getHeatmapCellStyle(day, bucket.key)"
+                  [title]="day + ' - ' + bucket.label + ': ' + (activityHeatmap[day][bucket.key] || 0) + ' events'"
+                >
+                  {{ activityHeatmap[day][bucket.key] || 0 }}
                 </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <div class="text-center">
-                <div class="text-2xl font-bold"
-                     [ngClass]="{
-                       'text-red-600': account.report_count >= 10,
-                       'text-orange-600': account.report_count >= 5 && account.report_count < 10,
-                       'text-yellow-600': account.report_count >= 3 && account.report_count < 5,
-                       'text-gray-600': account.report_count < 3
-                     }">
-                  {{ account.report_count }}
-                </div>
-                <div class="text-xs text-gray-500">report{{ account.report_count !== 1 ? 's' : '' }}</div>
-              </div>
+              </ng-container>
             </div>
           </div>
-        </div>
-        <div *ngIf="!chartData.most_reported_accounts || chartData.most_reported_accounts.length === 0" 
-             class="text-center text-gray-500 py-8">
-          <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p>No reported accounts</p>
-        </div>
-      </div>
 
-      <!-- Top Ratings Chart -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">⭐ Top 5 Highest Rated Sellers</h3>
-        <div *ngIf="chartData.top_sellers.length > 0" class="space-y-3">
-          <div *ngFor="let seller of chartData.top_sellers; let i = index" class="flex items-center">
-            <div class="w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xs font-bold mr-3">
-              {{ i + 1 }}
-            </div>
-            <div class="flex-1 flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-700">{{ seller.seller_name }}</span>
-              <div class="flex items-center space-x-2">
-                <div class="flex items-center">
-                  <span class="text-yellow-400 text-lg">⭐</span>
-                  <span class="text-sm font-semibold text-gray-800 ml-1">{{ seller.average_rating || '0.0' }}</span>
-                  <span class="text-xs text-gray-500 ml-1">({{ seller.total_ratings || 0 }})</span>
+          <div *ngIf="compareMode" class="heatmap-grid-wrap mt-4">
+            <div class="compare-title">Comparison Heatmap - {{ compareHeatmapTitle }}</div>
+            <div class="heatmap-grid compare-grid">
+              <div class="heatmap-head heatmap-corner"></div>
+              <div class="heatmap-head" *ngFor="let day of heatmapDays">{{ day }}</div>
+
+              <ng-container *ngFor="let bucket of heatmapBuckets">
+                <div class="heatmap-row-label">{{ bucket.label }}</div>
+                <div
+                  *ngFor="let day of heatmapDays"
+                  class="heatmap-cell"
+                  [ngStyle]="getCompareHeatmapCellStyle(day, bucket.key)"
+                  [title]="day + ' - ' + bucket.label + ': ' + (compareActivityHeatmap[day][bucket.key] || 0) + ' events'"
+                >
+                  {{ compareActivityHeatmap[day][bucket.key] || 0 }}
                 </div>
-              </div>
+              </ng-container>
             </div>
           </div>
-        </div>
-        <div *ngIf="chartData.top_sellers.length === 0" class="text-center text-gray-500 py-8">
-          <p>No rating data available</p>
-        </div>
+        </section>
       </div>
-    </div>
 
-    <!-- Recent Activity Section -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">Recent Activity</h2>
+      <section class="activity-card rounded-2xl p-5 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-900">Recent Activity</h2>
+          <p class="text-sm text-slate-500">Live events from users, listings, and reports</p>
+        </div>
         <div class="flex items-center gap-3">
-          <div class="text-sm text-gray-500">
+          <span class="text-sm px-3 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 font-semibold">
             {{ recentActivities.length }} activit{{ recentActivities.length !== 1 ? 'ies' : 'y' }}
-          </div>
-          <div *ngIf="isActivitiesLoading" class="flex items-center text-sm text-blue-500">
-            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-            Updating...
+          </span>
+          <div *ngIf="isActivitiesLoading" class="flex items-center text-sm text-green-700 font-medium">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-green-700 mr-2"></div>
+            Updating
           </div>
         </div>
       </div>
-      
-      <!-- Loading State -->
+
       <div *ngIf="isLoading && recentActivities.length === 0" class="text-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-        <p class="mt-2 text-gray-600">Loading recent activity...</p>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700 mx-auto"></div>
+        <p class="mt-2 text-slate-600">Loading recent activity...</p>
       </div>
-      
-      <!-- Activities with Scrollable Area -->
-      <div *ngIf="recentActivities.length > 0" 
-           class="notifications-scroll border border-gray-200 rounded-lg max-h-[500px] overflow-y-auto">
-        
-        <!-- Scrollable Activity List -->
+
+      <div *ngIf="recentActivities.length > 0" class="notifications-scroll border border-green-100 rounded-xl overflow-y-auto max-h-[500px]">
         <div class="space-y-0">
-          <div *ngFor="let activity of recentActivities; let i = index" 
-               class="notification-item flex items-center p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
-            <div [ngClass]="getActivityColor(activity.activity_type)" 
-                 class="w-10 h-10 rounded-full flex items-center justify-center text-white text-xl flex-shrink-0">
+          <div
+            *ngFor="let activity of recentActivities; let i = index"
+            class="notification-item flex items-center p-4 md:p-5 border-b border-green-50 last:border-b-0"
+          >
+            <div [ngClass]="getActivityColor(activity.activity_type)" class="w-10 h-10 rounded-full flex items-center justify-center text-white text-xl flex-shrink-0 shadow-sm">
               {{ getActivityIcon(activity.activity_type) }}
             </div>
             <div class="ml-4 flex-1 min-w-0">
-              <p class="font-semibold text-gray-800 truncate">{{ activity.activity_message }}</p>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-sm text-gray-600">by {{ activity.user_name }}</span>
-                <span *ngIf="activity.product_name" class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+              <p class="font-semibold text-slate-800 truncate">{{ activity.activity_message }}</p>
+              <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                <span class="text-sm text-slate-600">by {{ activity.user_name }}</span>
+                <span *ngIf="activity.product_name" class="text-xs bg-white text-slate-700 px-2 py-1 rounded-full border border-green-200">
                   📦 {{ activity.product_name }}
                 </span>
-                <span *ngIf="activity.report_type" class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                <span *ngIf="activity.report_type" class="text-xs bg-white text-slate-700 px-2 py-1 rounded-full border border-amber-200">
                   🏷️ {{ activity.report_type }}
                 </span>
               </div>
             </div>
             <div class="ml-4 text-right flex-shrink-0">
-              <span class="text-xs text-gray-500 block">{{ getTimeAgo(activity.activity_time) }}</span>
-              <div class="text-xs text-gray-400 mt-1">ID: {{ activity.reference_id }}</div>
+              <span class="text-xs text-slate-500 block">{{ getTimeAgo(activity.activity_time) }}</span>
+              <div class="text-xs text-slate-400 mt-1">ID: {{ activity.reference_id }}</div>
             </div>
           </div>
         </div>
-        
-        <!-- Scroll Indicator -->
-        <div *ngIf="recentActivities.length > 5" 
-             class="text-center py-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 sticky bottom-0">
-          <div class="flex items-center justify-center gap-1">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-            Scroll to see more activities
-          </div>
-        </div>
       </div>
-      
-      <!-- No Activity State -->
-      <div *ngIf="!isLoading && recentActivities.length === 0" class="text-center py-8 text-gray-500">
-        <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 111 0z"/>
+
+      <div *ngIf="!isLoading && recentActivities.length === 0" class="text-center py-8 text-slate-500">
+        <svg class="w-12 h-12 mx-auto mb-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 111 0z"></path>
         </svg>
         <p class="text-lg">No recent activity</p>
         <p class="text-sm">New activities will appear here</p>
-        <p class="text-xs text-gray-400 mt-2">Auto-refreshes every 15 seconds</p>
+        <p class="text-xs text-slate-400 mt-2">Auto-refreshes every 15 seconds</p>
       </div>
-    </div>
+    </section>
 
-   
+    </section>
+
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-2xl font-extrabold text-slate-900">Risk and Trust View</h2>
+        <p class="text-sm text-slate-500">Abuse concentration, enforcement signals, and trusted sellers</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <section class="chart-card rounded-2xl p-5">
+          <div class="card-head">
+            <h3>Report Reasons</h3>
+            <p>Most common policy concerns</p>
+          </div>
+          <div class="h-80 mt-3">
+            <canvas #reportsCanvas></canvas>
+          </div>
+        </section>
+
+        <section class="chart-card rounded-2xl p-5">
+          <div class="card-head mb-4">
+            <h3>Top 10 Most Reported Accounts</h3>
+            <p>Prioritize investigation from this queue</p>
+          </div>
+
+          <div *ngIf="chartData.most_reported_accounts && chartData.most_reported_accounts.length > 0" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+            <div
+              *ngFor="let account of chartData.most_reported_accounts; let i = index"
+              class="reported-row flex items-center justify-between p-3 rounded-xl border border-green-100"
+            >
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  [ngClass]="{
+                    'bg-red-100 text-red-700': i === 0,
+                    'bg-orange-100 text-orange-700': i === 1,
+                    'bg-yellow-100 text-yellow-700': i === 2,
+                    'bg-gray-100 text-gray-700': i > 2
+                  }"
+                >
+                  #{{ i + 1 }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-slate-800 truncate">{{ account.full_name }}</p>
+                  <p class="text-xs text-slate-500 truncate">{{ account.email }}</p>
+                  <div class="flex items-center gap-2 mt-1.5">
+                    <span
+                      class="text-xs px-2 py-0.5 rounded-full font-medium"
+                      [ngClass]="{
+                        'bg-green-100 text-green-800': account.account_status === 'active',
+                        'bg-orange-100 text-orange-800': account.account_status === 'restricted',
+                        'bg-red-100 text-red-800': account.account_status === 'suspended',
+                        'bg-slate-900 text-white': account.account_status === 'banned'
+                      }"
+                    >
+                      {{ account.account_status | uppercase }}
+                    </span>
+                    <span class="text-xs text-slate-600">
+                      {{ account.violation_count }} violation{{ account.violation_count !== 1 ? 's' : '' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="ml-3 text-right">
+                <p
+                  class="text-2xl font-extrabold"
+                  [ngClass]="{
+                    'text-red-600': account.report_count >= 10,
+                    'text-orange-600': account.report_count >= 5 && account.report_count < 10,
+                    'text-yellow-600': account.report_count >= 3 && account.report_count < 5,
+                    'text-slate-600': account.report_count < 3
+                  }"
+                >
+                  {{ account.report_count }}
+                </p>
+                <p class="text-xs text-slate-500">report{{ account.report_count !== 1 ? 's' : '' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!chartData.most_reported_accounts || chartData.most_reported_accounts.length === 0" class="text-center text-slate-500 py-8">
+            <svg class="w-12 h-12 mx-auto mb-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p>No reported accounts</p>
+          </div>
+        </section>
+
+        <section class="chart-card rounded-2xl p-5 lg:col-span-2">
+          <div class="card-head mb-4">
+            <h3>Top 5 Highest Rated Sellers</h3>
+            <p>Community trust leaders this cycle</p>
+          </div>
+
+          <div *ngIf="chartData.top_sellers.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div *ngFor="let seller of chartData.top_sellers; let i = index" class="seller-card rounded-xl border border-green-100 p-4">
+              <div class="flex items-center justify-between">
+                <span class="rank-pill">#{{ i + 1 }}</span>
+                <span class="text-amber-500 text-lg">★</span>
+              </div>
+              <p class="font-semibold text-slate-800 mt-3 truncate">{{ seller.seller_name }}</p>
+              <div class="mt-2 flex items-center gap-2 text-sm">
+                <span class="text-slate-700 font-bold">{{ seller.average_rating || '0.0' }}</span>
+                <span class="text-slate-500">({{ seller.total_ratings || 0 }} ratings)</span>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="chartData.top_sellers.length === 0" class="text-center text-slate-500 py-8">
+            <p>No rating data available</p>
+          </div>
+        </section>
+      </div>
+    </section>
   </div>
 </div>

@@ -38,8 +38,6 @@ export class PwaService {
 
     this.promptEvent.prompt();
     const { outcome } = await this.promptEvent.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
-    
     // Clear the prompt event after use
     this.promptEvent = null;
   }

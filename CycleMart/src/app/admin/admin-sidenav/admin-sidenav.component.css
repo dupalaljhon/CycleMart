@@ -1,25 +1,39 @@
-/* Custom scrollbar for sidebar */
-::-webkit-scrollbar {
+/* Admin sidenav aligned to CycleMart landing palette */
+.admin-sidenav-landing {
+  --landing-primary: #2e7d32;
+  --landing-primary-dark: #25692a;
+  --landing-soft: #ebf6ec;
+  --landing-soft-border: #d6ead8;
+  --landing-surface: #ffffff;
+  --landing-text: #212121;
+  --landing-muted: #545861;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+}
+
+/* Scoped scrollbar */
+.admin-sidenav-landing ::-webkit-scrollbar {
   width: 6px;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+.admin-sidenav-landing ::-webkit-scrollbar-track {
+  background: #f4f8f4;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
+.admin-sidenav-landing ::-webkit-scrollbar-thumb {
+  background: #c8ddca;
+  border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+.admin-sidenav-landing ::-webkit-scrollbar-thumb:hover {
+  background: #a8c9ac;
 }
 
 /* Navigation button animations */
 .nav-button {
   position: relative;
   overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
 }
 
 .nav-button::before {
@@ -29,7 +43,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(46, 125, 50, 0.12), transparent);
   transition: left 0.5s;
 }
 
@@ -39,7 +53,9 @@
 
 /* Active button glow effect */
 .active-nav {
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  background: #f2f9f3 !important;
+  border-color: var(--landing-soft-border);
+  box-shadow: 0 8px 18px rgba(46, 125, 50, 0.14);
 }
 
 /* Logout button hover effect */
@@ -60,7 +76,7 @@
 
 /* Sidebar shadow */
 .sidebar {
-  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 8px 0 24px rgba(33, 33, 33, 0.08);
 }
 
 /* Notification badge pulse */
@@ -98,7 +114,7 @@
 
 /* Button focus states */
 button:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid rgba(46, 125, 50, 0.35);
   outline-offset: 2px;
 }
 
@@ -130,7 +146,7 @@ button:focus {
 
 /* Icon animations */
 .nav-icon {
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 button:hover .nav-icon {
@@ -139,10 +155,112 @@ button:hover .nav-icon {
 
 /* Admin avatar glow */
 .admin-avatar {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18);
   transition: box-shadow 0.3s ease;
 }
 
 .admin-avatar:hover {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.28);
+}
+
+/* Palette + typography alignment */
+.admin-sidenav-landing .bg-gray-100 {
+  background-color: #f5f5f5 !important;
+}
+
+.admin-sidenav-landing .bg-white {
+  background-color: var(--landing-surface) !important;
+}
+
+.admin-sidenav-landing .bg-black,
+.admin-sidenav-landing .hover\:bg-black:hover {
+  background-color: var(--landing-primary) !important;
+}
+
+.admin-sidenav-landing .hover\:bg-gray-100:hover,
+.admin-sidenav-landing .hover\:bg-black\/10:hover,
+.admin-sidenav-landing .hover\:bg-black\/5:hover {
+  background-color: var(--landing-soft) !important;
+}
+
+.admin-sidenav-landing .text-black {
+  color: var(--landing-text) !important;
+}
+
+.admin-sidenav-landing .text-gray-600,
+.admin-sidenav-landing .text-gray-500 {
+  color: var(--landing-muted) !important;
+}
+
+.admin-sidenav-landing .border-gray-300,
+.admin-sidenav-landing .border-r,
+.admin-sidenav-landing .border-t,
+.admin-sidenav-landing .border-b {
+  border-color: var(--landing-soft-border) !important;
+}
+
+.admin-sidenav-landing .border-black,
+.admin-sidenav-landing .border-l-4 {
+  border-color: var(--landing-primary) !important;
+}
+
+.admin-sidenav-landing .shadow-2xl,
+.admin-sidenav-landing .shadow-xl,
+.admin-sidenav-landing .shadow-lg {
+  box-shadow: 0 12px 24px rgba(33, 33, 33, 0.08) !important;
+}
+
+.admin-sidenav-landing .nav-button {
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.admin-sidenav-landing .nav-button:hover {
+  border-color: var(--landing-soft-border);
+}
+
+.admin-sidenav-landing .nav-button:hover .nav-icon {
+  color: var(--landing-primary-dark);
+}
+
+.admin-sidenav-landing .active-nav .nav-icon {
+  color: var(--landing-primary-dark);
+}
+
+.admin-sidenav-landing .group:hover .text-gray-600,
+.admin-sidenav-landing .group:hover .text-black {
+  color: var(--landing-text) !important;
+}
+
+.admin-sidenav-landing .bg-opacity-20,
+.admin-sidenav-landing .bg-opacity-10,
+.admin-sidenav-landing .bg-opacity-5 {
+  opacity: 1;
+}
+
+.admin-sidenav-landing .absolute.left-full > div,
+.admin-sidenav-landing .absolute.left-full {
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+}
+
+.brand-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
+}
+
+.brand-logo-wrap-collapsed {
+  width: 2rem;
+  height: 2rem;
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+  border-radius: 9999px;
 }

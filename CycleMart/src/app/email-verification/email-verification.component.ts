@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../api/api.service';
 import { CommonModule } from '@angular/common';
@@ -16,6 +16,7 @@ export class EmailVerificationComponent implements OnInit {
   verificationStatus: 'loading' | 'success' | 'error' | 'expired' = 'loading';
   message: string = '';
   userEmail: string = '';
+  alreadyVerified = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -48,9 +49,10 @@ export class EmailVerificationComponent implements OnInit {
           this.verificationStatus = 'success';
           this.message = response.message || 'Email verified successfully!';
           this.userEmail = response.data?.email || '';
+          this.alreadyVerified = !!(response.message && response.message.toLowerCase().includes('already verified'));
           
           // Check if account was already verified
-          if (response.message && response.message.includes('already verified')) {
+          if (this.alreadyVerified) {
             // Account was already verified - no need to redirect, show login button immediately
             this.message = response.message;
           } else {
@@ -72,7 +74,6 @@ export class EmailVerificationComponent implements OnInit {
       error: (error: any) => {
         this.isLoading = false;
         this.verificationStatus = 'error';
-        console.error('Verification error:', error);
         
         if (error.error?.message?.includes('expired')) {
           this.verificationStatus = 'expired';
@@ -104,7 +105,6 @@ export class EmailVerificationComponent implements OnInit {
       error: (error: any) => {
         this.isLoading = false;
         this.message = 'Failed to resend verification email. Please try again.';
-        console.error('Resend error:', error);
       }
     });
   }

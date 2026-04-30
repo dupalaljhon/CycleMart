@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, HostListener } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -18,6 +18,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { ApiService } from '../../api/api.service';
 import { ProfileImageService } from '../../services/profile-image.service';
+import { environment } from '../../../environments/environment';
 
 export interface Report {
   report_id: number;
@@ -181,12 +182,10 @@ export class ReportMonitoringComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    console.log('🔄 Loading reports...');
 
     this.apiService.getAllReports().subscribe({
       next: (response) => {
         this.loading = false;
-        console.log('📥 Received API response:', response);
         
         if (response.status === 'success') {
           this.dataSource.data = response.data || [];
@@ -194,34 +193,20 @@ export class ReportMonitoringComponent implements OnInit {
           // Reconnect paginator after data loads and view updates
           setTimeout(() => this.connectPaginatorAndSort(), 0);
           
-          console.log('✅ Reports loaded successfully:', this.dataSource.data.length, 'reports');
-          
           // Debug proof data in reports
           const reportsWithProof = this.dataSource.data.filter(report => report.proof);
-          console.log('🔍 Reports with proof data:', reportsWithProof.length);
-          
           reportsWithProof.forEach((report, index) => {
-            console.log(`📎 Report ${report.report_id} proof:`, {
-              type: typeof report.proof,
-              value: report.proof,
-              length: report.proof?.length || 0,
-              firstChars: typeof report.proof === 'string' ? report.proof.substring(0, 100) : 'Not a string'
-            });
-            
             // Test the getProofFileUrls method for this report
             const urls = this.getProofFileUrls(report.proof);
-            console.log(`🔗 Generated URLs for report ${report.report_id}:`, urls);
           });
         } else {
           this.error = response.message || 'Failed to load reports';
           this.showSnackBar('Failed to load reports', 'error');
-          console.error('❌ API returned error:', response);
         }
       },
       error: (error) => {
         this.loading = false;
         this.error = 'Error loading reports';
-        console.error('❌ HTTP Error loading reports:', error);
         this.showSnackBar('Error loading reports', 'error');
       }
     });
@@ -256,14 +241,26 @@ export class ReportMonitoringComponent implements OnInit {
     this.applyFilter();
   }
 
+  get totalReportsCount(): number {
+    return this.dataSource.filteredData.length;
+  }
+
+  get pendingReportsCount(): number {
+    return this.dataSource.filteredData.filter(report => report.status === 'pending').length;
+  }
+
+  get reviewedReportsCount(): number {
+    return this.dataSource.filteredData.filter(report => report.status === 'reviewed').length;
+  }
+
+  get actionTakenReportsCount(): number {
+    return this.dataSource.filteredData.filter(report => report.status === 'action_taken').length;
+  }
+
   updateReportStatus(report: Report, newStatus: string): void {
     const adminId = this.getAdminId();
     
     // Debug logging
-    console.log('Admin authentication check:');
-    console.log('- admin_id from localStorage:', localStorage.getItem('admin_id'));
-    console.log('- admin_user from localStorage:', localStorage.getItem('admin_user'));
-    console.log('- Extracted admin ID:', adminId);
     
     if (!adminId) {
       this.showSnackBar('Admin authentication required. Please log in again.', 'error');
@@ -276,7 +273,6 @@ export class ReportMonitoringComponent implements OnInit {
       reviewed_by: adminId
     };
 
-    console.log('Sending update request:', updateData);
 
     this.apiService.updateReportStatus(updateData).subscribe({
       next: (response) => {
@@ -288,7 +284,6 @@ export class ReportMonitoringComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error updating report status:', error);
         this.showSnackBar('Error updating report status', 'error');
       }
     });
@@ -313,11 +308,9 @@ export class ReportMonitoringComponent implements OnInit {
           return parsed.admin_id || parsed.id;
         }
       } catch (e) {
-        console.error('Error parsing admin_user from localStorage:', e);
       }
     }
 
-    console.error('No admin ID found in localStorage');
     return null;
   }
 
@@ -368,10 +361,9 @@ export class ReportMonitoringComponent implements OnInit {
       if (Array.isArray(images) && images.length > 0) {
         const firstImage = images[0];
         const cleanImageName = firstImage.replace(/^uploads[\/\\]/, '');
-        return `http://api.cyclemart.shop/CycleMart-api/api/uploads/${cleanImageName}`;
+        return `${environment.apiUploadsBaseUrl}${cleanImageName}`;
       }
     } catch (e) {
-      console.error('Error parsing product images:', e);
     }
 
     return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
@@ -468,13 +460,6 @@ export class ReportMonitoringComponent implements OnInit {
     if (!validatedProof) return [];
     
     // Enhanced debug logging
-    console.log('Processing proof data:', { 
-      originalType: typeof proof, 
-      originalValue: proof,
-      validatedValue: validatedProof,
-      length: validatedProof.length,
-      firstChars: validatedProof.substring(0, 100) + (validatedProof.length > 100 ? '...' : '')
-    });
     
     try {
       // First, try to parse as JSON
@@ -486,7 +471,6 @@ export class ReportMonitoringComponent implements OnInit {
           
           // Check if it's a base64 data URL - return as-is
           if (cleanPath.startsWith('data:')) {
-            console.log('Found base64 data URL (length: ' + cleanPath.length + ')');
             return cleanPath;
           }
           
@@ -497,9 +481,9 @@ export class ReportMonitoringComponent implements OnInit {
           if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
             return cleanPath;
           }
-          return `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
+          const normalized = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+          return `${environment.apiUploadsBaseUrl}${normalized}`;
         });
-        console.log('Successfully parsed as JSON array:', urls.map(u => u.startsWith('data:') ? `[BASE64 DATA: ${u.substring(0, 50)}...]` : u));
         return urls;
       } else if (typeof proofArray === 'string') {
         // Handle case where JSON contains a single string
@@ -507,29 +491,25 @@ export class ReportMonitoringComponent implements OnInit {
         
         // Check if it's a base64 data URL
         if (cleanPath.startsWith('data:')) {
-          console.log('Parsed as single base64 data URL');
           return [cleanPath];
         }
         
         cleanPath = cleanPath.replace(/\\\//g, '/');
-        const singleUrl = cleanPath.startsWith('http://') || cleanPath.startsWith('https://') ? 
-                         cleanPath : 
-                         `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
-        console.log('Parsed as single string:', [singleUrl]);
+        // const singleUrl = cleanPath.startsWith('http://') || cleanPath.startsWith('https://') ? 
+        //                  cleanPath : 
+        //                  `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
+        
+         const singleUrl = cleanPath.startsWith('http://') || cleanPath.startsWith('https://') ? 
+               cleanPath : 
+               `${environment.apiUploadsBaseUrl}${cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath}`;
+
         return [singleUrl];
       } else {
-        console.warn('Proof data is not an array or string after JSON parse:', proofArray);
       }
     } catch (error) {
-      console.error('Error parsing proof JSON:', error);
-      console.error('Raw proof data causing error:', {
-        value: validatedProof,
-        charCodes: Array.from(validatedProof).map(char => char.charCodeAt(0)).slice(0, 20)
-      });
       
       // If JSON parsing fails, check if it's a plain string path
       if (validatedProof.length > 0) {
-        console.log('Attempting to handle as plain string path(s)');
         
         // Handle case where proof might be a single file path or comma-separated paths
         const paths = validatedProof.split(',').map(p => p.trim()).filter(p => p.length > 0);
@@ -541,15 +521,14 @@ export class ReportMonitoringComponent implements OnInit {
             }
             // Ensure the path starts with uploads/ if it doesn't already have a full URL
             const cleanPath = path.startsWith('uploads/') ? path : `uploads/proof/${path}`;
-            return `http://api.cyclemart.shop/CycleMart-api/api${cleanPath}`;
+            const normalized = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+            return `${environment.apiUploadsBaseUrl}${normalized}`;
           });
-          console.log('Converted string paths to URLs:', urls);
           return urls;
         }
       }
     }
     
-    console.log('No valid proof URLs found');
     return [];
   }
 
@@ -578,10 +557,10 @@ export class ReportMonitoringComponent implements OnInit {
   }
 
   getProofFileIcon(url: string): string {
-    if (!url) return '❓';
-    if (this.isProofImage(url)) return '🖼️';
-    if (this.isProofVideo(url)) return '🎥';
-    return '📁';
+    if (!url) return 'â“';
+    if (this.isProofImage(url)) return 'ðŸ–¼ï¸';
+    if (this.isProofVideo(url)) return 'ðŸŽ¥';
+    return 'ðŸ“';
   }
 
   getProofFileType(url: string): string {
@@ -607,7 +586,6 @@ export class ReportMonitoringComponent implements OnInit {
         window.open(url, '_blank');
       }
     } catch (error) {
-      console.error('Error opening proof file:', error);
       this.showSnackBar('Error opening file', 'error');
     }
   }
@@ -636,7 +614,6 @@ export class ReportMonitoringComponent implements OnInit {
 
       this.showSnackBar('File download started', 'success');
     } catch (error) {
-      console.error('Error downloading file:', error);
       this.showSnackBar('Error downloading file', 'error');
     }
   }
@@ -686,7 +663,6 @@ export class ReportMonitoringComponent implements OnInit {
     this.currentReportId = report.report_id;
     this.showProofModal = true;
     
-    console.log('Opening proof modal for report:', report.report_id, 'with files:', proofUrls);
   }
 
   // Navigate through proof files
@@ -757,41 +733,19 @@ export class ReportMonitoringComponent implements OnInit {
   debugProofData(reportId: number): void {
     const report = this.dataSource.data.find(r => r.report_id === reportId);
     if (!report) {
-      console.log('Report not found');
       return;
     }
 
-    console.log('=== PROOF DATA DEBUG ===');
-    console.log('Report ID:', reportId);
-    console.log('Raw proof data:', report.proof);
-    console.log('Proof data type:', typeof report.proof);
-    console.log('Proof data length:', report.proof?.length || 0);
     
     if (report.proof) {
-      console.log('Character codes (first 50):', 
-        Array.from(report.proof.substring(0, 50)).map((char, i) => 
-          `${i}: '${char}' (${char.charCodeAt(0)})`
-        )
-      );
-      
-      console.log('Has integrity issues:', this.hasProofDataIssues(report.proof));
-      console.log('Parsed URLs:', this.getProofFileUrls(report.proof));
     }
-    console.log('=========================');
   }
 
   // Debug all proof data in current reports
   debugAllProofData(): void {
-    console.log('🔍 DEBUGGING ALL PROOF DATA');
     const reportsWithProof = this.dataSource.data.filter(report => report.proof);
-    console.log(`Found ${reportsWithProof.length} reports with proof data`);
     
     reportsWithProof.forEach(report => {
-      console.log(`\n--- Report ${report.report_id} ---`);
-      console.log('Proof data:', report.proof);
-      console.log('Data type:', typeof report.proof);
-      console.log('Generated URLs:', this.getProofFileUrls(report.proof));
-      console.log('Has issues:', this.hasProofDataIssues(report.proof));
     });
     
     this.showSnackBar(`Debugged ${reportsWithProof.length} reports with proof. Check console for details.`, 'info');

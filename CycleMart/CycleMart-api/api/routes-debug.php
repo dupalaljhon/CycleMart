@@ -290,7 +290,9 @@ try {
 
                 case 'recent-activities':
                     $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
-                    echo json_encode($get->getRecentActivities($limit));
+                    $startDate = $_GET['start_date'] ?? null;
+                    $endDate = $_GET['end_date'] ?? null;
+                    echo json_encode($get->getRecentActivities($limit, $startDate, $endDate));
                     break;
                     
                 default:

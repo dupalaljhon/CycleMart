@@ -1,0 +1,56 @@
+<div class="landing-shell">
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/images/cyclemart-logo2.png" alt="CycleMart" class="brand-logo" />
+      <div class="brand-copy">
+        <h1>CycleMart</h1>
+        <p>Marketplace for Cyclists</p>
+      </div>
+    </div>
+
+    <nav class="topbar-actions">
+      <button (click)="goToLogin('login')" class="btn btn-ghost">Sign In</button>
+      <button (click)="goToLogin('signup')" class="btn btn-solid">Create Account</button>
+    </nav>
+  </header>
+
+  <section class="hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">Built for riders, mechanics, and collectors</span>
+      <h2>Find Bike Parts Faster, Sell with Confidence.</h2>
+      <p>
+     Buy. Sell. Ride.
+
+Discover a smarter cycling marketplace where verified users, quality listings, and clear product details make buying and selling effortless.
+      </p>
+
+      <div class="hero-actions">
+        <button (click)="goToLogin('signup')" class="btn btn-solid btn-lg">Start Selling</button>
+        <button (click)="goToLogin('login')" class="btn btn-ghost btn-lg">Browse Listings</button>
+      </div>
+
+    </div>
+
+    
+  </section>
+
+  <section class="feature-strip">
+    <article>
+      <h5>Verified Profiles</h5>
+      <p>Reduce risk with transparent account details and history.</p>
+    </article>
+    <article>
+      <h5>Smart Messaging</h5>
+      <p>Negotiate clearly with built-in chat and product context.</p>
+    </article>
+    <article>
+      <h5>Report & Moderation</h5>
+      <p>Community safety tools keep listings clean and trusted.</p>
+    </article>
+  </section>
+
+  <footer class="landing-footer">
+    <p class="visit-counter">Total visits: {{ visitCount }}</p>
+    <p>� {{ currentYear }} CycleMart. Ride more. Waste less.</p>
+  </footer>
+</div>

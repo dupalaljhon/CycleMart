@@ -46,7 +46,6 @@
             logDiv.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
             logsDiv.appendChild(logDiv);
             logsDiv.scrollTop = logsDiv.scrollHeight;
-            console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
         function clearLogs() {
@@ -107,7 +106,6 @@
                 
             } catch (error) {
                 log('❌ Network error: ' + error.message, 'error');
-                console.error('Full error:', error);
             }
         }
 

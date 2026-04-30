@@ -1,15 +1,15 @@
 <div class="modal-container">
   <!-- Header -->
-  <div class="modal-header bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
+  <div class="modal-header p-6">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <mat-icon class="text-3xl">gavel</mat-icon>
         <div>
           <h2 class="text-2xl font-bold">Mark Violation</h2>
-          <p class="text-red-100 text-sm mt-1">User: {{ data.user.full_name }}</p>
+          <p class="modal-header-subtitle text-sm mt-1">User: {{ data.user.full_name }}</p>
         </div>
       </div>
-      <button mat-icon-button (click)="onCancel()" class="text-white hover:bg-red-800 rounded-full">
+      <button mat-icon-button (click)="onCancel()" class="modal-close-btn rounded-full">
         <mat-icon>close</mat-icon>
       </button>
     </div>
@@ -49,12 +49,12 @@
     </div>
 
     <!-- Warning Notice -->
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+    <div class="notice-box p-4 rounded-lg">
       <div class="flex items-start gap-3">
-        <mat-icon class="text-red-600 mt-0.5">warning</mat-icon>
+        <mat-icon class="notice-icon mt-0.5">warning</mat-icon>
         <div>
-          <p class="text-red-800 font-semibold">Important Notice</p>
-          <p class="text-red-700 text-sm mt-1">
+          <p class="notice-title font-semibold">Important Notice</p>
+          <p class="notice-text text-sm mt-1">
             This action will update the user's violation count and account status. 
             The user will receive a notification about this violation.
           </p>
@@ -62,10 +62,66 @@
       </div>
     </div>
 
+    <!-- Sanction Guidelines Reference -->
+    <div class="sanction-guide border rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        (click)="toggleSanctionGuide()"
+        class="guide-header w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
+        <div class="flex items-center gap-3">
+          <div class="guide-icon-wrap">
+            <mat-icon>menu_book</mat-icon>
+          </div>
+          <div>
+            <p class="guide-title">Sanction Guidelines</p>
+            <p class="guide-subtitle">Reference before selecting a penalty level</p>
+          </div>
+        </div>
+        <mat-icon class="guide-chevron" [class.rotate-180]="showSanctionGuide">expand_more</mat-icon>
+      </button>
+
+      <div *ngIf="showSanctionGuide" class="guide-body px-4 pb-4 pt-1">
+        <div class="guide-alert rounded-xl border px-3 py-2.5 mb-3">
+          <div class="flex items-start gap-2.5">
+            <mat-icon class="text-slate-500">warning_amber</mat-icon>
+            <p class="text-sm text-slate-700">
+              <span class="font-semibold text-slate-800">Important:</span>
+              Sanctions must match evidence severity, recurrence, and user impact.
+            </p>
+          </div>
+        </div>
+
+        <div class="guide-list rounded-xl border overflow-hidden">
+          <div
+            *ngFor="let guideline of sanctionGuidelines; let i = index"
+            class="guide-item"
+            [class.guide-item-open]="openGuidelineIndex === i">
+            <button
+              type="button"
+              (click)="toggleGuideline(i)"
+              class="guide-item-header w-full flex items-center justify-between gap-3 px-3 py-3 text-left">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="guide-number">{{ i + 1 }}</span>
+                <span class="guide-item-title">{{ guideline.title }}</span>
+              </div>
+              <mat-icon class="guide-item-chevron" [class.rotate-180]="openGuidelineIndex === i">expand_more</mat-icon>
+            </button>
+
+            <div *ngIf="openGuidelineIndex === i" class="guide-item-content px-3 pb-3">
+              <p class="text-sm text-slate-700 mb-2">{{ guideline.summary }}</p>
+              <ul class="guide-points pl-5">
+                <li *ngFor="let point of guideline.points">{{ point }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Error Message -->
-    <div *ngIf="errorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+    <div *ngIf="errorMessage" class="error-box px-4 py-3 rounded relative">
       <div class="flex items-center gap-2">
-        <mat-icon class="text-red-600">error</mat-icon>
+        <mat-icon class="error-icon">error</mat-icon>
         <span>{{ errorMessage }}</span>
       </div>
     </div>
@@ -88,7 +144,7 @@
     </mat-form-field>
 
     <!-- Selected Level Preview -->
-    <div *ngIf="getSelectedLevelInfo()" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div *ngIf="getSelectedLevelInfo()" class="level-preview rounded-lg p-4">
       <div class="flex items-start gap-3">
         <!-- <mat-icon [class]="getViolationColor(violationLevel)" class="text-2xl">
           {{ getViolationIcon(violationLevel) }}
@@ -120,20 +176,19 @@
   </div>
 
   <!-- Footer -->
-  <div class="modal-footer bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+  <div class="modal-footer px-6 py-4 flex justify-end gap-3">
     <button 
       mat-stroked-button 
       (click)="onCancel()"
       [disabled]="isSubmitting"
-      class="px-6">
+      class="px-6 cancel-btn">
       Cancel
     </button>
     <button 
       mat-raised-button 
-      color="warn"
       (click)="onSubmit()"
       [disabled]="isSubmitting || !reason || reason.trim().length < 10"
-      class="px-6 flex items-center gap-2">
+      class="px-6 flex items-center gap-2 submit-btn">
       <mat-spinner *ngIf="isSubmitting" diameter="20" class="mr-2"></mat-spinner>
       <mat-icon *ngIf="!isSubmitting">gavel</mat-icon>
       <span>{{ isSubmitting ? 'Submitting...' : 'Mark Violation' }}</span>

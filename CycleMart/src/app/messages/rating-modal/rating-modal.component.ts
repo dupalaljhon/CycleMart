@@ -1,8 +1,9 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../api/api.service';
 import { NotificationService } from '../../services/notification.service';
+import { environment } from '../../../environments/environment';
 
 interface RatedUser {
   id: number;
@@ -107,9 +108,9 @@ export class RatingModalComponent implements OnInit {
       if (profileImage.startsWith('http')) {
         return profileImage;
       }
-      // If it's a relative path, prepend the API base URL
-      const cleanPath = profileImage.startsWith('/') ? profileImage : '/' + profileImage;
-      return this.apiService.baseUrl.replace('/api/', '/') + cleanPath;
+      // If it's a relative path, prepend the uploads base URL
+      const cleanPath = profileImage.replace(/^\/?uploads[\/\\]/, '');
+      return `${environment.apiUploadsBaseUrl}${cleanPath}`;
     }
     
     // Generate avatar using UI Avatars
@@ -138,8 +139,6 @@ export class RatingModalComponent implements OnInit {
       feedback: this.feedback.trim() || undefined
     };
 
-    console.log('Submitting rating:', ratingData);
-
     this.apiService.submitRating(ratingData).subscribe({
       next: (response) => {
         if (response.status === 'success') {
@@ -157,7 +156,6 @@ export class RatingModalComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error submitting rating:', error);
         
         if (error.status === 409) {
           this.notificationService.showWarning(

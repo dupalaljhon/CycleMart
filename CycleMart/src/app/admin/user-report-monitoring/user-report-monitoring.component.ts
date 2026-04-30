@@ -1,9 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../api/api.service';
 import { NotificationService } from '../../services/notification.service';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
+import { MatDialog } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MarkViolationModalComponent } from '../user-list/mark-violation-modal/mark-violation-modal.component';
+import { environment } from '../../../environments/environment';
 
 export interface UserReport {
   user_report_id: number;
@@ -11,7 +15,7 @@ export interface UserReport {
   reported_user_id: number;
   conversation_id?: number;
   product_id?: number;
-  report_type: 'user_behavior' | 'post_purchase_concern';
+  report_type: 'user_behavior' | 'post_purchase_concern' | 'product';
   reason_type: 'rude behavior' | 'harassment' | 'threats' | 'scamming attempt' | 'spam messages' | 'refund issue' | 'item not as described' | 'damaged item' | 'others';
   reason_details?: string;
   explanation?: string;
@@ -40,7 +44,7 @@ export interface UserReportStatistics {
 
 @Component({
   selector: 'app-user-report-monitoring',
-  imports: [CommonModule, FormsModule, AdminSidenavComponent],
+  imports: [CommonModule, FormsModule, AdminSidenavComponent, MatIconModule],
   templateUrl: './user-report-monitoring.component.html',
   styleUrl: './user-report-monitoring.component.css'
 })
@@ -77,7 +81,8 @@ export class UserReportMonitoringComponent implements OnInit {
 
   constructor(
     private apiService: ApiService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit() {
@@ -89,20 +94,17 @@ export class UserReportMonitoringComponent implements OnInit {
     
     this.apiService.getAllUserReports().subscribe({
       next: (response: any) => {
-        console.log('User reports response:', response);
         if (response.status === 'success' && response.data) {
           this.reports = response.data;
           this.filteredReports = [...this.reports];
           this.calculateStatistics();
           this.updatePagination();
         } else {
-          console.error('Failed to load user reports:', response.message);
           this.notificationService.showError('Failed to load user reports');
         }
         this.isLoading = false;
       },
       error: (error: any) => {
-        console.error('Error loading user reports:', error);
         this.notificationService.showError('Error loading user reports');
         this.isLoading = false;
       }
@@ -177,7 +179,6 @@ export class UserReportMonitoringComponent implements OnInit {
   }
 
   onImageError(event: any) {
-    console.error('Failed to load image:', this.previewImage);
     this.imageLoadError = true;
   }
 
@@ -212,11 +213,104 @@ export class UserReportMonitoringComponent implements OnInit {
         this.isUpdatingStatus = false;
       },
       error: (error: any) => {
-        console.error('Error updating report status:', error);
         this.notificationService.showError('Error updating report status');
         this.isUpdatingStatus = false;
       }
     });
+  }
+
+  reviewReport(report: UserReport): void {
+    if (!report?.user_report_id) {
+      this.notificationService.showError('Invalid report selected for review.');
+      return;
+    }
+
+    if (report.status !== 'pending') {
+      this.notificationService.showError('Only pending reports can be marked as reviewed.');
+      return;
+    }
+
+    this.updateReportStatus(report.user_report_id, 'reviewed');
+  }
+
+  sanctionReportedUser(report: UserReport): void {
+    if (!report.reported_user_id) {
+      this.notificationService.showError('Reported user is missing for this report.');
+      return;
+    }
+
+    this.apiService.getUser(report.reported_user_id).subscribe({
+      next: (response: any) => {
+        let reportedUser: any = null;
+
+        if (response?.status === 'success' && Array.isArray(response.data) && response.data.length > 0) {
+          reportedUser = response.data[0];
+        }
+
+        const userForModal = {
+          id: report.reported_user_id,
+          full_name: reportedUser?.full_name || report.reported_user_name || 'Unknown User',
+          email: reportedUser?.email || report.reported_user_email || 'N/A',
+          violation_count: Number(reportedUser?.violation_count ?? 0),
+          account_status: reportedUser?.account_status || 'active'
+        };
+
+        const dialogRef = this.dialog.open(MarkViolationModalComponent, {
+          width: '650px',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          data: { user: userForModal },
+          panelClass: 'custom-dialog-container'
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result?.success) {
+            this.notificationService.showSuccess('Violation marked successfully for reported user.');
+            this.loadUserReports();
+          }
+        });
+      },
+      error: () => {
+        const fallbackUser = {
+          id: report.reported_user_id,
+          full_name: report.reported_user_name || 'Unknown User',
+          email: report.reported_user_email || 'N/A',
+          violation_count: 0,
+          account_status: 'active'
+        };
+
+        const dialogRef = this.dialog.open(MarkViolationModalComponent, {
+          width: '650px',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          data: { user: fallbackUser },
+          panelClass: 'custom-dialog-container'
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result?.success) {
+            this.notificationService.showSuccess('Violation marked successfully for reported user.');
+            this.loadUserReports();
+          }
+        });
+      }
+    });
+  }
+
+  getActionButtonClass(action: 'sanction'): string {
+    if (action === 'sanction') {
+      return 'action-icon-btn action-icon-sanction';
+    }
+
+    return 'action-icon-btn';
+  }
+
+  getActionTooltip(action: 'sanction'): string {
+    if (action === 'sanction') {
+      return 'Sanction reported user';
+    }
+
+    return 'Action';
   }
 
   // Utility methods
@@ -233,6 +327,7 @@ export class UserReportMonitoringComponent implements OnInit {
     switch (type) {
       case 'user_behavior': return 'User Behavior';
       case 'post_purchase_concern': return 'Post Purchase Concern';
+      case 'product': return 'Product';
       default: return type;
     }
   }
@@ -270,6 +365,7 @@ export class UserReportMonitoringComponent implements OnInit {
     switch (type) {
       case 'user_behavior': return 'bg-red-100 text-red-800';
       case 'post_purchase_concern': return 'bg-orange-100 text-orange-800';
+      case 'product': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   }
@@ -323,10 +419,9 @@ export class UserReportMonitoringComponent implements OnInit {
     if (cleanPath.startsWith('uploads/')) {
       cleanPath = cleanPath.substring(8);
     }
-    
+
     // Construct full URL from relative path
-    const baseUrl = this.apiService.baseUrl.replace('/api/', '');
-    return `${baseUrl}uploads/${cleanPath}`;
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   getProfileImageUrl(profileImage: string | undefined | null): string {
@@ -416,7 +511,6 @@ export class UserReportMonitoringComponent implements OnInit {
         return this.getImageUrl(firstImage);
       }
     } catch (e) {
-      console.error('Error parsing product images:', e);
       
       // If JSON parsing failed but we have a string, try to use it as a direct path
       if (typeof productImages === 'string' && productImages.length > 0) {

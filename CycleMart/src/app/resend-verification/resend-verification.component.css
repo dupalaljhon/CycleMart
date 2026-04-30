@@ -1,6 +1,6 @@
 /* Resend Verification Component Styles */
 .resend-verification-container {
-  background: linear-gradient(135deg, #6BA3BE 0%, #4a8ba8 100%);
+  background: linear-gradient(135deg, #e8f3ea 0%, #d9eadc 100%);
 }
 
 /* Form animations */
@@ -22,7 +22,7 @@
 /* Input focus styles */
 .email-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(107, 163, 190, 0.2);
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.22);
   transform: scale(1.02);
   transition: all 0.2s ease;
 }
@@ -36,7 +36,7 @@
 
 .resend-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(107, 163, 190, 0.3);
+  box-shadow: 0 10px 25px rgba(46, 125, 50, 0.28);
 }
 
 .resend-btn:active {
@@ -65,8 +65,8 @@
 
 /* Help section styles */
 .help-section {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-left: 4px solid #6BA3BE;
+  background: linear-gradient(135deg, #f3f7f4 0%, #eaf3ec 100%);
+  border-left: 4px solid #2e7d32;
 }
 
 /* Back button hover effect */
@@ -86,7 +86,7 @@
   left: -10px;
   width: 0;
   height: 2px;
-  background-color: #6BA3BE;
+  background-color: #2e7d32;
   transform: translateY(-50%);
   transition: width 0.3s ease;
 }
@@ -125,8 +125,8 @@
 /* Card shadow enhancement */
 .resend-card {
   box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+    0 25px 50px -12px rgba(46, 125, 50, 0.22),
+    0 0 0 1px rgba(214, 231, 216, 0.75);
 }
 
 /* Icon animations */

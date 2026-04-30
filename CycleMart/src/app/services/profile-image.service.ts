@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ApiService } from '../api/api.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -29,14 +30,15 @@ export class ProfileImageService {
 
     // If it's already a full URL, return as is
     if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
-      // If it already points to images domain, use directly; otherwise keep as-is
-      // (Some legacy URLs may still work). Prefer not to transform full URLs.
       imageUrl = profileImage;
     } else {
-      // Hardcode to images CDN/subdomain for profile images only
-      // Subdomain root maps to the 'uploads' directory, so strip any leading 'uploads/'
-      const stripped = profileImage.replace(/^\/?uploads[\/]/, '');
-      imageUrl = `http://images.cyclemart.shop/${stripped}`;
+      // For local development, use localhost path
+      // Remove 'uploads/' prefix if present
+      const stripped = profileImage.replace(/^\/?uploads[\/\\]/, '');
+      imageUrl = `${environment.apiUploadsBaseUrl}${stripped}`;
+      
+      // For production, use CDN:
+      // imageUrl = `http://images.cyclemart.shop/${stripped}`;
     }
 
     // Cache the result

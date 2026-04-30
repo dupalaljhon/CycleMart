@@ -19,13 +19,15 @@ use Firebase\JWT\JWT;
 
 class Post extends GlobalMethods {
     private $pdo;
-    private $key = "your_secret_key"; 
+    private $key;
 
     public function __construct(\PDO $pdo) {
         $this->pdo = $pdo;
+        $this->key = getenv('JWT_SECRET') ?: 'your_secret_key';
     }
 
     // âœ… Registration with hashing and email verification
+    // RESTRICTED TO OLONGAPO CITY ONLY
     public function registerUser($data) {
         $full_name = $data->full_name ?? '';
         $email = $data->email ?? '';
@@ -33,17 +35,31 @@ class Post extends GlobalMethods {
         $phone = $data->phone ?? '';
         $street = $data->street ?? '';
         $barangay = $data->barangay ?? '';
-        $city = $data->city ?? '';
-        $province = $data->province ?? '';
         $terms_accepted = $data->terms_accepted ?? 0;
 
-        // Validate required fields
-        if (!$full_name || !$email || !$password || !$phone || !$street || !$barangay || !$city || !$province) {
+        // Automatically set city to Olongapo City (no user input needed)
+        $city = 'Olongapo City';
+
+        // Define valid barangays for Olongapo City
+        $validBarangays = [
+            'Asinan', 'Banicain', 'Barretto', 'East Bajac-Bajac', 'Gordon Heights',
+            'Kalaklan', 'Mabayuan', 'New Cabalan', 'Old Cabalan', 'Pag-asa',
+            'Santa Rita', 'West Bajac-Bajac', 'East Tapinac', 'West Tapinac',
+            'New Kalalake', 'Kababae', 'Ilalim'
+        ];
+
+        // Validate required fields (province removed)
+        if (!$full_name || !$email || !$password || !$phone || !$street || !$barangay) {
             return $this->sendPayload(null, "error", "All fields are required", 400);
         }
 
+        // Validate barangay against allowed list
+        if (!in_array($barangay, $validBarangays)) {
+            return $this->sendPayload(null, "error", "Invalid barangay. Please select a valid barangay from Olongapo City.", 400);
+        }
+
         // Validate email format
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!preg_match('/^[^\s@]+@gmail\.com$/i', $email)) {
             return $this->sendPayload(null, "error", "Invalid email format", 400);
         }
 
@@ -66,9 +82,9 @@ class Post extends GlobalMethods {
         $verificationToken = bin2hex(random_bytes(32));
         $tokenExpiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-        // Insert new user with verification token
-        $sql = "INSERT INTO users (full_name, email, password, phone, street, barangay, city, province, terms_accepted, verification_token, token_expires_at, is_verified) 
-                VALUES (:full_name, :email, :password, :phone, :street, :barangay, :city, :province, :terms_accepted, :verification_token, :token_expires_at, 0)";
+        // Insert new user with verification token (province removed)
+        $sql = "INSERT INTO users (full_name, email, password, phone, street, barangay, city, terms_accepted, verification_token, token_expires_at, is_verified) 
+                VALUES (:full_name, :email, :password, :phone, :street, :barangay, :city, :terms_accepted, :verification_token, :token_expires_at, 0)";
 
         try {
             $stmt = $this->pdo->prepare($sql);
@@ -80,7 +96,6 @@ class Post extends GlobalMethods {
                 ':street' => $street,
                 ':barangay' => $barangay,
                 ':city' => $city,
-                ':province' => $province,
                 ':terms_accepted' => $terms_accepted,
                 ':verification_token' => $verificationToken,
                 ':token_expires_at' => $tokenExpiresAt
@@ -94,13 +109,16 @@ class Post extends GlobalMethods {
                 $email, 
                 $full_name, 
                 $verificationToken, 
-                'https://cyclemart.shop'
+                'http://localhost:4200'
+                // 'https://cyclemart.shop'
             );
 
             $responseData = [
                 "userID" => $userId,
                 "email" => $email,
                 "full_name" => $full_name,
+                "city" => $city,
+                "barangay" => $barangay,
                 "verification_email_sent" => $emailResult['status'] === 'success'
             ];
 
@@ -116,7 +134,7 @@ class Post extends GlobalMethods {
             if ($e->getCode() == 23000) { // Duplicate entry
                 return $this->sendPayload(null, "error", "Email already exists", 409);
             }
-            return $this->sendPayload(null, "error", "Registration failed", 500);
+            return $this->sendPayload(null, "error", "Registration failed: " . $e->getMessage(), 500);
         }
     }
 
@@ -179,6 +197,10 @@ class Post extends GlobalMethods {
             return $this->sendPayload(null, "error", "Email is required", 400);
         }
 
+        if (!preg_match('/^[^\s@]+@gmail\.com$/i', $email)) {
+            return $this->sendPayload(null, "error", "Invalid email format", 400);
+        }
+
         $sql = "SELECT id, full_name, is_verified FROM users WHERE email = :email";
         
         try {
@@ -218,7 +240,8 @@ class Post extends GlobalMethods {
                 $email, 
                 $user['full_name'], 
                 $verificationToken, 
-                'https://cyclemart.shop'
+                'http://localhost:4200'
+                // 'https://cyclemart.shop'
             );
 
             if ($emailResult['status'] === 'success') {
@@ -273,25 +296,76 @@ public function loginUser($data) {
                 'aud' => "http://example.com", 
                 'iat' => time(), 
                 'exp' => time() + 3600, 
-                'uid' => $user['id']
+                'uid' => $user['id'],
+                'role' => $user['role'] ?? 'user',
+                'email' => $user['email']
             ];
             $jwt = JWT::encode($payload, $this->key, 'HS256');
 
-            return $this->sendPayload([
+            // If this user is an approved moderator, include linked admin account info
+            // (admins are created during moderator approval, using the same email)
+            $adminSession = null;
+            if (!empty($user['role']) && $user['role'] === 'moderator') {
+                try {
+                    // Prefer a stable linkage (admins.user_id -> users.id) if present.
+                    // Fallback to email matching for older schemas.
+                    $admin = null;
+
+                    try {
+                        $adminLookupSql = "SELECT admin_id, username, email, full_name, role, status FROM admins WHERE user_id = :uid LIMIT 1";
+                        $adminLookupStmt = $this->pdo->prepare($adminLookupSql);
+                        $adminLookupStmt->execute([':uid' => $user['id']]);
+                        $admin = $adminLookupStmt->fetch(\PDO::FETCH_ASSOC);
+                    } catch (\PDOException $e) {
+                        // Most likely: unknown column 'user_id' (schema not migrated yet).
+                        $admin = null;
+                    }
+
+                    if (!$admin) {
+                        $adminLookupSql = "SELECT admin_id, username, email, full_name, role, status FROM admins WHERE email = :email LIMIT 1";
+                        $adminLookupStmt = $this->pdo->prepare($adminLookupSql);
+                        $adminLookupStmt->execute([':email' => $user['email']]);
+                        $admin = $adminLookupStmt->fetch(\PDO::FETCH_ASSOC);
+                    }
+
+                    if ($admin) {
+                        $adminSession = [
+                            'admin_id' => $admin['admin_id'],
+                            'username' => $admin['username'],
+                            'email' => $admin['email'] ?? '',
+                            'full_name' => $admin['full_name'] ?? '',
+                            'role' => $admin['role'] ?? 'moderator',
+                            'status' => $admin['status'] ?? 'active'
+                        ];
+                    }
+                } catch (\PDOException $e) {
+                    // Do not block login if admin lookup fails
+                    error_log('Moderator admin lookup failed: ' . $e->getMessage());
+                }
+            }
+
+            $loginData = [
                 'token' => $jwt,
                 'userID' => $user['id'],
                 'email' => $user['email'],
+                'role' => $user['role'] ?? 'user',
                 'full_name' => $user['full_name'],
                 'phone' => $user['phone'],
                 'street' => $user['street'],
                 'barangay' => $user['barangay'],
                 'city' => $user['city'],
-                'province' => $user['province'],
+                // 'province' => $user['province'], // Removed - province no longer exists
                 'profile_image' => $user['profile_image'],
                 'is_verified' => $user['is_verified'],
                 'account_status' => $user['account_status'],
                 'violation_count' => $user['violation_count']
-            ], "success", "Login successful", 200);
+            ];
+
+            if ($adminSession) {
+                $loginData['admin_session'] = $adminSession;
+            }
+
+            return $this->sendPayload($loginData, "success", "Login successful", 200);
         } else {
             return $this->sendPayload(null, "error", "Invalid credentials", 401);
         }
@@ -323,7 +397,8 @@ public function adminLogin($data) {
                 'iat' => time(), 
                 'exp' => time() + 3600, 
                 'admin_id' => $admin['admin_id'], // Use admin_id instead of id
-                'role' => $admin['role'] ?? 'admin'
+                'role' => $admin['role'] ?? 'admin',
+                'username' => $admin['username']
             ];
             $jwt = JWT::encode($payload, $this->key, 'HS256');
 
@@ -357,7 +432,7 @@ public function adminLogin($data) {
 }
 
 
-//profile update
+//profile update - RESTRICTED TO OLONGAPO CITY ONLY
 public function uploadProfile($data) {
     error_log("Received profile data: " . print_r($data, true)); 
 
@@ -365,13 +440,27 @@ public function uploadProfile($data) {
     $phone     = $data->phone ?? '';
     $street    = $data->street ?? '';
     $barangay  = $data->barangay ?? '';
-    $city      = $data->city ?? '';
-    $province  = $data->province ?? '';
     $user_id   = $data->user_id ?? '';
+
+    // Automatically set city to Olongapo City
+    $city = 'Olongapo City';
+
+    // Define valid barangays for Olongapo City
+    $validBarangays = [
+        'Asinan', 'Banicain', 'Barretto', 'East Bajac-Bajac', 'Gordon Heights',
+        'Kalaklan', 'Mabayuan', 'New Cabalan', 'Old Cabalan', 'Pag-asa',
+        'Santa Rita', 'West Bajac-Bajac', 'East Tapinac', 'West Tapinac',
+        'New Kalalake', 'Kababae', 'Ilalim'
+    ];
 
     // Validate required fields
     if (empty($full_name) || empty($user_id)) {
         return $this->sendPayload(null, "error", "Full name and user ID are required", 400);
+    }
+
+    // Validate barangay if provided
+    if (!empty($barangay) && !in_array($barangay, $validBarangays)) {
+        return $this->sendPayload(null, "error", "Invalid barangay. Please select a valid barangay from Olongapo City.", 400);
     }
 
     $imagePath = null;
@@ -412,15 +501,14 @@ public function uploadProfile($data) {
         error_log("Image saved successfully to: " . $fullImagePath);
     }
 
-    // Update user profile in users table
-    $sql = "UPDATE users SET full_name = :full_name, phone = :phone, street = :street, barangay = :barangay, city = :city, province = :province";
+    // Update user profile in users table (province removed)
+    $sql = "UPDATE users SET full_name = :full_name, phone = :phone, street = :street, barangay = :barangay, city = :city";
     $params = [
         'full_name' => $full_name,
         'phone'     => $phone,
         'street'    => $street,
         'barangay'  => $barangay,
         'city'      => $city,
-        'province'  => $province,
         'user_id'   => $user_id
     ];
     
@@ -442,7 +530,6 @@ public function uploadProfile($data) {
             "street"    => $street,
             "barangay"  => $barangay,
             "city"      => $city,
-            "province"  => $province,
             "profile_image" => $imagePath
         ], "success", "Profile updated successfully", 200);
 
@@ -457,23 +544,37 @@ public function uploadProfile($data) {
 
 
 
-// Edit/Update profile
+// Edit/Update profile - RESTRICTED TO OLONGAPO CITY ONLY
 public function editProfile($data) {
     $full_name = $data->full_name ?? '';
     $email = $data->email ?? '';
     $phone     = $data->phone ?? '';
     $street    = $data->street ?? '';
     $barangay  = $data->barangay ?? '';
-    $city      = $data->city ?? '';
-    $province  = $data->province ?? '';
     $user_id   = $data->user_id ?? '';
     $email_changed = $data->email_changed ?? false;
     $image     = $data->image ?? null;
     $imagePath = null;
 
+    // Automatically set city to Olongapo City
+    $city = 'Olongapo City';
+
+    // Define valid barangays for Olongapo City
+    $validBarangays = [
+        'Asinan', 'Banicain', 'Barretto', 'East Bajac-Bajac', 'Gordon Heights',
+        'Kalaklan', 'Mabayuan', 'New Cabalan', 'Old Cabalan', 'Pag-asa',
+        'Santa Rita', 'West Bajac-Bajac', 'East Tapinac', 'West Tapinac',
+        'New Kalalake', 'Kababae', 'Ilalim'
+    ];
+
     // Validate required fields
     if (empty($full_name) || empty($user_id) || empty($email)) {
         return $this->sendPayload(null, "error", "Full name, email and user ID are required", 400);
+    }
+
+    // Validate barangay if provided
+    if (!empty($barangay) && !in_array($barangay, $validBarangays)) {
+        return $this->sendPayload(null, "error", "Invalid barangay. Please select a valid barangay from Olongapo City.", 400);
     }
 
     // Validate email format
@@ -525,8 +626,8 @@ public function editProfile($data) {
         error_log("Image saved successfully to: " . $fullImagePath);
     }
 
-    // Build SQL and params
-    $sql = "UPDATE users SET full_name = :full_name, email = :email, phone = :phone, street = :street, barangay = :barangay, city = :city, province = :province";
+    // Build SQL and params (province removed)
+    $sql = "UPDATE users SET full_name = :full_name, email = :email, phone = :phone, street = :street, barangay = :barangay, city = :city";
     $params = [
         'full_name' => $full_name,
         'email'     => $email,
@@ -534,7 +635,6 @@ public function editProfile($data) {
         'street'    => $street,
         'barangay'  => $barangay,
         'city'      => $city,
-        'province'  => $province,
         'user_id'   => $user_id
     ];
 
@@ -585,7 +685,6 @@ public function editProfile($data) {
             "street"    => $street,
             "barangay"  => $barangay,
             "city"      => $city,
-            "province"  => $province,
             "profile_image" => $currentUser['profile_image'], // Return current profile image from DB
             "email_changed" => $email_changed,
             "verification_sent" => $email_changed
@@ -668,7 +767,300 @@ public function editProfile($data) {
 // }
 
 
+private function ensureListingAutoApprovalConfigTable() {
+    $this->pdo->exec("CREATE TABLE IF NOT EXISTS listing_auto_approval_config (
+        config_id INT PRIMARY KEY DEFAULT 1,
+        is_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        updated_by INT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT chk_single_config CHECK (config_id = 1)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $this->pdo->exec("INSERT IGNORE INTO listing_auto_approval_config (config_id, is_enabled) VALUES (1, 0)");
+}
+
+private function isListingAutoApprovalEnabled() {
+    $this->ensureListingAutoApprovalConfigTable();
+
+    $stmt = $this->pdo->prepare("SELECT is_enabled FROM listing_auto_approval_config WHERE config_id = 1 LIMIT 1");
+    $stmt->execute();
+    $config = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+    return $config && (int)$config['is_enabled'] === 1;
+}
+
+private function evaluateListingForAutomation($listing) {
+    $name = trim((string)($listing['product_name'] ?? ''));
+    $description = trim((string)($listing['description'] ?? ''));
+    $location = trim((string)($listing['location'] ?? ''));
+    $price = (float)($listing['price'] ?? 0);
+    $quantity = (int)($listing['quantity'] ?? 0);
+    $images = $listing['images'] ?? [];
+    $forType = trim((string)($listing['for_type'] ?? ''));
+    $condition = trim((string)($listing['condition'] ?? ''));
+    $category = trim((string)($listing['category'] ?? ''));
+    $brandName = strtolower(trim((string)($listing['brand_name'] ?? '')));
+    $customBrand = trim((string)($listing['custom_brand'] ?? ''));
+    $bicycleBrandId = $listing['bicycle_brand_id'] ?? null;
+    $bicyclePartId = $listing['bicycle_part_id'] ?? null;
+    $specifications = $listing['specifications'] ?? [];
+
+    $combinedText = strtolower($name . ' ' . $description);
+    $descriptionWordCount = preg_match_all('/[a-z0-9]+/i', $description);
+    $specCount = is_array($specifications) ? count($specifications) : 0;
+
+    $bikeKeywordRegex = '/\b(?:bike|bicycle|frame|frameset|wheel|wheelset|groupset|drivetrain|fork|shock|brake|cassette|chain|derailleur|shifter|road|roadbike|mtb|gravel|dropbar|handlebar|stem|saddle|seatpost|tires?|trek|giant|specialized|shimano|sram|campagnolo)\b/i';
+    $technicalDetailRegex = '/\b(?:\d{2,4}\s?(?:mm|cm|inch|in)|\d{1,2}\s?speed|\d{1,2}x\d{1,2}|xx1|x01|deore|slx|xt|xtr|tiagra|105|ultegra|dura-ace|nx|gx|axs)\b/i';
+
+    $autoRejectPatterns = [
+        '/\\b(?:fake|counterfeit|replica|class a|clone)\\b/i' => 'Potential counterfeit or replica terms detected.',
+        '/\\b(?:stolen|smuggled|illegal|prohibited|drugs?|weapon|gun)\\b/i' => 'Prohibited or illegal terms detected.',
+        '/(?:https?:\\/\\/|www\\.|t\\.me\\/|telegram|whatsapp|viber|@gmail\\.com|@yahoo\\.com|09\\d{9})/i' => 'Off-platform contact details detected.',
+        '/\\b(?:nude|porn|sex|adult)\\b/i' => 'Inappropriate terms detected.'
+    ];
+
+    foreach ($autoRejectPatterns as $regex => $reason) {
+        if (preg_match($regex, $combinedText)) {
+            return [
+                'action' => 'reject',
+                'reason' => $reason
+            ];
+        }
+    }
+
+    $criteriaPassed = true;
+    $criteriaFailures = [];
+
+    if ($name === '' || strlen($name) < 4) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Product name is too short';
+    }
+
+    if (strlen($name) > 120) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Product name exceeds 120 characters';
+    }
+
+    if (!preg_match('/[a-z]/i', $name)) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Product name must contain readable letters';
+    }
+
+    if ($description === '' || strlen($description) < 20) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Description must be at least 20 characters';
+    }
+
+    if (strlen($description) > 2000) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Description must be 2000 characters or less';
+    }
+
+    if ($descriptionWordCount < 3) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Description must include at least 3 words';
+    }
+
+    if (preg_match('/\b([a-z]{2,})\b(?:\s+\1){1,}/i', $description)) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Description appears repetitive or spam-like';
+    }
+
+    if (!preg_match($bikeKeywordRegex, $combinedText)) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Description must include at least one bike-related keyword';
+    }
+
+    if ($location === '') {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Location is required';
+    }
+
+    if (strlen($location) > 120) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Location must be 120 characters or less';
+    }
+
+    if ($price <= 0) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Price must be greater than 0';
+    }
+
+    if ($price > 10000000) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Price exceeds allowed limit';
+    }
+
+    if ($quantity < 1) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Quantity must be at least 1';
+    }
+
+    if ($quantity > 999) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Quantity must be 999 or less';
+    }
+
+    if (!is_array($images) || count($images) < 1) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'At least one product image is required';
+    }
+
+    if (is_array($images) && count($images) > 10) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Maximum 10 product images allowed';
+    }
+
+    if (!in_array($forType, ['sale', 'trade', 'both'], true)) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Listing type must be sale, trade, or both';
+    }
+
+    if (!in_array($condition, ['brand new', 'second hand'], true)) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Condition must be brand new or second hand';
+    }
+
+    if ($category === '') {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Category is required';
+    }
+
+    if ($brandName === 'others' && $customBrand === '') {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Custom brand detail is required for Others';
+    }
+
+    if ($bicycleBrandId === null || $bicyclePartId === null) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Bicycle brand and part must be selected';
+    }
+
+    if ($specCount < 1 && !preg_match($technicalDetailRegex, $description)) {
+        $criteriaPassed = false;
+        $criteriaFailures[] = 'Provide at least one specification or technical detail';
+    }
+
+    if ($criteriaPassed) {
+        return [
+            'action' => 'approve',
+            'reason' => 'Listing matched all auto-approval criteria.'
+        ];
+    }
+
+    return [
+        'action' => 'pending',
+        'reason' => implode('; ', $criteriaFailures)
+    ];
+}
+
+private function applyListingAutomationDecision($productId, $uploaderId, $productName, $decision) {
+    $action = $decision['action'] ?? 'pending';
+    $reason = $decision['reason'] ?? '';
+
+    if ($action === 'approve') {
+        $stmt = $this->pdo->prepare("UPDATE products
+            SET approval_status = 'approved',
+                status = 'active',
+                approval_date = NOW(),
+                approved_by = NULL
+            WHERE product_id = :product_id");
+        $stmt->execute([':product_id' => $productId]);
+
+        $this->createUserNotification(
+            $uploaderId,
+            'listing auto approved',
+            'Listing Auto Approved',
+            "Your listing '{$productName}' was automatically approved after passing listing criteria.",
+            $productId
+        );
+
+        return [
+            'approval_status' => 'approved',
+            'message' => 'Product auto-approved successfully.'
+        ];
+    }
+
+    if ($action === 'reject') {
+        $stmt = $this->pdo->prepare("UPDATE products
+            SET approval_status = 'rejected',
+                status = 'inactive',
+                approval_date = NOW(),
+                approved_by = NULL,
+                rejection_reason = :rejection_reason
+            WHERE product_id = :product_id");
+        $stmt->execute([
+            ':product_id' => $productId,
+            ':rejection_reason' => $reason
+        ]);
+
+        $this->createUserNotification(
+            $uploaderId,
+            'listing_auto_rejected',
+            'Listing Auto-Rejected',
+            "Your listing '{$productName}' was automatically rejected. Reason: {$reason}",
+            $productId
+        );
+
+        return [
+            'approval_status' => 'rejected',
+            'message' => 'Product auto-rejected by regex criteria.'
+        ];
+    }
+
+    return [
+        'approval_status' => 'pending',
+        'message' => 'Product submitted and kept for manual review.'
+    ];
+}
+
+public function updateListingAutoApprovalConfig($data) {
+    $enabled = isset($data->enabled) ? (int)((bool)$data->enabled) : null;
+    $admin_id = $data->admin_id ?? null;
+    $admin_role = $data->admin_role ?? null;
+
+    if ($enabled === null || !$admin_id || !$admin_role) {
+        return $this->sendPayload(null, 'error', 'Missing required fields', 400);
+    }
+
+    if (!in_array($admin_role, ['super admin', 'moderator', 'admin'])) {
+        return $this->sendPayload(null, 'error', 'Unauthorized access', 403);
+    }
+
+    try {
+        $this->ensureListingAutoApprovalConfigTable();
+
+        $stmt = $this->pdo->prepare("UPDATE listing_auto_approval_config
+            SET is_enabled = :enabled,
+                updated_by = :updated_by,
+                updated_at = NOW()
+            WHERE config_id = 1");
+        $stmt->execute([
+            ':enabled' => $enabled,
+            ':updated_by' => $admin_id
+        ]);
+
+        return $this->sendPayload([
+            'enabled' => ((int)$enabled === 1),
+            'updated_by' => (int)$admin_id
+        ], 'success', 'Listing auto-approval configuration updated', 200);
+    } catch (\PDOException $e) {
+        return $this->sendPayload(null, 'error', $e->getMessage(), 500);
+    }
+}
+
 public function addProduct($data) {
+    // 🔍 DEBUG: Log incoming data
+    error_log("=== ADD PRODUCT REQUEST ===");
+    error_log("Product Name: " . ($data->product_name ?? 'NOT SET'));
+    error_log("Has product_videos property: " . (isset($data->product_videos) ? 'YES' : 'NO'));
+    if (isset($data->product_videos)) {
+        error_log("product_videos type: " . gettype($data->product_videos));
+        error_log("product_videos value (first 200 chars): " . substr($data->product_videos, 0, 200));
+    }
+    error_log("========================");
+    
     $product_name = $data->product_name ?? '';
     $brand_name   = $data->brand_name ?? 'no brand';
     $custom_brand = $data->custom_brand ?? null;
@@ -682,9 +1074,37 @@ public function addProduct($data) {
     $uploader_id  = $data->uploader_id ?? null;
     $images       = $data->images ?? [];
     $specifications = $data->specifications ?? [];
+    
+    // 🚲 Bicycle Taxonomy Fields
+    $bicycle_brand_id = isset($data->bicycle_brand_id) && $data->bicycle_brand_id !== null ? (int)$data->bicycle_brand_id : null;
+    $bicycle_part_id = isset($data->bicycle_part_id) && $data->bicycle_part_id !== null ? (int)$data->bicycle_part_id : null;
+    
+    error_log("🚲 Bicycle Brand ID: " . ($bicycle_brand_id ?? 'NULL'));
+    error_log("🚲 Bicycle Part ID: " . ($bicycle_part_id ?? 'NULL'));
 
     if (!$product_name || !$price || !$description || !$location || !$uploader_id) {
         return $this->sendPayload(null, "error", "Missing required fields", 400);
+    }
+
+    // ⚠️ Check if user is restricted from creating listings
+    $restrictionCheck = $this->checkUserRestriction($uploader_id);
+    
+    error_log("addProduct: Checking restriction for user_id=$uploader_id. Restricted: " . ($restrictionCheck['is_restricted'] ? 'YES' : 'NO'));
+    
+    if ($restrictionCheck['is_restricted']) {
+        error_log("User is restricted! Blocking listing creation.");
+        
+        $expiryMessage = '';
+        if ($restrictionCheck['expires_at']) {
+            $expiryDate = date('F j, Y \a\t g:i A', strtotime($restrictionCheck['expires_at']));
+            $expiryMessage = " Your restriction will be lifted on {$expiryDate}.";
+        } else {
+            $expiryMessage = " Your account has been permanently banned from creating listings.";
+        }
+        
+        return $this->sendPayload(null, "error", 
+            "You are currently restricted from creating new listings due to previous violations ({$restrictionCheck['violation_count']} violations). Reason: {$restrictionCheck['reason']}.{$expiryMessage}", 
+            403);
     }
 
     if ($quantity < 1) {
@@ -743,29 +1163,46 @@ public function addProduct($data) {
     $product_videos = $data->product_videos ?? '[]';
     $videoData = json_decode($product_videos, true);
     
+    // 🔍 DEBUG: Log video processing
+    error_log("=== VIDEO UPLOAD DEBUG ===");
+    error_log("Raw product_videos from frontend: " . substr($product_videos, 0, 200));
+    error_log("Video data type: " . gettype($videoData));
+    error_log("Video data is_array: " . (is_array($videoData) ? 'YES' : 'NO'));
+    error_log("Video data count: " . (is_array($videoData) ? count($videoData) : 0));
+    
     // Create videos directory if it doesn't exist
     $videosDir = 'uploads/videos';
     if (!is_dir($videosDir)) {
         mkdir($videosDir, 0755, true);
+        error_log("Created videos directory: " . $videosDir);
     }
     
     // Save base64 videos to uploads/videos/
     $savedVideoPaths = [];
     if (is_array($videoData)) {
-        foreach ($videoData as $vid) {
+        error_log("Processing " . count($videoData) . " videos...");
+        
+        foreach ($videoData as $index => $vid) {
+            error_log("Video #" . ($index + 1) . " - First 50 chars: " . substr($vid, 0, 50));
+            
             if (preg_match('/^data:video\/(\w+);base64,/', $vid, $matches)) {
                 $ext = strtolower($matches[1]);
+                error_log("Video #" . ($index + 1) . " - Detected format: " . $ext);
                 
-                // Validate video format
-                $allowedVideoFormats = ['mp4', 'mov', 'avi', 'webm', 'ogg'];
+                // Validate video format (including MKV/Matroska)
+                $allowedVideoFormats = ['mp4', 'mov', 'avi', 'webm', 'ogg', 'mkv', 'x-matroska', 'matroska'];
                 if (!in_array($ext, $allowedVideoFormats)) {
+                    error_log("Video #" . ($index + 1) . " - SKIPPED: Invalid format " . $ext);
                     continue; // Skip invalid formats
                 }
                 
                 $decodedVideo = base64_decode(str_replace($matches[0], '', $vid));
+                $videoSize = strlen($decodedVideo);
+                error_log("Video #" . ($index + 1) . " - Decoded size: " . number_format($videoSize) . " bytes (" . number_format($videoSize / 1024 / 1024, 2) . " MB)");
                 
                 // Validate file size (50MB limit)
-                if (strlen($decodedVideo) > 50 * 1024 * 1024) {
+                if ($videoSize > 50 * 1024 * 1024) {
+                    error_log("Video #" . ($index + 1) . " - SKIPPED: File too large (" . number_format($videoSize / 1024 / 1024, 2) . " MB)");
                     continue; // Skip files larger than 50MB
                 }
                 
@@ -773,15 +1210,27 @@ public function addProduct($data) {
                 $videoPath = $videosDir . '/' . $videoName;
 
                 if (file_put_contents($videoPath, $decodedVideo)) {
-                    error_log("Saved video file: " . realpath($videoPath));
+                    error_log("Video #" . ($index + 1) . " - ✅ SAVED: " . realpath($videoPath));
                     $savedVideoPaths[] = $videoPath;
+                } else {
+                    error_log("Video #" . ($index + 1) . " - ❌ FAILED to save to: " . $videoPath);
                 }
+            } else {
+                error_log("Video #" . ($index + 1) . " - SKIPPED: Does not match base64 video pattern");
             }
         }
+    } else {
+        error_log("⚠️ videoData is not an array!");
     }
 
+    error_log("Total videos saved: " . count($savedVideoPaths));
+    error_log("Saved video paths: " . json_encode($savedVideoPaths));
+    
     $jsonImages = json_encode($savedPaths);
     $jsonVideos = json_encode($savedVideoPaths);
+    
+    error_log("Final jsonVideos to be inserted: " . $jsonVideos);
+    error_log("=== END VIDEO DEBUG ===");
     
     // Process specifications - convert to JSON format
     $jsonSpecifications = null;
@@ -810,15 +1259,31 @@ public function addProduct($data) {
         $jsonSpecifications = json_encode($processedSpecs);
     }
 
-    $sql = "INSERT INTO products (product_name, brand_name, custom_brand, product_images, product_videos, price, description, location, for_type, `condition`, category, quantity, status, sale_status, uploader_id, specifications) 
-            VALUES (:product_name, :brand_name, :custom_brand, :product_images, :product_videos, :price, :description, :location, :for_type, :condition, :category, :quantity, 'active', 'available', :uploader_id, :specifications)";
+    $sql = "INSERT INTO products (product_name, brand_name, custom_brand, bicycle_brand_id, bicycle_part_id, product_images, product_videos, price, description, location, for_type, `condition`, category, quantity, status, sale_status, approval_status, uploader_id, specifications) 
+            VALUES (:product_name, :brand_name, :custom_brand, :bicycle_brand_id, :bicycle_part_id, :product_images, :product_videos, :price, :description, :location, :for_type, :condition, :category, :quantity, 'inactive', 'available', 'pending', :uploader_id, :specifications)";
 
     try {
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
+        
+        // 🔍 DEBUG: Log the values being inserted
+        error_log("=== PRODUCT INSERT DEBUG ===");
+        error_log("Product Name: " . $product_name);
+        error_log("Brand Name: " . $brand_name);
+        error_log("Bicycle Brand ID: " . ($bicycle_brand_id ?? 'NULL'));
+        error_log("Bicycle Part ID: " . ($bicycle_part_id ?? 'NULL'));
+        error_log("Images JSON: " . $jsonImages);
+        error_log("Videos JSON: " . $jsonVideos);
+        error_log("Videos JSON length: " . strlen($jsonVideos));
+        error_log("Price: " . $price);
+        error_log("Uploader ID: " . $uploader_id);
+        error_log("=== ATTEMPTING INSERT ===");
+        
+        $executeResult = $stmt->execute([
             'product_name'    => $product_name,
             'brand_name'      => $brand_name,
             'custom_brand'    => $custom_brand,
+            'bicycle_brand_id'=> $bicycle_brand_id,
+            'bicycle_part_id' => $bicycle_part_id,
             'product_images'  => $jsonImages,
             'product_videos'  => $jsonVideos,
             'price'           => $price,
@@ -832,13 +1297,17 @@ public function addProduct($data) {
             'specifications'  => $jsonSpecifications
         ]);
 
+        error_log("✅ INSERT SUCCESSFUL! Execute result: " . ($executeResult ? 'true' : 'false'));
+        
         $lastId = $this->pdo->lastInsertId();
-
+        error_log("✅ Product ID created: " . $lastId);
+        error_log("=== END INSERT DEBUG ===");
+        
         // Create notification for new listing
         $userName = $this->getUserNameById($uploader_id);
         $notificationTitle = "New listing uploaded";
         $notificationMessage = sprintf(
-            "%s uploaded a new %s: '%s' for â‚±%s in %s",
+            "%s uploaded a new %s: '%s' for ₱%s in %s",
             $userName,
             $this->getForTypeText($for_type),
             $product_name,
@@ -854,6 +1323,38 @@ public function addProduct($data) {
             $uploader_id // created_by
         );
 
+        $finalApprovalStatus = 'pending';
+        $finalMessage = "Product submitted successfully! Your listing is pending admin approval.";
+
+        if ($this->isListingAutoApprovalEnabled()) {
+            $decision = $this->evaluateListingForAutomation([
+                'product_name' => $product_name,
+                'description' => $description,
+                'location' => $location,
+                'price' => $price,
+                'quantity' => $quantity,
+                'images' => $savedPaths,
+                'for_type' => $for_type,
+                'condition' => $condition,
+                'category' => $category,
+                'brand_name' => $brand_name,
+                'custom_brand' => $custom_brand,
+                'bicycle_brand_id' => $bicycle_brand_id,
+                'bicycle_part_id' => $bicycle_part_id,
+                'specifications' => $specifications
+            ]);
+
+            $decisionResult = $this->applyListingAutomationDecision(
+                $lastId,
+                $uploader_id,
+                $product_name,
+                $decision
+            );
+
+            $finalApprovalStatus = $decisionResult['approval_status'] ?? 'pending';
+            $finalMessage = $decisionResult['message'] ?? $finalMessage;
+        }
+
         return $this->sendPayload([
             "product_id"   => $lastId,
             "product_name" => $product_name,
@@ -864,11 +1365,19 @@ public function addProduct($data) {
             "condition"    => $condition,
             "category"     => $category,
             "images"       => $savedPaths,
-            "videos"       => $savedVideoPaths
-        ], "success", "Product added successfully", 201);
+            "videos"       => $savedVideoPaths,
+            "approval_status" => $finalApprovalStatus
+        ], "success", $finalMessage, 201);
 
     } catch (\PDOException $e) {
-        return $this->sendPayload(null, "error", $e->getMessage(), 400);
+        error_log("❌❌❌ PRODUCT INSERT FAILED! ❌❌❌");
+        error_log("Error Message: " . $e->getMessage());
+        error_log("Error Code: " . $e->getCode());
+        error_log("SQL State: " . ($e->errorInfo[0] ?? 'N/A'));
+        error_log("Driver Error Code: " . ($e->errorInfo[1] ?? 'N/A'));
+        error_log("Driver Error Message: " . ($e->errorInfo[2] ?? 'N/A'));
+        error_log("Stack Trace: " . $e->getTraceAsString());
+        return $this->sendPayload(null, "error", "Failed to create product: " . $e->getMessage(), 400);
     }
 }
 
@@ -888,18 +1397,102 @@ public function updateProduct($data) {
     $product_images = $data->product_images ?? '[]';
     $product_videos = $data->product_videos ?? '[]';
     $specifications = $data->specifications ?? [];
+    $bicycle_brand_id = isset($data->bicycle_brand_id) && $data->bicycle_brand_id !== null ? (int)$data->bicycle_brand_id : null;
+    $bicycle_part_id = isset($data->bicycle_part_id) && $data->bicycle_part_id !== null ? (int)$data->bicycle_part_id : null;
+
+    $product_name = trim((string)$product_name);
+    $description = trim((string)$description);
+    $location = trim((string)$location);
+    $brand_name = strtolower(trim((string)$brand_name));
+    $custom_brand = $custom_brand !== null ? trim((string)$custom_brand) : null;
+    $for_type = strtolower(trim((string)$for_type));
+    $condition = strtolower(trim((string)$condition));
+    $category = trim((string)$category);
+    $price = (float)$price;
+    $quantity = (int)$quantity;
 
     if (!$product_id || !$product_name || !$price || !$description || !$location || !$uploader_id) {
         return $this->sendPayload(null, "error", "Missing required fields", 400);
+    }
+
+    if (strlen($product_name) < 4 || strlen($product_name) > 120) {
+        return $this->sendPayload(null, "error", "Product name must be between 4 and 120 characters", 400);
+    }
+
+    if (!preg_match('/[a-z]/i', $product_name)) {
+        return $this->sendPayload(null, "error", "Product name must contain readable letters", 400);
+    }
+
+    if (!preg_match('/^[A-Za-z0-9\s.,\'"()&\-\/#:+]+$/', $product_name)) {
+        return $this->sendPayload(null, "error", "Product name contains invalid characters", 400);
+    }
+
+    if ($description === '' || strlen($description) < 20 || strlen($description) > 2000) {
+        return $this->sendPayload(null, "error", "Description must be between 20 and 2000 characters", 400);
+    }
+
+    if (strlen($location) > 120) {
+        return $this->sendPayload(null, "error", "Location must be 120 characters or less", 400);
+    }
+
+    if (!preg_match('/^[A-Za-z0-9\s.,\'"()&\-\/#:+]+$/', $location)) {
+        return $this->sendPayload(null, "error", "Location contains invalid characters", 400);
+    }
+
+    if ($price <= 0 || $price > 10000000) {
+        return $this->sendPayload(null, "error", "Price must be greater than 0 and not exceed 10000000", 400);
+    }
+
+    if (!preg_match('/^\d+(\.\d{1,2})?$/', (string)$price)) {
+        return $this->sendPayload(null, "error", "Price can only have up to 2 decimal places", 400);
     }
 
     if ($quantity < 1) {
         return $this->sendPayload(null, "error", "Quantity must be at least 1", 400);
     }
 
+    if ($quantity > 999) {
+        return $this->sendPayload(null, "error", "Quantity must be 999 or less", 400);
+    }
+
+    if (!in_array($for_type, ['sale', 'trade', 'both'], true)) {
+        return $this->sendPayload(null, "error", "Invalid listing type", 400);
+    }
+
+    if (!in_array($condition, ['brand new', 'second hand'], true)) {
+        return $this->sendPayload(null, "error", "Invalid condition", 400);
+    }
+
+    if ($category === '') {
+        return $this->sendPayload(null, "error", "Category is required", 400);
+    }
+
+    // Load existing product to preserve taxonomy fields when client does not send them.
+    $existingStmt = $this->pdo->prepare("SELECT bicycle_brand_id, bicycle_part_id, approval_status FROM products WHERE product_id = :product_id AND uploader_id = :uploader_id LIMIT 1");
+    $existingStmt->execute([
+        ':product_id' => $product_id,
+        ':uploader_id' => $uploader_id
+    ]);
+    $existingProduct = $existingStmt->fetch(\PDO::FETCH_ASSOC);
+
+    if (!$existingProduct) {
+        return $this->sendPayload(null, "error", "Product not found or unauthorized.", 404);
+    }
+
+    if ($bicycle_brand_id === null) {
+        $bicycle_brand_id = isset($existingProduct['bicycle_brand_id']) ? (int)$existingProduct['bicycle_brand_id'] : null;
+    }
+    if ($bicycle_part_id === null) {
+        $bicycle_part_id = isset($existingProduct['bicycle_part_id']) ? (int)$existingProduct['bicycle_part_id'] : null;
+    }
+
     // Validate brand fields
-    if ($brand_name === 'others' && (empty($custom_brand) || trim($custom_brand) === '')) {
+    if ($brand_name === 'others' && ($custom_brand === null || $custom_brand === '')) {
         return $this->sendPayload(null, "error", "Custom brand is required when 'others' is selected", 400);
+    }
+
+    if ($custom_brand !== null && strlen($custom_brand) > 100) {
+        return $this->sendPayload(null, "error", "Custom brand must be 100 characters or less", 400);
     }
 
     // Clear custom_brand if not "others"
@@ -912,6 +1505,10 @@ public function updateProduct($data) {
     $savedPaths = [];
     
     if (is_array($imageData)) {
+        if (count($imageData) > 10) {
+            return $this->sendPayload(null, "error", "Maximum 10 images allowed", 400);
+        }
+
         foreach ($imageData as $img) {
             if (is_string($img) && preg_match('/^data:image\/(\w+);base64,/', $img, $matches)) {
                 // It's a new base64 image, save it
@@ -946,8 +1543,8 @@ public function updateProduct($data) {
                 // It's a new base64 video, save it
                 $ext = strtolower($matches[1]);
                 
-                // Validate video format
-                $allowedVideoFormats = ['mp4', 'mov', 'avi', 'webm', 'ogg'];
+                // Validate video format (including MKV/Matroska)
+                $allowedVideoFormats = ['mp4', 'mov', 'avi', 'webm', 'ogg', 'mkv', 'x-matroska', 'matroska'];
                 if (!in_array($ext, $allowedVideoFormats)) {
                     continue; // Skip invalid formats
                 }
@@ -977,8 +1574,8 @@ public function updateProduct($data) {
     
     // Process specifications - convert to JSON format
     $jsonSpecifications = null;
+    $processedSpecs = [];
     if (!empty($specifications) && is_array($specifications)) {
-        $processedSpecs = [];
         foreach ($specifications as $spec) {
             // Handle both object notation (from Angular) and array notation
             $specName = '';
@@ -1006,6 +1603,8 @@ public function updateProduct($data) {
                 product_name = :product_name,
                 brand_name = :brand_name,
                 custom_brand = :custom_brand,
+                bicycle_brand_id = :bicycle_brand_id,
+                bicycle_part_id = :bicycle_part_id,
                 product_images = :product_images,
                 product_videos = :product_videos,
                 price = :price,
@@ -1029,6 +1628,8 @@ public function updateProduct($data) {
             ':product_name' => $product_name,
             ':brand_name' => $brand_name,
             ':custom_brand' => $custom_brand,
+            ':bicycle_brand_id' => $bicycle_brand_id,
+            ':bicycle_part_id' => $bicycle_part_id,
             ':product_images' => $finalImages,
             ':product_videos' => $finalVideos,
             ':price' => $price,
@@ -1051,10 +1652,59 @@ public function updateProduct($data) {
         error_log("🔍 UpdateProduct Debug - Row count: " . $stmt->rowCount());
 
         if ($stmt->rowCount() > 0) {
+            // If auto-approval is enabled, re-evaluate edited pending listings.
+            $statusStmt = $this->pdo->prepare("SELECT approval_status FROM products WHERE product_id = :product_id AND uploader_id = :uploader_id LIMIT 1");
+            $statusStmt->execute([
+                ':product_id' => $product_id,
+                ':uploader_id' => $uploader_id
+            ]);
+            $productStatus = $statusStmt->fetch(\PDO::FETCH_ASSOC);
+            $currentApprovalStatus = $productStatus['approval_status'] ?? ($existingProduct['approval_status'] ?? 'pending');
+
+            $finalApprovalStatus = $currentApprovalStatus;
+            $message = "Product updated successfully";
+
+            if ($this->isListingAutoApprovalEnabled() && $currentApprovalStatus === 'pending') {
+                $decision = $this->evaluateListingForAutomation([
+                    'product_name' => $product_name,
+                    'description' => $description,
+                    'location' => $location,
+                    'price' => $price,
+                    'quantity' => $quantity,
+                    'images' => $savedPaths,
+                    'for_type' => $for_type,
+                    'condition' => $condition,
+                    'category' => $category,
+                    'brand_name' => $brand_name,
+                    'custom_brand' => $custom_brand,
+                    'bicycle_brand_id' => $bicycle_brand_id,
+                    'bicycle_part_id' => $bicycle_part_id,
+                    'specifications' => $processedSpecs
+                ]);
+
+                $decisionResult = $this->applyListingAutomationDecision(
+                    $product_id,
+                    $uploader_id,
+                    $product_name,
+                    $decision
+                );
+
+                $finalApprovalStatus = $decisionResult['approval_status'] ?? $currentApprovalStatus;
+
+                if ($finalApprovalStatus === 'approved') {
+                    $message = 'Product updated and auto-approved successfully';
+                } elseif ($finalApprovalStatus === 'rejected') {
+                    $message = 'Product updated but auto-rejected by moderation rules';
+                } else {
+                    $message = 'Product updated and kept pending for manual review';
+                }
+            }
+
             return $this->sendPayload([
                 "product_id" => $product_id,
-                "message" => "Product updated successfully"
-            ], "success", "Product updated successfully", 200);
+                "message" => $message,
+                "approval_status" => $finalApprovalStatus
+            ], "success", $message, 200);
         } else {
             // 🔍 Enhanced debugging for authorization failures
             $debugSql = "SELECT uploader_id FROM products WHERE product_id = :product_id";
@@ -1140,6 +1790,9 @@ public function updateSaleStatus($data) {
     $uploader_id = $data->uploader_id ?? null;
     $sale_status = $data->sale_status ?? null;
     $for_type = $data->for_type ?? null;
+    $conversation_id = $data->conversation_id ?? null; // Track which conversation made the sale
+    $buyer_id = $data->buyer_id ?? null; // Track the buyer directly
+    $seller_id = $data->seller_id ?? null;
 
     if (!$product_id || !$uploader_id || !$sale_status) {
         return $this->sendPayload(null, "error", "Missing required fields", 400);
@@ -1163,17 +1816,96 @@ public function updateSaleStatus($data) {
     // Get current timestamp for logging
     $updated_at = date('Y-m-d H:i:s');
 
-    $sql = "UPDATE products SET 
-                sale_status = :sale_status 
-            WHERE product_id = :product_id AND uploader_id = :uploader_id";
+    // Resolve missing buyer_id from explicit conversation when available.
+    if (($sale_status === 'sold' || $sale_status === 'traded') && !$buyer_id && $conversation_id) {
+        try {
+            $resolveBuyerSql = "SELECT buyer_id FROM conversations WHERE conversation_id = :conversation_id AND product_id = :product_id AND seller_id = :seller_id LIMIT 1";
+            $resolveBuyerStmt = $this->pdo->prepare($resolveBuyerSql);
+            $resolveBuyerStmt->execute([
+                ':conversation_id' => $conversation_id,
+                ':product_id' => $product_id,
+                ':seller_id' => $uploader_id
+            ]);
+            $resolvedConversation = $resolveBuyerStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($resolvedConversation && !empty($resolvedConversation['buyer_id'])) {
+                $buyer_id = (int)$resolvedConversation['buyer_id'];
+                error_log("✅ Resolved buyer_id from conversation: $buyer_id for product $product_id");
+            }
+        } catch (\Throwable $resolveError) {
+            error_log("⚠️ Failed to resolve buyer_id from conversation: " . $resolveError->getMessage());
+        }
+    }
+
+    // Fallback: if seller marks sold/traded outside a specific chat context,
+    // infer the buyer from the most recently active conversation for this product.
+    if (($sale_status === 'sold' || $sale_status === 'traded') && !$buyer_id && !$conversation_id) {
+        try {
+            $inferConversationSql = "SELECT conversation_id, buyer_id
+                                     FROM conversations
+                                     WHERE product_id = :product_id
+                                       AND seller_id = :seller_id
+                                       AND buyer_id IS NOT NULL
+                                     ORDER BY COALESCE(updated_at, created_at) DESC, conversation_id DESC
+                                     LIMIT 1";
+            $inferConversationStmt = $this->pdo->prepare($inferConversationSql);
+            $inferConversationStmt->execute([
+                ':product_id' => $product_id,
+                ':seller_id' => $uploader_id
+            ]);
+            $inferredConversation = $inferConversationStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($inferredConversation && !empty($inferredConversation['buyer_id'])) {
+                $buyer_id = (int)$inferredConversation['buyer_id'];
+                $conversation_id = (int)$inferredConversation['conversation_id'];
+                error_log("✅ Inferred buyer_id $buyer_id and conversation_id $conversation_id for product $product_id");
+            }
+        } catch (\Throwable $inferError) {
+            error_log("⚠️ Failed to infer buyer/conversation for product $product_id: " . $inferError->getMessage());
+        }
+    }
+
+    // Build SQL based on whether this is a sale transaction with buyer info
+    if (($sale_status === 'sold' || $sale_status === 'traded') && $buyer_id) {
+        error_log("✅ Storing buyer info - buyer_id: $buyer_id, conversation_id: " . ($conversation_id ?? 'N/A') . " for product $product_id");
+        $sql = "UPDATE products SET 
+                    sale_status = :sale_status,
+                    buyer_id = :buyer_id,
+                    transaction_date = NOW()
+                WHERE product_id = :product_id AND uploader_id = :uploader_id";
+
+        if ($conversation_id) {
+            $sql = "UPDATE products SET 
+                        sale_status = :sale_status,
+                        buyer_id = :buyer_id,
+                        sale_conversation_id = :conversation_id,
+                        transaction_date = NOW()
+                    WHERE product_id = :product_id AND uploader_id = :uploader_id";
+        }
+    } else {
+        $sql = "UPDATE products SET 
+                    sale_status = :sale_status 
+                WHERE product_id = :product_id AND uploader_id = :uploader_id";
+    }
 
     try {
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
+        
+        $params = [
             ':sale_status' => $sale_status,
             ':product_id' => $product_id,
-            ':uploader_id' => $uploader_id
-        ]);
+            ':uploader_id' =>$uploader_id
+        ];
+        
+        // Add buyer info params if storing
+        if (($sale_status === 'sold' || $sale_status === 'traded') && $buyer_id) {
+            $params[':buyer_id'] = $buyer_id;
+            if ($conversation_id) {
+                $params[':conversation_id'] = $conversation_id;
+            }
+        }
+        
+        $stmt->execute($params);
 
         if ($stmt->rowCount() > 0) {
             // 🧾 AUTOMATICALLY SEND SYSTEM MESSAGE FOR SOLD/TRADED STATUS
@@ -1407,9 +2139,10 @@ public function submitReport($data) {
         }
     }
 
-    // Ensure either reported_user_id or product_id is provided, but not both
-    if ((!$reported_user_id && !$product_id) || ($reported_user_id && $product_id)) {
-        return $this->sendPayload(null, "error", "Either reported_user_id or product_id must be provided, but not both", 400);
+    // Ensure at least one target is provided.
+    // For product reports, reported_user_id may be auto-resolved from product uploader.
+    if (!$reported_user_id && !$product_id) {
+        return $this->sendPayload(null, "error", "Either reported_user_id or product_id must be provided", 400);
     }
 
     // Process proof files if provided (proof is now a JSON string from frontend)
@@ -1507,10 +2240,16 @@ public function submitReport($data) {
     // Check if product exists (if reporting a product)
     if ($product_id) {
         try {
-            $stmt = $this->pdo->prepare("SELECT product_id FROM products WHERE product_id = :product_id");
+            $stmt = $this->pdo->prepare("SELECT product_id, uploader_id FROM products WHERE product_id = :product_id");
             $stmt->execute([':product_id' => $product_id]);
-            if (!$stmt->fetch()) {
+            $product = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$product) {
                 return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            // Auto-link product reports to the product owner when not explicitly provided.
+            if (!$reported_user_id && !empty($product['uploader_id'])) {
+                $reported_user_id = (int)$product['uploader_id'];
             }
         } catch (\PDOException $e) {
             return $this->sendPayload(null, "error", "Database error: " . $e->getMessage(), 500);
@@ -2434,17 +3173,17 @@ public function updateReportStatus($data) {
         }
 
         // Role-based permission check
-        if ($created_by_role !== 'super_admin' && $created_by_role !== 'moderator') {
+        if ($created_by_role !== 'super admin' && $created_by_role !== 'moderator') {
             return $this->sendPayload(null, "error", "Insufficient permissions to create admin", 403);
         }
 
         // Super admins can create any role, moderators can only create support staff
-        if ($created_by_role === 'moderator' && in_array($role, ['super_admin', 'moderator'])) {
+        if ($created_by_role === 'moderator' && in_array($role, ['super admin', 'moderator'])) {
             return $this->sendPayload(null, "error", "Moderators can only create support staff", 403);
         }
 
         // Validate role
-        if (!in_array($role, ['super_admin', 'moderator', 'support'])) {
+        if (!in_array($role, ['super admin', 'moderator', 'support'])) {
             return $this->sendPayload(null, "error", "Invalid role specified", 400);
         }
 
@@ -2523,7 +3262,7 @@ public function updateReportStatus($data) {
         }
 
         // Permission check
-        if ($updated_by_role !== 'super_admin' && $updated_by_role !== 'moderator') {
+        if ($updated_by_role !== 'super admin' && $updated_by_role !== 'moderator') {
             return $this->sendPayload(null, "error", "Insufficient permissions", 403);
         }
 
@@ -2540,7 +3279,7 @@ public function updateReportStatus($data) {
                 $stmt->execute([':admin_id' => $admin_id]);
                 $target = $stmt->fetch(\PDO::FETCH_ASSOC);
                 
-                if ($target && in_array($target['role'], ['super_admin', 'moderator'])) {
+                if ($target && in_array($target['role'], ['super admin', 'moderator'])) {
                     return $this->sendPayload(null, "error", "Moderators cannot modify super admins or other moderators", 403);
                 }
             } catch (\PDOException $e) {
@@ -2591,7 +3330,7 @@ public function updateReportStatus($data) {
         }
 
         // Only super admins can delete admins
-        if ($deleted_by_role !== 'super_admin') {
+        if ($deleted_by_role !== 'super admin') {
             return $this->sendPayload(null, "error", "Only super admins can delete admin accounts", 403);
         }
 
@@ -2637,6 +3376,7 @@ public function updateReportStatus($data) {
         $product_id = $data->product_id ?? null;
         $buyer_id = $data->buyer_id ?? null;
         $seller_id = $data->seller_id ?? null;
+        $autoResponseMessage = "Hello! Thank you for your interest in this item. We appreciate your inquiry. Kindly wait while the seller reviews your message and responds shortly. Thank you for your patience!";
 
         if (!$product_id || !$buyer_id || !$seller_id) {
             return $this->sendPayload(null, "error", "Missing required fields: product_id, buyer_id, seller_id", 400);
@@ -2712,6 +3452,16 @@ public function updateReportStatus($data) {
                         
                         if ($result) {
                             error_log("Initial message sent successfully for existing conversation: " . $existing['conversation_id']);
+
+                            // Send automated acknowledgement as a system message
+                            $autoReplySql = "INSERT INTO messages (conversation_id, sender_id, message_text) 
+                                            VALUES (:conversation_id, :sender_id, :message_text)";
+                            $autoReplyStmt = $this->pdo->prepare($autoReplySql);
+                            $autoReplyStmt->execute([
+                                ':conversation_id' => $existing['conversation_id'],
+                                ':sender_id' => $seller_id,
+                                ':message_text' => $autoResponseMessage
+                            ]);
                         } else {
                             error_log("Failed to send initial message for existing conversation: " . $existing['conversation_id']);
                         }
@@ -2787,6 +3537,16 @@ public function updateReportStatus($data) {
                 
                 if ($result) {
                     error_log("Initial message sent successfully for conversation: " . $conversation_id);
+
+                    // Send automated acknowledgement as a system message
+                    $autoReplySql = "INSERT INTO messages (conversation_id, sender_id, message_text) 
+                                    VALUES (:conversation_id, :sender_id, :message_text)";
+                    $autoReplyStmt = $this->pdo->prepare($autoReplySql);
+                    $autoReplyStmt->execute([
+                        ':conversation_id' => $conversation_id,
+                        ':sender_id' => $seller_id,
+                        ':message_text' => $autoResponseMessage
+                    ]);
                 } else {
                     error_log("Failed to send initial message for conversation: " . $conversation_id);
                 }
@@ -2873,7 +3633,7 @@ public function updateReportStatus($data) {
             $savedAttachments = [];
             if (!empty($attachments)) {
                 // Create attachments directory if it doesn't exist
-                $attachmentsDir = 'uploads/attachments';
+                $attachmentsDir = __DIR__ . '/../uploads/attachments';
                 if (!is_dir($attachmentsDir)) {
                     mkdir($attachmentsDir, 0755, true);
                 }
@@ -2903,15 +3663,30 @@ public function updateReportStatus($data) {
                             }
 
                             // Generate unique filename
-                            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
+                            $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                            if (empty($extension)) {
+                                $mimeToExt = [
+                                    'image/jpeg' => 'jpg',
+                                    'image/png' => 'png',
+                                    'image/gif' => 'gif',
+                                    'image/webp' => 'webp',
+                                    'video/mp4' => 'mp4',
+                                    'video/webm' => 'webm',
+                                    'video/ogg' => 'ogg',
+                                    'video/quicktime' => 'mov'
+                                ];
+                                $extension = $mimeToExt[$mimeType] ?? 'bin';
+                            }
+
                             $uniqueName = uniqid('msg_') . '_' . time() . '.' . $extension;
-                            $filePath = $attachmentsDir . '/' . $uniqueName;
+                            $absoluteFilePath = $attachmentsDir . '/' . $uniqueName;
+                            $relativeFilePath = 'uploads/attachments/' . $uniqueName;
                             
                             // Save file
-                            if (file_put_contents($filePath, $fileContent)) {
+                            if (file_put_contents($absoluteFilePath, $fileContent)) {
                                 $savedAttachments[] = [
                                     'type' => strpos($mimeType, 'image/') === 0 ? 'image' : 'video',
-                                    'path' => $filePath,
+                                    'path' => $relativeFilePath,
                                     'name' => $fileName,
                                     'size' => strlen($fileContent)
                                 ];
@@ -2941,6 +3716,33 @@ public function updateReportStatus($data) {
 
             $message_id = $this->pdo->lastInsertId();
             error_log("✅ Message inserted with ID: " . $message_id);
+
+            // Fallback auto-response for inquiry chats (covers older conversations).
+            if ($sender_id != 0 && isset($conversation['buyer_id']) && (int)$sender_id === (int)$conversation['buyer_id']) {
+                $autoResponseMessage = "Hello! Thank you for your interest in this item. We appreciate your inquiry. Kindly wait while the seller reviews your message and responds shortly. Thank you for your patience!";
+
+                $checkAutoReplySql = "SELECT COUNT(*) as auto_count FROM messages 
+                                      WHERE conversation_id = :conversation_id 
+                                      AND message_text = :message_text";
+                $checkStmt = $this->pdo->prepare($checkAutoReplySql);
+                $checkStmt->execute([
+                    ':conversation_id' => $conversation_id,
+                    ':message_text' => $autoResponseMessage
+                ]);
+                $autoCount = (int)($checkStmt->fetch(\PDO::FETCH_ASSOC)['auto_count'] ?? 0);
+
+                if ($autoCount === 0) {
+                    $autoReplySql = "INSERT INTO messages (conversation_id, sender_id, message_text, created_at) 
+                                    VALUES (:conversation_id, :sender_id, :message_text, NOW())";
+                    $autoReplyStmt = $this->pdo->prepare($autoReplySql);
+                    $autoReplyStmt->execute([
+                        ':conversation_id' => $conversation_id,
+                        ':sender_id' => $conversation['seller_id'],
+                        ':message_text' => $autoResponseMessage
+                    ]);
+                    error_log("✅ Auto-response inserted for conversation: " . $conversation_id);
+                }
+            }
             
             if ($sender_id == 0) {
                 error_log("🟢 System message saved to database!");
@@ -2967,7 +3769,8 @@ public function updateReportStatus($data) {
             $attachmentsWithUrls = [];
             foreach ($savedAttachments as $attachment) {
                 $attachmentWithUrl = $attachment;
-                $attachmentWithUrl['url'] = 'http://api.cyclemart.shop/CycleMart-api/api' . $attachment['path'];
+                // $attachmentWithUrl['url'] = 'http://api.cyclemart.shop/CycleMart-api/api' . $attachment['path'];
+                $attachmentWithUrl['url'] = 'http://localhost/CycleMart/CycleMart/CycleMart-api/api/' . ltrim($attachment['path'], '/');
                 $attachmentsWithUrls[] = $attachmentWithUrl;
             }
 
@@ -3043,8 +3846,8 @@ public function updateReportStatus($data) {
             return $this->sendPayload(null, "error", "Missing required fields", 400);
         }
 
-        // Check admin permissions (only super_admin and moderator can delete users)
-        if (!in_array($admin_role, ['super_admin', 'moderator'])) {
+        // Check admin permissions (only super admin and moderator can delete users)
+        if (!in_array($admin_role, ['super admin', 'moderator'])) {
             return $this->sendPayload(null, "error", "Insufficient permissions to delete users", 403);
         }
 
@@ -3491,11 +4294,71 @@ public function updateReportStatus($data) {
      */
     public function markUserViolation($data) {
         $user_id = $data->user_id ?? null;
+        $action = strtolower(trim((string)($data->action ?? 'mark')));
         $level = $data->level ?? null;
         $reason = $data->reason ?? null;
 
+        if (!$user_id) {
+            return $this->sendPayload(null, "error", "User ID is required", 400);
+        }
+
+        // Special action: remove active restriction and restore account to active.
+        if ($action === 'unrestrict') {
+            if (!$reason || strlen(trim($reason)) < 5) {
+                return $this->sendPayload(null, "error", "A reason (at least 5 characters) is required to unrestrict a user", 400);
+            }
+
+            try {
+                $this->pdo->beginTransaction();
+
+                $checkUser = $this->pdo->prepare("SELECT id, full_name, email, violation_count, account_status FROM users WHERE id = :user_id");
+                $checkUser->execute(['user_id' => $user_id]);
+                $user = $checkUser->fetch(\PDO::FETCH_ASSOC);
+
+                if (!$user) {
+                    $this->pdo->rollBack();
+                    return $this->sendPayload(null, "error", "User not found", 404);
+                }
+
+                $normalizedStatus = strtolower(trim((string)($user['account_status'] ?? '')));
+                if (!in_array($normalizedStatus, ['restricted', 'suspended'], true)) {
+                    $this->pdo->rollBack();
+                    return $this->sendPayload(null, "error", "Only restricted or suspended users can be unrestricted using this action", 400);
+                }
+
+                $updateUser = $this->pdo->prepare("\n                    UPDATE users\n                    SET account_status = 'active', updated_at = NOW()\n                    WHERE id = :user_id\n                ");
+                $updateUser->execute(['user_id' => $user_id]);
+
+                $deactivateRestrictions = $this->pdo->prepare("\n                    UPDATE user_restrictions\n                    SET is_active = FALSE\n                    WHERE user_id = :user_id AND is_active = TRUE\n                ");
+                $deactivateRestrictions->execute(['user_id' => $user_id]);
+
+                $insertNotification = $this->pdo->prepare("\n                    INSERT INTO user_notifications\n                    (user_id, type, title, message, reference_id, is_read, created_at)\n                    VALUES\n                    (:user_id, 'Violation', :title, :message, NULL, 0, NOW())\n                ");
+                $insertNotification->execute([
+                    'user_id' => $user_id,
+                    'title' => '✅ Account Access Restored',
+                    'message' => "Your account restriction/suspension has been lifted by CycleMart admin.\n\nReason: " . trim($reason) . "\n\nYour account access is now restored. Please continue following community guidelines."
+                ]);
+
+                $notification_id = $this->pdo->lastInsertId();
+
+                $this->pdo->commit();
+
+                return $this->sendPayload([
+                    'user_id' => $user_id,
+                    'violation_count' => (int)$user['violation_count'],
+                    'account_status' => 'active',
+                    'notification_id' => $notification_id,
+                    'user_name' => $user['full_name'],
+                    'user_email' => $user['email']
+                ], "success", "User has been unrestricted successfully.", 200);
+            } catch (\PDOException $e) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Database error: " . $e->getMessage(), 500);
+            }
+        }
+
         // Validation
-        if (!$user_id || !$level || !$reason) {
+        if (!$level || !$reason) {
             return $this->sendPayload(null, "error", "User ID, violation level, and reason are required", 400);
         }
 
@@ -3577,7 +4440,7 @@ public function updateReportStatus($data) {
                 INSERT INTO user_notifications 
                 (user_id, type, title, message, reference_id, is_read, created_at) 
                 VALUES 
-                (:user_id, 'violation', :title, :message, NULL, 0, NOW())
+                (:user_id, 'Violation', :title, :message, NULL, 0, NOW())
             ");
 
             $insertNotification->execute([
@@ -3614,7 +4477,7 @@ public function updateReportStatus($data) {
      */
     private function emitSocketEvent($room, $event, $data) {
         try {
-            $socketServerUrl = 'http://localhost:3000/emit';
+            $socketServerUrl = 'https://cyclemart-socket.onrender.com';
             
             $payload = json_encode([
                 'room' => $room,
@@ -3647,6 +4510,1167 @@ public function updateReportStatus($data) {
             
         } catch (\Exception $e) {
             error_log("❌ Exception in emitSocketEvent: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approve a product listing
+     */
+    public function approveProduct($data) {
+        $product_id = $data->product_id ?? null;
+        $admin_id = $data->admin_id ?? null;
+        $admin_role = $data->admin_role ?? null;
+
+        if (!$product_id || !$admin_id || !$admin_role) {
+            return $this->sendPayload(null, "error", "Missing required fields", 400);
+        }
+
+        // Check admin permissions
+        if (!in_array($admin_role, ['super admin', 'moderator', 'admin'])) {
+            return $this->sendPayload(null, "error", "Unauthorized access", 403);
+        }
+
+        try {
+            $sql = "UPDATE products 
+                    SET approval_status = 'approved', 
+                        approved_by = :admin_id, 
+                        approval_date = NOW(),
+                        status = 'active'
+                    WHERE product_id = :product_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':admin_id' => $admin_id,
+                ':product_id' => $product_id
+            ]);
+
+            if ($stmt->rowCount() > 0) {
+                // Get product and seller info for notification
+                $productSql = "SELECT product_name, uploader_id FROM products WHERE product_id = :product_id";
+                $productStmt = $this->pdo->prepare($productSql);
+                $productStmt->execute([':product_id' => $product_id]);
+                $product = $productStmt->fetch(\PDO::FETCH_ASSOC);
+
+                // Get admin name
+                $adminSql = "SELECT full_name FROM admins WHERE admin_id = :admin_id";
+                $adminStmt = $this->pdo->prepare($adminSql);
+                $adminStmt->execute([':admin_id' => $admin_id]);
+                $admin = $adminStmt->fetch(\PDO::FETCH_ASSOC);
+                $adminName = $admin ? $admin['full_name'] : 'Admin';
+
+                if ($product) {
+                    $this->createUserNotification(
+                        $product['uploader_id'],
+                        'listing approved',
+                        'Listing Approved',
+                        "Your listing '{$product['product_name']}' has been approved by {$adminName} and is now live!",
+                        $product_id
+                    );
+                }
+
+                return $this->sendPayload([
+                    "message" => "Product approved successfully"
+                ], "success", "Product approved successfully", 200);
+            } else {
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+        } catch (\PDOException $e) {
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Reject a product listing with violation tracking
+     */
+    public function rejectProduct($data) {
+        $product_id = $data->product_id ?? null;
+        $admin_id = $data->admin_id ?? null;
+        $admin_role = $data->admin_role ?? null;
+        $rejection_reason = $data->rejection_reason ?? null;
+        $violation_code = $data->violation_code ?? 'other'; // New parameter for violation type
+
+        if (!$product_id || !$admin_id || !$admin_role || !$rejection_reason) {
+            return $this->sendPayload(null, "error", "Missing required fields", 400);
+        }
+
+        if (!in_array($admin_role, ['super admin', 'moderator', 'admin'])) {
+            return $this->sendPayload(null, "error", "Unauthorized access", 403);
+        }
+
+        try {
+            // Start transaction
+            $this->pdo->beginTransaction();
+
+            $sql = "UPDATE products 
+                    SET approval_status = 'rejected', 
+                        approved_by = :admin_id, 
+                        approval_date = NOW(),
+                        rejection_reason = :rejection_reason,
+                        status = 'inactive'
+                    WHERE product_id = :product_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':admin_id' => $admin_id,
+                ':product_id' => $product_id,
+                ':rejection_reason' => $rejection_reason
+            ]);
+
+            if ($stmt->rowCount() > 0) {
+                // Get product and seller info for notification
+                $productSql = "SELECT product_name, uploader_id FROM products WHERE product_id = :product_id";
+                $productStmt = $this->pdo->prepare($productSql);
+                $productStmt->execute([':product_id' => $product_id]);
+                $product = $productStmt->fetch(\PDO::FETCH_ASSOC);
+
+                if ($product) {
+                    // Track violation and check for progressive discipline
+                    $violationResult = $this->trackViolation(
+                        $product['uploader_id'],
+                        $violation_code,
+                        $product_id,
+                        $rejection_reason,
+                        $admin_id
+                    );
+
+                    // Get admin name
+                    $adminSql = "SELECT full_name FROM admins WHERE admin_id = :admin_id";
+                    $adminStmt = $this->pdo->prepare($adminSql);
+                    $adminStmt->execute([':admin_id' => $admin_id]);
+                    $admin = $adminStmt->fetch(\PDO::FETCH_ASSOC);
+                    $adminName = $admin ? $admin['full_name'] : 'Admin';
+                    $violationLabel = $this->getViolationLabel($violation_code);
+
+                    // Create notification with violation info
+                    $notificationMessage = "Your listing '{$product['product_name']}' was rejected by {$adminName}.";
+                    $notificationMessage .= "\n\n🚫 Violation Type: {$violationLabel}";
+                    $notificationMessage .= "\n\nReason: {$rejection_reason}";
+                    
+                    if ($violationResult['is_restricted']) {
+                        $notificationMessage .= "\n\n⚠️ WARNING: You have violated our policies {$violationResult['violation_count']} times for '{$violationLabel}'. ";
+                        $notificationMessage .= "You are now restricted from creating new listings until {$violationResult['restriction_until']}. ";
+                        $notificationMessage .= "Please review our listing guidelines before posting again.";
+                    } elseif ($violationResult['violation_count'] > 1) {
+                        $notificationMessage .= "\n\n⚠️ This is your {$violationResult['violation_count']} warning for '{$violationLabel}'. ";
+                        $notificationMessage .= "One more violation of this type may result in a 48-hour listing restriction.";
+                    }
+
+                    $this->createUserNotification(
+                        $product['uploader_id'],
+                        'listing_rejected',
+                        'Listing Rejected',
+                        $notificationMessage,
+                        $product_id
+                    );
+                }
+
+                $this->pdo->commit();
+
+                return $this->sendPayload([
+                    "message" => "Product rejected successfully",
+                    "violation_tracked" => true
+                ], "success", "Product rejected successfully", 200);
+            } else {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+        } catch (\PDOException $e) {
+            $this->pdo->rollBack();
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get human-readable label for violation code
+     */
+    private function getViolationLabel($violation_code) {
+        $labels = [
+            'not_bike_related' => 'Not Bicycle Related',
+            'prohibited_item' => 'Prohibited Item',
+            'spam' => 'Spam/Duplicates',
+            'fraud' => 'Fraudulent Content',
+            'inappropriate_content' => 'Inappropriate Content',
+            'misleading_info' => 'Misleading Information',
+            'price_manipulation' => 'Price Manipulation',
+            'other' => 'Policy Violation'
+        ];
+        
+        return $labels[$violation_code] ?? 'Policy Violation';
+    }
+
+    /**
+     * Track user violation and apply progressive discipline
+     * Returns: ['violation_count' => int, 'is_restricted' => bool, 'restriction_until' => datetime|null]
+     */
+    private function trackViolation($user_id, $violation_code, $product_id, $rejection_reason, $admin_id) {
+        try {
+            // Log the violation tracking attempt
+            error_log("Tracking violation: user_id=$user_id, violation_code=$violation_code, product_id=$product_id");
+            
+            // Check if violation record exists for this user and violation type
+            $checkSql = "SELECT violation_id, violation_count, violation_level 
+                        FROM user_violations 
+                        WHERE user_id = :user_id 
+                        AND violation_code = :violation_code 
+                        AND status = 'active'";
+            
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute([
+                ':user_id' => $user_id,
+                ':violation_code' => $violation_code
+            ]);
+            
+            $existingViolation = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            $newCount = 1;
+            $newLevel = 1;
+            $restrictionUntil = null;
+            $isRestricted = false;
+            
+            if ($existingViolation) {
+                // Increment violation count
+                $newCount = $existingViolation['violation_count'] + 1;
+                error_log("Existing violation found. New count: $newCount");
+                
+                // Determine new violation level and restriction
+                // ⚠️ IMPORTANT: Check in descending order (7, 5, 3) to apply correct level
+                if ($newCount >= 7) {
+                    // 7th violation = permanent ban
+                    $newLevel = 4;
+                    $restrictionUntil = null; // Permanent
+                    $isRestricted = true;
+                    error_log("Level 4 (Permanent Ban) applied");
+                } elseif ($newCount >= 5) {
+                    // 5th violation = 7-day suspension
+                    $newLevel = 3;
+                    $restrictionUntil = date('Y-m-d H:i:s', strtotime('+7 days'));
+                    $isRestricted = true;
+                    error_log("Level 3 (7-day suspension) applied. Restriction until: $restrictionUntil");
+                } elseif ($newCount >= 3) {
+                    // 3rd violation = 48-hour restriction
+                    $newLevel = 2;
+                    $restrictionUntil = date('Y-m-d H:i:s', strtotime('+48 hours'));
+                    $isRestricted = true;
+                    error_log("Level 2 (48-hour restriction) applied. Restriction until: $restrictionUntil");
+                } else {
+                    error_log("No restriction applied yet (count: $newCount)");
+                }
+                
+                // Update existing violation
+                $updateSql = "UPDATE user_violations 
+                            SET violation_count = :count,
+                                violation_level = :level,
+                                last_violation_at = NOW(),
+                                related_product_id = :product_id,
+                                rejection_reason = :reason,
+                                admin_id = :admin_id,
+                                restriction_until = :restriction_until
+                            WHERE violation_id = :violation_id";
+                
+                $updateStmt = $this->pdo->prepare($updateSql);
+                $updateStmt->execute([
+                    ':count' => $newCount,
+                    ':level' => $newLevel,
+                    ':product_id' => $product_id,
+                    ':reason' => $rejection_reason,
+                    ':admin_id' => $admin_id,
+                    ':restriction_until' => $restrictionUntil,
+                    ':violation_id' => $existingViolation['violation_id']
+                ]);
+                
+            } else {
+                // Create new violation record
+                $insertSql = "INSERT INTO user_violations 
+                            (user_id, violation_code, violation_level, source, 
+                             related_product_id, rejection_reason, admin_id, violation_count, 
+                             created_at, last_violation_at)
+                            VALUES 
+                            (:user_id, :violation_code, 1, 'manual', 
+                             :product_id, :reason, :admin_id, 1, 
+                             NOW(), NOW())";
+                
+                $insertStmt = $this->pdo->prepare($insertSql);
+                $insertStmt->execute([
+                    ':user_id' => $user_id,
+                    ':violation_code' => $violation_code,
+                    ':product_id' => $product_id,
+                    ':reason' => $rejection_reason,
+                    ':admin_id' => $admin_id
+                ]);
+            }
+            
+            // If restricted, create restriction record (including permanent bans)
+            if ($isRestricted) {
+                // Determine restriction type based on level
+                $restrictionType = $newLevel >= 4 ? 'permanent_ban' : ($newLevel >= 3 ? 'account_suspension' : 'listing_ban');
+                
+                error_log("Creating restriction: type=$restrictionType, expires=$restrictionUntil");
+                
+                $this->createUserRestriction($user_id, $existingViolation['violation_id'] ?? $this->pdo->lastInsertId(), 
+                                           $restrictionType, $rejection_reason, $restrictionUntil, $admin_id);
+            }
+            
+            error_log("Violation tracking completed. Count: $newCount, Restricted: " . ($isRestricted ? 'YES' : 'NO'));
+            
+            return [
+                'violation_count' => $newCount,
+                'is_restricted' => $isRestricted,
+                'restriction_until' => $restrictionUntil,
+                'violation_level' => $newLevel
+            ];
+            
+        } catch (\PDOException $e) {
+            error_log("Failed to track violation: " . $e->getMessage());
+            return [
+                'violation_count' => 1,
+                'is_restricted' => false,
+                'restriction_until' => null,
+                'violation_level' => 1
+            ];
+        }
+    }
+
+    /**
+     * Create user restriction record
+     */
+    private function createUserRestriction($user_id, $violation_id, $restriction_type, $reason, $expires_at, $admin_id) {
+        try {
+            // Deactivate previous restrictions of same type
+            $deactivateSql = "UPDATE user_restrictions 
+                            SET is_active = FALSE 
+                            WHERE user_id = :user_id 
+                            AND restriction_type = :type 
+                            AND is_active = TRUE";
+            
+            $deactivateStmt = $this->pdo->prepare($deactivateSql);
+            $deactivateStmt->execute([
+                ':user_id' => $user_id,
+                ':type' => $restriction_type
+            ]);
+            
+            // Create new restriction
+            $insertSql = "INSERT INTO user_restrictions 
+                        (user_id, violation_id, restriction_type, reason, starts_at, expires_at, is_active, created_by)
+                        VALUES 
+                        (:user_id, :violation_id, :type, :reason, NOW(), :expires_at, TRUE, :admin_id)";
+            
+            $insertStmt = $this->pdo->prepare($insertSql);
+            $insertStmt->execute([
+                ':user_id' => $user_id,
+                ':violation_id' => $violation_id,
+                ':type' => $restriction_type,
+                ':reason' => $reason,
+                ':expires_at' => $expires_at,
+                ':admin_id' => $admin_id
+            ]);
+            
+        } catch (\PDOException $e) {
+            error_log("Failed to create user restriction: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if user is currently restricted from creating listings
+     * Returns: ['is_restricted' => bool, 'reason' => string, 'expires_at' => datetime|null]
+     */
+    public function checkUserRestriction($user_id) {
+        try {
+            error_log("Checking user restriction for user_id=$user_id");
+
+            $userSql = "SELECT account_status, violation_count FROM users WHERE id = :user_id LIMIT 1";
+            $userStmt = $this->pdo->prepare($userSql);
+            $userStmt->execute([':user_id' => $user_id]);
+            $user = $userStmt->fetch(\PDO::FETCH_ASSOC);
+
+            // Auto-deactivate expired restrictions so status can be restored automatically.
+            $expireSql = "UPDATE user_restrictions
+                          SET is_active = FALSE
+                          WHERE user_id = :user_id
+                          AND is_active = TRUE
+                          AND expires_at IS NOT NULL
+                          AND expires_at <= NOW()";
+            $expireStmt = $this->pdo->prepare($expireSql);
+            $expireStmt->execute([':user_id' => $user_id]);
+                    $expiredCount = $expireStmt->rowCount();
+            
+                $sql = "SELECT ur.restriction_type, ur.reason, ur.starts_at, ur.expires_at, uv.violation_code, uv.violation_count
+                    FROM user_restrictions ur
+                    JOIN user_violations uv ON ur.violation_id = uv.violation_id
+                    WHERE ur.user_id = :user_id 
+                    AND ur.is_active = TRUE 
+                    AND (ur.expires_at IS NULL OR ur.expires_at > NOW())
+                    ORDER BY ur.created_at DESC
+                    LIMIT 1";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':user_id' => $user_id]);
+            
+            $restriction = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($restriction) {
+                error_log("Active restriction found! Type: {$restriction['restriction_type']}, Expires: " . ($restriction['expires_at'] ?? 'NEVER'));
+
+                $restrictionType = strtolower($restriction['restriction_type'] ?? '');
+                $resolvedExpiry = $restriction['expires_at'] ?? null;
+                if (!$resolvedExpiry && !empty($restriction['starts_at']) && (strpos($restrictionType, 'temporary') !== false || $restrictionType === 'listing_ban')) {
+                    $resolvedExpiry = date('Y-m-d H:i:s', strtotime($restriction['starts_at'] . ' +48 hours'));
+                }
+                
+                return [
+                    'is_restricted' => true,
+                    'restriction_type' => $restriction['restriction_type'],
+                    'reason' => $restriction['reason'],
+                    'starts_at' => $restriction['starts_at'] ?? null,
+                    'expires_at' => $resolvedExpiry,
+                    'violation_code' => $restriction['violation_code'],
+                    'violation_count' => $restriction['violation_count']
+                ];
+            }
+
+            // Respect explicit account restriction status when no active restriction row is found.
+            if ($user && $user['account_status'] === 'restricted') {
+                $latestRestrictionSql = "SELECT ur.restriction_type, ur.reason, ur.starts_at, ur.expires_at, uv.violation_code, uv.violation_count
+                                         FROM user_restrictions ur
+                                         LEFT JOIN user_violations uv ON ur.violation_id = uv.violation_id
+                                         WHERE ur.user_id = :user_id
+                                         ORDER BY ur.created_at DESC
+                                         LIMIT 1";
+                $latestRestrictionStmt = $this->pdo->prepare($latestRestrictionSql);
+                $latestRestrictionStmt->execute([':user_id' => $user_id]);
+                $latestRestriction = $latestRestrictionStmt->fetch(\PDO::FETCH_ASSOC);
+
+                $latestType = strtolower($latestRestriction['restriction_type'] ?? '');
+                $latestExpiry = $latestRestriction['expires_at'] ?? null;
+                if (!$latestExpiry && !empty($latestRestriction['starts_at']) && (strpos($latestType, 'temporary') !== false || $latestType === 'listing_ban')) {
+                    $latestExpiry = date('Y-m-d H:i:s', strtotime($latestRestriction['starts_at'] . ' +48 hours'));
+                }
+
+                return [
+                    'is_restricted' => true,
+                    'restriction_type' => $latestRestriction['restriction_type'] ?? 'temporary_restriction',
+                    'reason' => $latestRestriction['reason'] ?? 'Your account is currently restricted from creating new listings.',
+                    'starts_at' => $latestRestriction['starts_at'] ?? null,
+                    'expires_at' => $latestExpiry,
+                    'violation_code' => $latestRestriction['violation_code'] ?? 'other',
+                    'violation_count' => $latestRestriction['violation_count'] ?? ($user['violation_count'] ?? 0)
+                ];
+            }
+
+            // If this check deactivated expired restrictions and user is still marked restricted, restore to active.
+            if ($expiredCount > 0 && $user && $user['account_status'] === 'restricted') {
+                $restoreSql = "UPDATE users
+                               SET account_status = 'active', updated_at = NOW()
+                               WHERE id = :user_id
+                               AND account_status = 'restricted'";
+                $restoreStmt = $this->pdo->prepare($restoreSql);
+                $restoreStmt->execute([':user_id' => $user_id]);
+            }
+            
+            error_log("No active restriction found for user_id=$user_id");
+            return ['is_restricted' => false];
+            
+        } catch (\PDOException $e) {
+            error_log("Failed to check user restriction: " . $e->getMessage());
+            return ['is_restricted' => false];
+        }
+    }
+
+    /**
+     * Create user notification helper
+     */
+    private function createUserNotification($user_id, $type, $title, $message, $reference_id = null) {
+        try {
+            $sql = "INSERT INTO user_notifications (user_id, type, title, message, reference_id, created_at)
+                    VALUES (:user_id, :type, :title, :message, :reference_id, NOW())";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':user_id' => $user_id,
+                ':type' => $type,
+                ':title' => $title,
+                ':message' => $message,
+                ':reference_id' => $reference_id
+            ]);
+        } catch (\PDOException $e) {
+            error_log("Failed to create user notification: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * ================================================================================================
+     * RESERVATION SYSTEM METHODS
+     * ================================================================================================
+     */
+
+    /**
+     * Reserve a product with specified duration
+     * Maximum reservation: 72 hours (enforced as 48 hours per business rules)
+     */
+    public function reserveProduct($data) {
+        try {
+            $product_id = $data->product_id ?? null;
+            $buyer_id = $data->buyer_id ?? null;
+            $seller_id = $data->seller_id ?? null;
+            $duration_hours = $data->duration_hours ?? 24;
+
+            // Validation
+            if (!$product_id || !$buyer_id || !$seller_id) {
+                return $this->sendPayload(null, "error", "Missing required fields", 400);
+            }
+
+            // Enforce maximum reservation limit (48 hours as per requirements)
+            if ($duration_hours > 72) {
+                return $this->sendPayload(null, "error", "Maximum reservation duration is 72 hours", 400);
+            }
+
+            // Validate allowed durations (24, 48, 72 hours)
+            if (!in_array($duration_hours, [24, 48, 72])) {
+                return $this->sendPayload(null, "error", "Invalid reservation duration. Allowed: 24, 48, or 72 hours", 400);
+            }
+
+            $this->pdo->beginTransaction();
+
+            // Check if product exists and is available
+            $checkSql = "SELECT product_id, product_name, uploader_id, sale_status 
+                        FROM products 
+                        WHERE product_id = :product_id";
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute([':product_id' => $product_id]);
+            $product = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$product) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            if ($product['sale_status'] !== 'available') {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Product is not available for reservation", 400);
+            }
+
+            // Verify seller owns the product
+            if ($product['uploader_id'] != $seller_id) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Only the seller can reserve this product", 403);
+            }
+
+            // Calculate reservation expiry
+            $reserved_at = date('Y-m-d H:i:s');
+            $reserved_until = date('Y-m-d H:i:s', strtotime("+{$duration_hours} hours"));
+
+            // Update product status to reserved
+            $updateSql = "UPDATE products 
+                         SET sale_status = 'reserved',
+                             reserved_by = :reserved_by,
+                             reserved_until = :reserved_until,
+                             reserved_at = :reserved_at,
+                             reservation_duration_hours = :duration_hours
+                         WHERE product_id = :product_id";
+            
+            $updateStmt = $this->pdo->prepare($updateSql);
+            $updateStmt->execute([
+                ':reserved_by' => $buyer_id,
+                ':reserved_until' => $reserved_until,
+                ':reserved_at' => $reserved_at,
+                ':duration_hours' => $duration_hours,
+                ':product_id' => $product_id
+            ]);
+
+            // Create reservation history record
+            $historySql = "INSERT INTO reservation_history 
+                          (product_id, reserved_by, seller_id, reserved_at, reserved_until, duration_hours, status)
+                          VALUES (:product_id, :reserved_by, :seller_id, :reserved_at, :reserved_until, :duration_hours, 'active')";
+            
+            $historyStmt = $this->pdo->prepare($historySql);
+            $historyStmt->execute([
+                ':product_id' => $product_id,
+                ':reserved_by' => $buyer_id,
+                ':seller_id' => $seller_id,
+                ':reserved_at' => $reserved_at,
+                ':reserved_until' => $reserved_until,
+                ':duration_hours' => $duration_hours
+            ]);
+
+            // Send notification to buyer
+            $this->createUserNotification(
+                $buyer_id,
+                'Product Reserved',
+                'Reservation Confirmed',
+                "Your reservation for '{$product['product_name']}' has been confirmed for {$duration_hours} hours.",
+                $product_id
+            );
+
+            // Send notification to seller
+            $this->createUserNotification(
+                $seller_id,
+                'Product Reserved',
+                'Product Reserved',
+                "'{$product['product_name']}' has been reserved for {$duration_hours} hours.",
+                $product_id
+            );
+
+            $this->pdo->commit();
+
+            return $this->sendPayload([
+                'product_id' => $product_id,
+                'reserved_by' => $buyer_id,
+                'reserved_until' => $reserved_until,
+                'duration_hours' => $duration_hours
+            ], "success", "Product reserved successfully", 200);
+
+        } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log("Reserve product error: " . $e->getMessage());
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Cancel a reservation
+     */
+    public function cancelReservation($data) {
+        try {
+            $product_id = $data->product_id ?? null;
+            $user_id = $data->user_id ?? null;
+            $cancellation_reason = $data->reason ?? 'User cancelled';
+
+            if (!$product_id || !$user_id) {
+                return $this->sendPayload(null, "error", "Missing required fields", 400);
+            }
+
+            $this->pdo->beginTransaction();
+
+            // Get product and reservation details
+            $checkSql = "SELECT product_id, product_name, uploader_id, sale_status, reserved_by 
+                        FROM products 
+                        WHERE product_id = :product_id";
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute([':product_id' => $product_id]);
+            $product = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$product) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            if ($product['sale_status'] !== 'reserved') {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "Product is not reserved", 400);
+            }
+
+            // Check if user has permission (seller or buyer)
+            if ($product['uploader_id'] != $user_id && $product['reserved_by'] != $user_id) {
+                $this->pdo->rollBack();
+                return $this->sendPayload(null, "error", "You don't have permission to cancel this reservation", 403);
+            }
+
+            // Update product status back to available
+            $updateSql = "UPDATE products 
+                         SET sale_status = 'available',
+                             reserved_by = NULL,
+                             reserved_until = NULL,
+                             reserved_at = NULL,
+                             reservation_duration_hours = NULL
+                         WHERE product_id = :product_id";
+            
+            $updateStmt = $this->pdo->prepare($updateSql);
+            $updateStmt->execute([':product_id' => $product_id]);
+
+            // Update reservation history
+            $historyUpdateSql = "UPDATE reservation_history 
+                                SET status = 'cancelled',
+                                    cancelled_at = NOW(),
+                                    cancellation_reason = :reason
+                                WHERE product_id = :product_id 
+                                AND status = 'active'";
+            
+            $historyStmt = $this->pdo->prepare($historyUpdateSql);
+            $historyStmt->execute([
+                ':reason' => $cancellation_reason,
+                ':product_id' => $product_id
+            ]);
+
+            // Send notifications
+            $seller_id = $product['uploader_id'];
+            $buyer_id = $product['reserved_by'];
+
+            if ($buyer_id) {
+                $this->createUserNotification(
+                    $buyer_id,
+                    'Reservation Cancelled',
+                    'Reservation Cancelled',
+                    "The reservation for '{$product['product_name']}' has been cancelled.",
+                    $product_id
+                );
+            }
+
+            if ($seller_id && $seller_id != $user_id) {
+                $this->createUserNotification(
+                    $seller_id,
+                    'Reservation Cancelled',
+                    'Reservation Cancelled',
+                    "The reservation for '{$product['product_name']}' has been cancelled.",
+                    $product_id
+                );
+            }
+
+            $this->pdo->commit();
+
+            return $this->sendPayload([
+                'product_id' => $product_id,
+                'status' => 'available'
+            ], "success", "Reservation cancelled successfully", 200);
+
+        } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log("Cancel reservation error: " . $e->getMessage());
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Check and expire reservations that have passed their reserved_until time
+     * Called when listing page loads or via cron job
+     */
+    public function checkExpiredReservations() {
+        try {
+            $this->pdo->beginTransaction();
+
+            // Find all expired reservations
+            $findExpiredSql = "SELECT p.product_id, p.product_name, p.uploader_id, p.reserved_by, p.reserved_until
+                              FROM products p
+                              WHERE p.sale_status = 'reserved'
+                              AND p.reserved_until IS NOT NULL
+                              AND p.reserved_until < NOW()";
+            
+            $findStmt = $this->pdo->prepare($findExpiredSql);
+            $findStmt->execute();
+            $expiredProducts = $findStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $expiredCount = count($expiredProducts);
+
+            if ($expiredCount === 0) {
+                $this->pdo->commit();
+                return $this->sendPayload([
+                    'expired_count' => 0,
+                    'message' => 'No expired reservations found'
+                ], "success", "Check completed", 200);
+            }
+
+            // Update each expired product
+            foreach ($expiredProducts as $product) {
+                // Update product status back to available
+                $updateSql = "UPDATE products 
+                             SET sale_status = 'available',
+                                 reserved_by = NULL,
+                                 reserved_until = NULL,
+                                 reserved_at = NULL,
+                                 reservation_duration_hours = NULL
+                             WHERE product_id = :product_id";
+                
+                $updateStmt = $this->pdo->prepare($updateSql);
+                $updateStmt->execute([':product_id' => $product['product_id']]);
+
+                // Update reservation history
+                $historyUpdateSql = "UPDATE reservation_history 
+                                    SET status = 'expired',
+                                        expired_at = NOW()
+                                    WHERE product_id = :product_id 
+                                    AND status = 'active'";
+                
+                $historyStmt = $this->pdo->prepare($historyUpdateSql);
+                $historyStmt->execute([':product_id' => $product['product_id']]);
+
+                // Send notification to seller
+                if ($product['uploader_id']) {
+                    $this->createUserNotification(
+                        $product['uploader_id'],
+                        'Reservation Expired',
+                        'Reservation Expired',
+                        "The reservation for '{$product['product_name']}' has expired. The item is now available again.",
+                        $product['product_id']
+                    );
+                }
+
+                // Send notification to buyer
+                if ($product['reserved_by']) {
+                    $this->createUserNotification(
+                        $product['reserved_by'],
+                        'Reservation Expired',
+                        'Reservation Expired',
+                        "The reservation period for '{$product['product_name']}' has expired and the item is now available.",
+                        $product['product_id']
+                    );
+                }
+            }
+
+            $this->pdo->commit();
+
+            return $this->sendPayload([
+                'expired_count' => $expiredCount,
+                'products' => $expiredProducts
+            ], "success", "{$expiredCount} reservation(s) expired and updated", 200);
+
+        } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log("Check expired reservations error: " . $e->getMessage());
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get reservation details for a product
+     */
+    public function getReservationDetails($data) {
+        try {
+            $product_id = $data->product_id ?? null;
+
+            if (!$product_id) {
+                return $this->sendPayload(null, "error", "Product ID required", 400);
+            }
+
+            $sql = "SELECT p.product_id, p.product_name, p.sale_status, 
+                           p.reserved_by, p.reserved_until, p.reserved_at, 
+                           p.reservation_duration_hours,
+                           u.full_name as buyer_name, u.email as buyer_email,
+                           s.full_name as seller_name, s.email as seller_email
+                    FROM products p
+                    LEFT JOIN users u ON p.reserved_by = u.id
+                    LEFT JOIN users s ON p.uploader_id = s.id
+                    WHERE p.product_id = :product_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':product_id' => $product_id]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$result) {
+                return $this->sendPayload(null, "error", "Product not found", 404);
+            }
+
+            // Calculate remaining time if reserved
+            if ($result['sale_status'] === 'reserved' && $result['reserved_until']) {
+                $now = new \DateTime();
+                $until = new \DateTime($result['reserved_until']);
+                $diff = $now->diff($until);
+                
+                if ($now < $until) {
+                    $result['time_remaining'] = [
+                        'hours' => $diff->h + ($diff->days * 24),
+                        'minutes' => $diff->i,
+                        'seconds' => $diff->s,
+                        'formatted' => $diff->format('%H hours %I minutes')
+                    ];
+                    $result['is_expired'] = false;
+                } else {
+                    $result['time_remaining'] = null;
+                    $result['is_expired'] = true;
+                }
+            }
+
+            return $this->sendPayload($result, "success", "Reservation details retrieved", 200);
+
+        } catch (\PDOException $e) {
+            error_log("Get reservation details error: " . $e->getMessage());
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get reservation history for a product or user
+     */
+    public function getReservationHistory($data) {
+        try {
+            $product_id = $data->product_id ?? null;
+            $user_id = $data->user_id ?? null;
+
+            if (!$product_id && !$user_id) {
+                return $this->sendPayload(null, "error", "Product ID or User ID required", 400);
+            }
+
+            $sql = "SELECT rh.*, 
+                           p.product_name,
+                           u.full_name as buyer_name,
+                           s.full_name as seller_name
+                    FROM reservation_history rh
+                    JOIN products p ON rh.product_id = p.product_id
+                    JOIN users u ON rh.reserved_by = u.id
+                    JOIN users s ON rh.seller_id = s.id
+                    WHERE 1=1";
+            
+            $params = [];
+
+            if ($product_id) {
+                $sql .= " AND rh.product_id = :product_id";
+                $params[':product_id'] = $product_id;
+            }
+
+            if ($user_id) {
+                $sql .= " AND (rh.reserved_by = :user_id OR rh.seller_id = :user_id)";
+                $params[':user_id'] = $user_id;
+            }
+
+            $sql .= " ORDER BY rh.created_at DESC";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $history = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return $this->sendPayload($history, "success", "Reservation history retrieved", 200);
+
+        } catch (\PDOException $e) {
+            error_log("Get reservation history error: " . $e->getMessage());
+            return $this->sendPayload(null, "error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Submit moderator application
+     */
+    public function submitModeratorApplication($data) {
+        $user_id = $data->user_id ?? null;
+        $full_name = $data->full_name ?? null;
+        $reason = $data->reason ?? null;
+        $experience = $data->experience ?? null;
+
+        // Validate required fields
+        if (!$user_id || !$full_name || !$reason) {
+            return $this->sendPayload(null, "error", "User ID, full name, and reason are required", 400);
+        }
+
+        try {
+            // Check if user already has a pending or approved application
+            $checkSql = "SELECT application_id, status FROM moderator_applications 
+                        WHERE user_id = :user_id 
+                        AND status IN ('pending', 'approved')";
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute([':user_id' => $user_id]);
+            $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                if ($existing['status'] === 'approved') {
+                    return $this->sendPayload(null, "error", "You are already a moderator", 409);
+                } else {
+                    return $this->sendPayload(null, "error", "You already have a pending application", 409);
+                }
+            }
+
+            // Check if user is already a moderator
+            $userCheckSql = "SELECT role FROM users WHERE id = :user_id";
+            $userCheckStmt = $this->pdo->prepare($userCheckSql);
+            $userCheckStmt->execute([':user_id' => $user_id]);
+            $user = $userCheckStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user && $user['role'] === 'moderator') {
+                return $this->sendPayload(null, "error", "You are already a moderator", 409);
+            }
+
+            // Insert application
+            $sql = "INSERT INTO moderator_applications (user_id, full_name, reason, experience, status) 
+                    VALUES (:user_id, :full_name, :reason, :experience, 'pending')";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':user_id' => $user_id,
+                ':full_name' => $full_name,
+                ':reason' => $reason,
+                ':experience' => $experience
+            ]);
+
+            $application_id = $this->pdo->lastInsertId();
+
+            return $this->sendPayload([
+                "application_id" => $application_id,
+                "status" => "pending",
+                "message" => "Your moderator application has been submitted successfully"
+            ], "success", "Application submitted successfully", 201);
+
+        } catch (\PDOException $e) {
+            error_log("Error submitting moderator application: " . $e->getMessage());
+            return $this->sendPayload(null, "error", "Database error: " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Review moderator application (Approve/Reject)
+     */
+    public function reviewModeratorApplication($data) {
+        $application_id = $data->application_id ?? null;
+        $action = $data->action ?? null; // 'approve' or 'reject'
+        $reviewed_by = $data->reviewed_by ?? null; // Admin ID
+
+        // Validate required fields
+        if (!$application_id || !$action || !$reviewed_by) {
+            return $this->sendPayload(null, "error", "Application ID, action, and reviewer ID are required", 400);
+        }
+
+        if (!in_array($action, ['approve', 'reject'])) {
+            return $this->sendPayload(null, "error", "Invalid action. Must be 'approve' or 'reject'", 400);
+        }
+
+        try {
+            // Get application details
+            $getSql = "SELECT user_id, full_name, status FROM moderator_applications 
+                      WHERE application_id = :application_id";
+            $getStmt = $this->pdo->prepare($getSql);
+            $getStmt->execute([':application_id' => $application_id]);
+            $application = $getStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$application) {
+                return $this->sendPayload(null, "error", "Application not found", 404);
+            }
+
+            if ($application['status'] !== 'pending') {
+                return $this->sendPayload(null, "error", "This application has already been reviewed", 409);
+            }
+
+            $this->pdo->beginTransaction();
+
+            $status = $action === 'approve' ? 'approved' : 'rejected';
+
+            // Update application status
+            $updateAppSql = "UPDATE moderator_applications 
+                           SET status = :status, 
+                               reviewed_by = :reviewed_by,
+                               reviewed_at = NOW()
+                           WHERE application_id = :application_id";
+            $updateAppStmt = $this->pdo->prepare($updateAppSql);
+            $updateAppStmt->execute([
+                ':status' => $status,
+                ':reviewed_by' => $reviewed_by,
+                ':application_id' => $application_id
+            ]);
+
+            // If approved, create admin account with moderator role
+            if ($action === 'approve') {
+                // Get full user details from users table (only essential columns)
+                $getUserSql = "SELECT id, full_name, email, profile_image 
+                              FROM users WHERE id = :user_id";
+
+                $getUserStmt = $this->pdo->prepare($getUserSql);
+                $getUserStmt->execute([':user_id' => $application['user_id']]);
+                $userData = $getUserStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$userData) {
+                    $this->pdo->rollBack();
+                    return $this->sendPayload(null, "error", "User not found", 404);
+                }
+
+                // Mark the user account as a moderator (used by frontend for conditional UI)
+                try {
+                    $setRoleSql = "UPDATE users SET role = 'moderator' WHERE id = :user_id";
+                    $setRoleStmt = $this->pdo->prepare($setRoleSql);
+                    $setRoleStmt->execute([':user_id' => $userData['id']]);
+                } catch (\PDOException $e) {
+                    // If role column doesn't exist for some reason, do not block approval
+                    error_log("Could not update users.role to moderator: " . $e->getMessage());
+                }
+
+                // Generate username from email (part before @) or use user_id
+                $username = explode('@', $userData['email'])[0] . '_mod_' . $userData['id'];
+                
+                // Generate a secure random password (12 characters)
+                $newPassword = bin2hex(random_bytes(6)); // 12 characters
+                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+                // Check if username already exists in admins table
+                $checkUsernameSql = "SELECT admin_id FROM admins WHERE username = :username";
+                $checkUsernameStmt = $this->pdo->prepare($checkUsernameSql);
+                $checkUsernameStmt->execute([':username' => $username]);
+                
+                // If username exists, append timestamp
+                if ($checkUsernameStmt->fetch()) {
+                    $username = $username . '_' . time();
+                }
+
+                // Check if email already exists in admins table
+                $checkEmailSql = "SELECT admin_id FROM admins WHERE email = :email";
+                $checkEmailStmt = $this->pdo->prepare($checkEmailSql);
+                $checkEmailStmt->execute([':email' => $userData['email']]);
+                
+                if ($checkEmailStmt->fetch()) {
+                    $this->pdo->rollBack();
+                    return $this->sendPayload(null, "error", "This email is already registered as an admin", 409);
+                }
+
+                // Create admin account with moderator role.
+                // If admins.user_id exists (recommended migration), store a stable link to users.id.
+                try {
+                    $createAdminSql = "INSERT INTO admins (user_id, username, email, password, full_name, role, status)
+                                      VALUES (:user_id, :username, :email, :password, :full_name, 'moderator', 'active')";
+                    $createAdminStmt = $this->pdo->prepare($createAdminSql);
+                    $createAdminStmt->execute([
+                        ':user_id' => $userData['id'],
+                        ':username' => $username,
+                        ':email' => $userData['email'],
+                        ':password' => $hashedPassword,
+                        ':full_name' => $userData['full_name']
+                    ]);
+                } catch (\PDOException $e) {
+                    // Fallback for older schema (no user_id column in admins)
+                    $createAdminSql = "INSERT INTO admins (username, email, password, full_name, role, status)
+                                      VALUES (:username, :email, :password, :full_name, 'moderator', 'active')";
+                    $createAdminStmt = $this->pdo->prepare($createAdminSql);
+                    $createAdminStmt->execute([
+                        ':username' => $username,
+                        ':email' => $userData['email'],
+                        ':password' => $hashedPassword,
+                        ':full_name' => $userData['full_name']
+                    ]);
+                }
+
+                $newAdminId = $this->pdo->lastInsertId();
+
+                // Store the user_id link in the application for reference
+                $updateLinkSql = "UPDATE moderator_applications SET admin_account_id = :admin_id 
+                                 WHERE application_id = :application_id";
+                try {
+                    $updateLinkStmt = $this->pdo->prepare($updateLinkSql);
+                    $updateLinkStmt->execute([
+                        ':admin_id' => $newAdminId,
+                        ':application_id' => $application_id
+                    ]);
+                } catch (\PDOException $e) {
+                    // Column might not exist, continue without failing
+                    error_log("Could not link admin_account_id: " . $e->getMessage());
+                }
+            }
+
+            $this->pdo->commit();
+
+            $message = $action === 'approve' 
+                ? "Application approved. {$application['full_name']} is now a moderator with admin account created."
+                : "Application rejected.";
+
+            $responseData = [
+                "application_id" => $application_id,
+                "status" => $status,
+                "user_id" => $application['user_id'],
+                "full_name" => $application['full_name']
+            ];
+
+            // Include new admin credentials if approved
+            if ($action === 'approve' && isset($newAdminId) && isset($username) && isset($newPassword)) {
+                $responseData['new_admin_account'] = [
+                    'admin_id' => $newAdminId,
+                    'username' => $username,
+                    'email' => $userData['email'],
+                    'password' => $newPassword,  // Plain text password for admin to share with user
+                    'full_name' => $userData['full_name'],
+                    'role' => 'moderator'
+                ];
+            }
+
+            return $this->sendPayload($responseData, "success", $message, 200);
+
+        } catch (\PDOException $e) {
+            $this->pdo->rollBack();
+            error_log("Error reviewing moderator application: " . $e->getMessage());
+            return $this->sendPayload(null, "error", "Database error: " . $e->getMessage(), 500);
         }
     }
 

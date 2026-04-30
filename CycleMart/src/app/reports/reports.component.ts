@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+﻿import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -13,6 +13,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { ApiService } from '../api/api.service';
 import { Router } from '@angular/router';
 import { SidenavComponent } from "../sidenav/sidenav.component";
+import { environment } from '../../environments/environment';
 
 export interface Report {
   report_id: number;
@@ -160,28 +161,28 @@ export class ReportsComponent implements OnInit {
   
   // Product Report Types
   productReasonTypes = [
-    { value: 'scam', label: 'Scam/Fraud', icon: '⚠️' },
-    { value: 'fake product', label: 'Fake Product', icon: '🚫' },
-    { value: 'spam', label: 'Spam', icon: '📧' },
-    { value: 'inappropriate content', label: 'Inappropriate Content', icon: '🔞' },
-    { value: 'misleading information', label: 'Misleading Information', icon: '❌' },
-    { value: 'stolen item', label: 'Stolen Item', icon: '🚨' },
-    { value: 'others', label: 'Others', icon: '📝' }
-  ];
-  
-  // User Behavior Report Types
-  userReasonTypes = [
-    { value: 'rude behavior', label: 'Rude Behavior', icon: '😠' },
-    { value: 'harassment', label: 'Harassment', icon: '🚨' },
-    { value: 'threats', label: 'Threats', icon: '⚠️' },
-    { value: 'scamming attempt', label: 'Scamming Attempt', icon: '🚫' },
-    { value: 'not cooperative', label: 'Not Cooperative', icon: '❌' },
-    { value: 'refund issue', label: 'Refund Issue', icon: '💰' },
-    { value: 'item not as described', label: 'Item Not As Described', icon: '📝' },
-    { value: 'damaged item', label: 'Damaged Item', icon: '💔' },
-    { value: 'post purchase issue', label: 'Post Purchase Issue', icon: '📦' },
-    { value: 'others', label: 'Others', icon: '📝' }
-  ];
+  { value: 'scam', label: 'Scam/Fraud', icon: '⚠️' },
+  { value: 'fake product', label: 'Fake Product', icon: '🚫' },
+  { value: 'spam', label: 'Spam', icon: '📧' },
+  { value: 'inappropriate content', label: 'Inappropriate Content', icon: '🔞' },
+  { value: 'misleading information', label: 'Misleading Information', icon: '❌' },
+  { value: 'stolen item', label: 'Stolen Item', icon: '🚨' },
+  { value: 'others', label: 'Others', icon: '📝' }
+];
+
+// User Behavior Report Types
+userReasonTypes = [
+  { value: 'rude behavior', label: 'Rude Behavior', icon: '😠' },
+  { value: 'harassment', label: 'Harassment', icon: '🚨' },
+  { value: 'threats', label: 'Threats', icon: '⚠️' },
+  { value: 'scamming attempt', label: 'Scamming Attempt', icon: '🚫' },
+  { value: 'not cooperative', label: 'Not Cooperative', icon: '❌' },
+  { value: 'refund issue', label: 'Refund Issue', icon: '💰' },
+  { value: 'item not as described', label: 'Item Not As Described', icon: '📝' },
+  { value: 'damaged item', label: 'Damaged Item', icon: '💔' },
+  { value: 'post purchase issue', label: 'Post Purchase Issue', icon: '📦' },
+  { value: 'others', label: 'Others', icon: '📝' }
+];
   
   // Legacy reportTypes for backward compatibility
   get reportTypes() {
@@ -194,62 +195,40 @@ export class ReportsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    console.log('🟢 REPORTS: Component initialized');
-    console.log('🟢 REPORTS: isModal:', this.isModal);
-    console.log('🟢 REPORTS: prefilledProduct:', this.prefilledProduct);
-    console.log('🟢 REPORTS: prefilledUser:', this.prefilledUser);
     
     this.loadCurrentUser();
     
     // If modal mode and prefilled data provided, set form accordingly
     if (this.isModal && this.prefilledProduct) {
-      console.log('🟢 REPORTS: Setting form for prefilled product');
-      console.log('🟢 REPORTS: PrefilledProduct full object:', this.prefilledProduct);
-      console.log('🟢 REPORTS: Product images field:', this.prefilledProduct.product_images);
-      console.log('🟢 REPORTS: ProductImages field:', this.prefilledProduct.productImages);
-      console.log('🟢 REPORTS: All image-related fields:', {
-        product_images: this.prefilledProduct.product_images,
-        productImages: this.prefilledProduct.productImages,
-        images: this.prefilledProduct.images,
-        image: this.prefilledProduct.image
-      });
       
       this.reportForm.report_type = 'product';
       this.reportForm.product_id = this.prefilledProduct.product_id || this.prefilledProduct.id || null;
       // Legacy compatibility
       this.reportForm.target_type = 'product';
       this.reportForm.target_identifier = this.prefilledProduct.product_id?.toString() || this.prefilledProduct.id?.toString() || '';
-      console.log('🟢 REPORTS: Set product_id to:', this.reportForm.product_id);
       
       // Store product sale_status for conditional post-purchase concern display
       this.productSaleStatus = this.prefilledProduct.sale_status || this.prefilledProduct.saleStatus || null;
-      console.log('🟢 REPORTS: Product sale_status:', this.productSaleStatus);
       
       // Test the image URL generation immediately
       const testImageUrl = this.getProductImageUrl(this.prefilledProduct.product_images || this.prefilledProduct.productImages);
-      console.log('🟢 REPORTS: Test image URL generated:', testImageUrl);
     } else if (this.isModal && this.prefilledUser) {
-      console.log('🟢 REPORTS: Setting form for prefilled user');
       this.reportForm.report_type = 'user_behavior';
       this.reportForm.reported_user_id = this.prefilledUser.id || null;
       // Legacy compatibility
       this.reportForm.target_type = 'user';
       this.reportForm.target_identifier = this.prefilledUser.id?.toString() || '';
-      console.log('🟢 REPORTS: Set reported_user_id to:', this.reportForm.reported_user_id);
     }
     
     // Load reports only if not in modal mode
     if (!this.isModal) {
-      console.log('🟢 REPORTS: Loading user reports');
       this.loadUserReports();
     }
     
-    console.log('🟢 REPORTS: Final reportForm state:', this.reportForm);
   }
 
   // Load current user from localStorage
   loadCurrentUser(): void {
-    console.log('🔍 REPORTS: Loading current user...');
     
     // Check all possible localStorage keys
     const userData = localStorage.getItem('currentUser');
@@ -257,15 +236,9 @@ export class ReportsComponent implements OnInit {
     const userEmail = localStorage.getItem('email');
     const userName = localStorage.getItem('full_name');
     
-    console.log('🔍 REPORTS: localStorage data check:');
-    console.log('- currentUser:', userData);
-    console.log('- id:', userId);
-    console.log('- email:', userEmail);
-    console.log('- full_name:', userName);
     
     if (userData) {
       this.currentUser = JSON.parse(userData);
-      console.log('🔍 REPORTS: User loaded from currentUser:', this.currentUser);
     } else {
       // Try alternative storage keys that might be used in your app
       if (userId) {
@@ -275,50 +248,36 @@ export class ReportsComponent implements OnInit {
           email: userEmail,
           full_name: userName
         };
-        console.log('🔍 REPORTS: User created from individual keys:', this.currentUser);
       } else if (this.isModal) {
         // In modal mode, don't redirect to login, just show an error
-        console.log('🔍 REPORTS: No user found in modal mode');
         this.showErrorMessage('Please login to report content');
         return;
       } else {
         // Only redirect to login if not in modal mode
-        console.log('🔍 REPORTS: No user found, redirecting to login');
         this.router.navigate(['/login']);
       }
     }
     
-    console.log('🔍 REPORTS: Final current user:', this.currentUser);
   }
 
   // Submit Report (for modal mode only)
   submitReport(): void {
-    console.log('🔵 REPORTS: submitReport called');
-    console.log('🔵 REPORTS: isModal:', this.isModal);
-    console.log('🔵 REPORTS: currentUser:', this.currentUser);
-    console.log('🔵 REPORTS: reportForm:', this.reportForm);
-    console.log('🔵 REPORTS: prefilledProduct:', this.prefilledProduct);
     
     // First check: ensure we're in modal mode (only submit in modal mode)
     if (!this.isModal) {
-      console.log('🔵 REPORTS: Not in modal mode, should not submit');
       return;
     }
     
     // Check if user is logged in
     if (!this.currentUser || !this.currentUser.id) {
-      console.log('🔵 REPORTS: User not logged in, showing error');
       this.showErrorMessage('Please login to submit a report');
       return;
     }
 
-    console.log('🔵 REPORTS: Validating form...');
     if (!this.validateReportForm()) {
-      console.log('🔵 REPORTS: Form validation failed');
       return;
     }
 
-    console.log('🔵 REPORTS: Form validation passed, preparing data...');
     this.loading = true;
     
     // Convert proof files to base64 if any
@@ -356,7 +315,6 @@ export class ReportsComponent implements OnInit {
         }
       }
 
-    console.log('Submitting report with data structure:', reportData);
 
     // Validate database constraints before submission
     if (!this.validateDatabaseConstraints(reportData)) {
@@ -390,7 +348,6 @@ export class ReportsComponent implements OnInit {
       },
       error: (error) => {
         this.loading = false;
-        console.error('Error submitting report:', error);
         let errorMessage = 'Error submitting report';
         
         if (error.error && error.error.message) {
@@ -402,22 +359,15 @@ export class ReportsComponent implements OnInit {
     });
     }).catch(error => {
       this.loading = false;
-      console.error('Error converting proof files:', error);
       this.showErrorMessage('Error processing proof files. Please try again.');
     });
   }
 
   // Form Validation (for modal mode only)
   validateReportForm(): boolean {
-    console.log('🔸 REPORTS: Validating form...');
-    console.log('🔸 REPORTS: product_reason_type:', this.reportForm.product_reason_type);
-    console.log('🔸 REPORTS: user_reason_type:', this.reportForm.user_reason_type);
-    console.log('🔸 REPORTS: reason_details:', this.reportForm.reason_details);
-    console.log('🔸 REPORTS: target_identifier:', this.reportForm.target_identifier);
     
     // Check report type
     if (!this.reportForm.report_type) {
-      console.log('🔸 REPORTS: No report type selected');
       this.showErrorMessage('Please select a report type');
       return false;
     }
@@ -425,13 +375,11 @@ export class ReportsComponent implements OnInit {
     // Check reason type based on report type
     if (this.reportForm.report_type === 'product') {
       if (!this.reportForm.product_reason_type) {
-        console.log('🔸 REPORTS: No product reason type selected');
         this.showErrorMessage('Please select a reason for reporting this product');
         return false;
       }
     } else if (this.reportForm.report_type === 'user_behavior' || this.reportForm.report_type === 'post_purchase_concern') {
       if (!this.reportForm.user_reason_type) {
-        console.log('🔸 REPORTS: No user reason type selected');
         this.showErrorMessage('Please select a reason for reporting this user');
         return false;
       }
@@ -439,33 +387,27 @@ export class ReportsComponent implements OnInit {
 
     // Validate target identifier only if not prefilled
     if (!this.prefilledProduct && !this.prefilledUser) {
-      console.log('🔸 REPORTS: Checking target identifier (not prefilled)');
       if (!this.reportForm.target_identifier || this.reportForm.target_identifier.trim() === '') {
-        console.log('🔸 REPORTS: No target identifier');
         this.showErrorMessage(`Please enter a ${this.reportForm.target_type} ID`);
         return false;
       }
 
       if (isNaN(parseInt(this.reportForm.target_identifier))) {
-        console.log('🔸 REPORTS: Invalid target identifier');
         this.showErrorMessage(`${this.reportForm.target_type} ID must be a number`);
         return false;
       }
     }
 
     if (!this.reportForm.reason_details || this.reportForm.reason_details.trim() === '') {
-      console.log('🔸 REPORTS: No reason details');
       this.showErrorMessage('Please provide details about your report');
       return false;
     }
 
     if (this.reportForm.reason_details.trim().length < 10) {
-      console.log('🔸 REPORTS: Reason details too short');
       this.showErrorMessage('Please provide more detailed information (at least 10 characters)');
       return false;
     }
 
-    console.log('🔸 REPORTS: Form validation passed');
     return true;
   }
 
@@ -492,50 +434,19 @@ export class ReportsComponent implements OnInit {
   loadUserReports(): void {
     if (!this.currentUser?.id) return;
     
-    console.log('Loading reports for user ID:', this.currentUser.id);
     
     this.loading = true;
     this.apiService.getUserReports(this.currentUser.id).subscribe({
       next: (response) => {
         this.loading = false;
-        console.log('=== Full API Response ===');
-        console.log('Response:', response);
-        console.log('Response Status:', response.status);
-        console.log('Response Data:', response.data);
-        
         if (response.status === 'success') {
           this.reports = response.data || [];
-          console.log('=== Loaded Reports Analysis ===');
-          console.log('Total reports loaded:', this.reports.length);
-          
-          // Log each report's product image data
-          this.reports.forEach((report, index) => {
-            console.log(`\n--- Report ${index + 1} (ID: ${report.report_id}) ---`);
-            console.log('Product ID:', report.product_id);
-            console.log('Product Images (raw):', report.product_images);
-            console.log('Product Images type:', typeof report.product_images);
-            console.log('Product Images value:', report.product_images);
-            console.log('Product Description:', report.product_description);
-            console.log('Product Reason Type:', report.product_reason_type);
-            console.log('User Reason Type:', report.user_reason_type);
-            console.log('Report Type:', report.report_type);
-            
-            // Test image URL generation
-            if (report.product_images) {
-              console.log('Generated image URL:', this.getProductImageUrl(report.product_images));
-              console.log('Generated image URLs array:', this.getProductImageUrls(report.product_images));
-            }
-          });
         } else {
-          console.error('API returned error status:', response.message);
           this.showErrorMessage('Failed to load reports');
         }
       },
       error: (error) => {
         this.loading = false;
-        console.error('=== API Error ===');
-        console.error('Error loading reports:', error);
-        console.error('Error details:', error.error);
         this.showErrorMessage('Error loading reports');
       }
     });
@@ -543,21 +454,21 @@ export class ReportsComponent implements OnInit {
 
   // Modal Management
   showSuccessMessage(message: string): void {
-    this.modalTitle = '✅ Success';
+    this.modalTitle = 'âœ… Success';
     this.modalMessage = message;
     this.modalType = 'success';
     this.showModal = true;
   }
 
   showErrorMessage(message: string): void {
-    this.modalTitle = '❌ Error';
+    this.modalTitle = 'âŒ Error';
     this.modalMessage = message;
     this.modalType = 'error';
     this.showModal = true;
   }
 
   showInfoMessage(message: string): void {
-    this.modalTitle = 'ℹ️ Information';
+    this.modalTitle = 'â„¹ï¸ Information';
     this.modalMessage = message;
     this.modalType = 'info';
     this.showModal = true;
@@ -580,7 +491,6 @@ export class ReportsComponent implements OnInit {
     this.currentReportId = report.report_id;
     this.showProofModal = true;
     
-    console.log('🔍 PROOF MODAL: Opening proof modal for report:', report.report_id, 'with files:', proofUrls);
   }
 
   // Navigate through proof files
@@ -621,7 +531,6 @@ export class ReportsComponent implements OnInit {
 
   // Handle modal image errors
   onModalImageError(event: Event): void {
-    console.error('🔍 PROOF MODAL: Image load error:', event);
     const target = event.target as HTMLImageElement;
     if (target) {
       target.src = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
@@ -668,7 +577,7 @@ export class ReportsComponent implements OnInit {
     
     // Try user reasons
     type = this.userReasonTypes.find(t => t.value === reasonType);
-    return type ? type.icon : '📝';
+    return type ? type.icon : 'ðŸ“';
   }
 
   // Get current reason options based on report type
@@ -706,10 +615,6 @@ export class ReportsComponent implements OnInit {
   // Only show when product is sold or traded
   canShowPostPurchaseConcern(): boolean {
     const canShow = this.productSaleStatus === 'sold' || this.productSaleStatus === 'traded';
-    console.log('🔍 canShowPostPurchaseConcern:', {
-      productSaleStatus: this.productSaleStatus,
-      canShow: canShow
-    });
     return canShow;
   }
 
@@ -720,7 +625,6 @@ export class ReportsComponent implements OnInit {
       return;
     }
 
-    console.log('🔍 Checking sale status for product ID:', productId);
     
     try {
       // Fetch product details from API
@@ -728,33 +632,27 @@ export class ReportsComponent implements OnInit {
         next: (response) => {
           if (response.status === 'success' && response.data) {
             this.productSaleStatus = response.data.sale_status || response.data.saleStatus || null;
-            console.log('✅ Product sale_status fetched:', this.productSaleStatus);
             
             // If post-purchase concern was selected but product is not sold/traded, reset to product report
             if (this.reportForm.report_type === 'post_purchase_concern' && !this.canShowPostPurchaseConcern()) {
-              console.log('⚠️ Post-purchase concern not available, resetting to product report');
               this.reportForm.report_type = 'product';
               this.showInfoMessage('Post-purchase concerns are only available for sold or traded products.');
             }
           } else {
-            console.log('⚠️ Product not found or invalid response');
             this.productSaleStatus = null;
           }
         },
         error: (error) => {
-          console.error('❌ Error fetching product details:', error);
           this.productSaleStatus = null;
         }
       });
     } catch (error) {
-      console.error('❌ Error in checkProductSaleStatus:', error);
       this.productSaleStatus = null;
     }
   }
 
   // Handle target identifier change (when user manually enters product/user ID)
   onTargetIdentifierChange(): void {
-    console.log('🔄 Target identifier changed:', this.reportForm.target_identifier);
     
     // If reporting a product, check its sale status
     if (this.reportForm.report_type === 'product' && this.reportForm.target_identifier) {
@@ -811,11 +709,7 @@ export class ReportsComponent implements OnInit {
   // Test method to verify API base URL
   testApiImageUrl(): string {
     const testImageName = 'test-image.jpg';
-    const apiBaseUrl = this.apiService.baseUrl;
-    const fullTestUrl = `${apiBaseUrl}../uploads/${testImageName}`;
-    console.log('🧪 TEST: API base URL:', apiBaseUrl);
-    console.log('🧪 TEST: Full test URL:', fullTestUrl);
-    return fullTestUrl;
+    return `${environment.apiUploadsBaseUrl}${testImageName}`;
   }
 
   // Get type of data for debugging
@@ -867,52 +761,20 @@ export class ReportsComponent implements OnInit {
 
   // Debug function for testing
   debugSubmit(): void {
-    console.log('🔥 DEBUG: Testing submit functionality');
-    console.log('🔥 DEBUG: currentUser:', this.currentUser);
-    console.log('🔥 DEBUG: reportForm:', this.reportForm);
-    console.log('🔥 DEBUG: isModal:', this.isModal);
-    console.log('🔥 DEBUG: prefilledProduct:', this.prefilledProduct);
-    console.log('🔥 DEBUG: reportTypes:', this.reportTypes);
-    console.log('🔥 DEBUG: localStorage check:');
-    console.log('- currentUser:', localStorage.getItem('currentUser'));
-    console.log('- id:', localStorage.getItem('id'));
-    console.log('- email:', localStorage.getItem('email'));
-    console.log('- full_name:', localStorage.getItem('full_name'));
-    
-    // Test dropdown data
-    console.log('🔥 DEBUG: Available report types:');
-    this.reportTypes.forEach((type, index) => {
-      console.log(`  ${index}: ${type.value} - ${type.label} ${type.icon}`);
-    });
-    
-    // Test form validation
     const isValid = this.validateReportForm();
-    console.log('🔥 DEBUG: Form validation result:', isValid);
-    
     if (isValid) {
-      console.log('🔥 DEBUG: Form is valid, would submit now');
       // Test actual submit for debugging
       this.submitReport();
-    } else {
-      console.log('🔥 DEBUG: Form is invalid, cannot submit');
     }
   }
 
   // Handle dropdown selection changes
   onReasonTypeChange(event: any): void {
-    console.log('🔽 DROPDOWN: Reason type changed to:', event.value);
-    console.log('🔽 DROPDOWN: Event object:', event);
     this.setCurrentReasonType(event.value);
-    console.log('🔽 DROPDOWN: Form updated:', this.reportForm);
-    console.log('🔽 DROPDOWN: Available reason types:', this.getCurrentReasonOptions());
   }
 
   // Test function to check if dropdown opens
   testDropdownClick(): void {
-    console.log('🔥 DROPDOWN TEST: Dropdown clicked');
-    console.log('🔥 DROPDOWN TEST: reportTypes:', this.reportTypes);
-    console.log('🔥 DROPDOWN TEST: reportTypes length:', this.reportTypes.length);
-    console.log('🔥 DROPDOWN TEST: Current form state:', this.reportForm);
   }
 
   // Database validation helpers
@@ -933,26 +795,22 @@ export class ReportsComponent implements OnInit {
   private validateDatabaseConstraints(reportData: any): boolean {
     // Check required fields
     if (!reportData.reporter_id) {
-      console.error('Missing required field: reporter_id is required');
       return false;
     }
 
     // Validate report_type enum
     const validReportTypes = ['product', 'user_behavior', 'post_purchase_concern'];
     if (!validReportTypes.includes(reportData.report_type)) {
-      console.error('Invalid report_type:', reportData.report_type);
       return false;
     }
 
     // Validate reason types based on report type
     if (reportData.report_type === 'product') {
       if (!reportData.product_reason_type) {
-        console.error('Missing required field: product_reason_type is required for product reports');
         return false;
       }
       const validProductReasons = ['scam', 'fake product', 'spam', 'inappropriate content', 'misleading information', 'stolen item', 'others'];
       if (!validProductReasons.includes(reportData.product_reason_type)) {
-        console.error('Invalid product_reason_type:', reportData.product_reason_type);
         return false;
       }
     }
@@ -960,12 +818,10 @@ export class ReportsComponent implements OnInit {
     // Validate user_reason_type if report is about user behavior
     if (reportData.report_type === 'user_behavior' || reportData.report_type === 'post_purchase_concern') {
       if (!reportData.user_reason_type) {
-        console.error('Missing required field: user_reason_type is required for user behavior/post-purchase reports');
         return false;
       }
       const validUserReasons = ['rude behavior', 'harassment', 'threats', 'scamming attempt', 'not cooperative', 'refund issue', 'item not as described', 'damaged item', 'post purchase issue', 'others'];
       if (!validUserReasons.includes(reportData.user_reason_type)) {
-        console.error('Invalid user_reason_type:', reportData.user_reason_type);
         return false;
       }
     }
@@ -973,14 +829,12 @@ export class ReportsComponent implements OnInit {
     // Validate status enum
     const validStatuses = ['pending', 'reviewed', 'action_taken'];
     if (reportData.status && !validStatuses.includes(reportData.status)) {
-      console.error('Invalid status:', reportData.status);
       return false;
     }
 
     // Validate product_images JSON if present
     if (reportData.product_images !== null && reportData.product_images !== undefined) {
       if (typeof reportData.product_images === 'string' && !this.isValidJsonString(reportData.product_images)) {
-        console.error('Invalid JSON format for product_images');
         return false;
       }
     }
@@ -990,12 +844,10 @@ export class ReportsComponent implements OnInit {
     const hasProduct = reportData.product_id !== null && reportData.product_id !== undefined;
     
     if (!hasUser && !hasProduct) {
-      console.error('Either reported_user_id or product_id must be provided');
       return false;
     }
 
     if (hasUser && hasProduct) {
-      console.error('Cannot report both user and product in the same report');
       return false;
     }
 
@@ -1090,7 +942,6 @@ export class ReportsComponent implements OnInit {
         const base64 = await this.fileToBase64(file);
         base64Files.push(base64);
       } catch (error) {
-        console.error('Error converting file to base64:', error);
         throw new Error(`Failed to process file: ${file.name}`);
       }
     }
@@ -1109,55 +960,42 @@ export class ReportsComponent implements OnInit {
 
   // Get proof file URLs for display
   getProofFileUrls(proof: string | null): string[] {
-    console.log('🔍 PROOF: getProofFileUrls called with:', proof);
-    console.log('🔍 PROOF: Type:', typeof proof);
-    
     // Handle null, undefined, empty string cases
     if (!proof || proof === null || proof === undefined || proof === '' || proof === 'null') {
-      console.log('🔍 PROOF: No proof data found');
       return [];
     }
     
     try {
       // If it's already an array, return it
       if (Array.isArray(proof)) {
-        console.log('🔍 PROOF: Already an array:', proof);
         return proof.map(path => this.buildImageUrl(path));
       }
       
       // Try to parse as JSON
       const proofArray = JSON.parse(proof);
-      console.log('🔍 PROOF: Parsed JSON:', proofArray);
       
       if (Array.isArray(proofArray)) {
         // Filter out empty or null items
         const validPaths = proofArray.filter(path => path && path !== null && path !== '');
-        console.log('🔍 PROOF: Valid paths:', validPaths);
         // Check if items are base64 data URLs or file paths
         return validPaths.map(path => {
           if (typeof path === 'string' && path.startsWith('data:')) {
-            console.log('🔍 PROOF: Found base64 data URL (length: ' + path.length + ')');
             return path; // Return base64 as-is
           }
           return this.buildImageUrl(path);
         });
       } else if (proofArray && typeof proofArray === 'string') {
         // Single file as string
-        console.log('🔍 PROOF: Single file string:', proofArray);
         return [this.buildImageUrl(proofArray)];
       }
     } catch (error) {
-      console.error('🔍 PROOF: Error parsing proof JSON:', error);
-      console.error('🔍 PROOF: Original data:', proof);
       
       // If JSON parsing fails, try to treat as a single string path
       if (typeof proof === 'string' && proof.trim().length > 0 && proof !== 'null' && proof !== '[]') {
-        console.log('🔍 PROOF: Treating as single string path:', proof);
         return [this.buildImageUrl(proof.trim())];
       }
     }
     
-    console.log('🔍 PROOF: Returning empty array');
     return [];
   }
 
@@ -1189,15 +1027,14 @@ export class ReportsComponent implements OnInit {
 
   // Get file icon for proof files
   getProofFileIcon(url: string): string {
-    if (this.isProofImage(url)) return '🖼️';
-    if (this.isProofVideo(url)) return '🎥';
-    return '📁';
+    if (this.isProofImage(url)) return 'ðŸ–¼ï¸';
+    if (this.isProofVideo(url)) return 'ðŸŽ¥';
+    return 'ðŸ“';
   }
 
   // Open proof file in new tab
   openProofFile(url: string): void {
     if (!url) {
-      console.error('No URL provided to openProofFile');
       return;
     }
     
@@ -1211,7 +1048,6 @@ export class ReportsComponent implements OnInit {
         window.open(url, '_blank');
       }
     } catch (error) {
-      console.error('Error opening proof file:', error);
     }
   }
 
@@ -1221,7 +1057,6 @@ export class ReportsComponent implements OnInit {
       // Extract file type from data URL
       const matches = dataUrl.match(/^data:([^;]+);base64,/);
       if (!matches) {
-        console.error('Invalid base64 data URL format');
         return;
       }
 
@@ -1237,9 +1072,7 @@ export class ReportsComponent implements OnInit {
       link.click();
       document.body.removeChild(link);
 
-      console.log('File download started:', fileName);
     } catch (error) {
-      console.error('Error downloading file:', error);
     }
   }
 
@@ -1261,67 +1094,51 @@ export class ReportsComponent implements OnInit {
   }
 
   // Helper method to build proper image URL
-  private buildImageUrl(imagePath: string): string {
-    console.log('🔧 BUILD URL: Input path:', imagePath);
-    
+  private buildImageUrl(
+    imagePath: unknown,
+    fallback = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'
+  ): string {
     if (!imagePath) {
-      console.log('🔧 BUILD URL: No path provided, using default');
-      return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
+      return fallback;
     }
-    
-    // Handle full URLs
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      console.log('🔧 BUILD URL: Full URL detected:', imagePath);
-      return imagePath;
+
+    let resolvedPath = imagePath;
+    if (typeof resolvedPath === 'object' && resolvedPath !== null) {
+      const candidate = (resolvedPath as any).path || (resolvedPath as any).url || (resolvedPath as any).name;
+      if (!candidate) {
+        return fallback;
+      }
+      resolvedPath = candidate;
     }
-    
-    // Handle base64 images
-    if (imagePath.startsWith('data:')) {
-      console.log('🔧 BUILD URL: Base64 image detected');
-      return imagePath;
+
+    if (typeof resolvedPath !== 'string') {
+      return fallback;
     }
-    
-    // Clean image path
-    let cleanImagePath = imagePath.trim();
-    console.log('🔧 BUILD URL: Cleaning path:', cleanImagePath);
-    
-    // Remove any leading slashes or backslashes
-    cleanImagePath = cleanImagePath.replace(/^[\\/\\\\]+/, '');
-    
-    // Ensure path starts with uploads/ if it doesn't already
-    if (!cleanImagePath.startsWith('uploads/')) {
-      cleanImagePath = 'uploads/' + cleanImagePath;
-      console.log('🔧 BUILD URL: Added uploads/ prefix:', cleanImagePath);
+
+    const normalized = resolvedPath.trim();
+    if (!normalized) {
+      return fallback;
     }
-    
-    console.log('🔧 BUILD URL: Final clean path:', cleanImagePath);
-    
-    // Build the complete URL
-    // Base URL format: http://api.cyclemart.shop/CycleMart-api/api
-    // Product images are in: http://api.cyclemart.shop/CycleMart-api/api/uploads/...
-    // Add slash to ensure proper URL construction
-    const baseUrl = this.apiService.baseUrl; // http://api.cyclemart.shop/CycleMart-api/api
-    const finalUrl = baseUrl + '/' + cleanImagePath;
-    console.log('🔧 BUILD URL: Base URL:', baseUrl);
-    console.log('🔧 BUILD URL: Final URL:', finalUrl);
-    
-    return finalUrl;
+
+    // Handle full URLs and base64
+    if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:')) {
+      return normalized;
+    }
+
+    // Remove api/uploads or uploads prefixes to avoid duplicated segments.
+    const cleanImagePath = normalized
+      .replace(/^\/+/, '')
+      .replace(/^api\/uploads[\/\\]/i, '')
+      .replace(/^uploads[\/\\]/i, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanImagePath}`;
   }
 
   // Get product image URL for display
   getProductImageUrl(productImages: string | null | undefined): string {
     const callId = Math.random().toString(36).substr(2, 9);
-    console.log(`🎆 [${callId}] REPORT MODAL: getProductImageUrl called with:`, productImages);
-    console.log(`🎆 [${callId}] REPORT MODAL: Type:`, typeof productImages);
-    console.log(`🎆 [${callId}] REPORT MODAL: Value length:`, productImages?.length);
-    console.log(`🎆 [${callId}] REPORT MODAL: First 200 chars:`, productImages?.substring(0, 200));
-    console.log(`🎆 [${callId}] REPORT MODAL: Is null?:`, productImages === null);
-    console.log(`🎆 [${callId}] REPORT MODAL: Is undefined?:`, productImages === undefined);
-    console.log(`🎆 [${callId}] REPORT MODAL: Is empty string?:`, productImages === '');
-    
     // Handle null, undefined, empty string cases
     if (!productImages || productImages === null || productImages === undefined || productImages === '') {
-      console.log(`🎆 [${callId}] REPORT MODAL: ❌ No product images found, using default`);
       return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
     }
 
@@ -1331,71 +1148,54 @@ export class ReportsComponent implements OnInit {
       // If it's already an array, use it directly
       if (Array.isArray(productImages)) {
         images = productImages;
-        console.log(`🎆 [${callId}] REPORT MODAL: Already an array:`, images);
       } else if (typeof productImages === 'string') {
-        console.log(`🎆 [${callId}] REPORT MODAL: Processing string:`, productImages);
         
         // Check if string is empty array
         if (productImages.trim() === '[]') {
-          console.log(`🎆 [${callId}] REPORT MODAL: Empty array string, using default`);
           return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
         }
         
         // Check if it looks like JSON
         if (productImages.trim().startsWith('[') || productImages.trim().startsWith('"')) {
-          console.log(`🎆 [${callId}] REPORT MODAL: Attempting JSON parse`);
           try {
             images = JSON.parse(productImages);
-            console.log(`🎆 [${callId}] REPORT MODAL: JSON parsed successfully:`, images);
             
             // Check if parsed result is empty array
             if (Array.isArray(images) && images.length === 0) {
-              console.log(`🎆 [${callId}] REPORT MODAL: Empty array after parse, using default`);
               return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
             }
           } catch (jsonError) {
-            console.error(`🎆 [${callId}] REPORT MODAL: JSON parse failed:`, jsonError);
             // Treat as single image path if JSON parsing fails
             images = [productImages];
           }
         } else {
-          console.log(`🎆 [${callId}] REPORT MODAL: Treating as single image path`);
           images = [productImages];
         }
       }
       
-      console.log(`🎆 [${callId}] REPORT MODAL: Final images array:`, images);
       
       if (Array.isArray(images) && images.length > 0) {
         const firstImage = images[0];
-        console.log(`🎆 [${callId}] REPORT MODAL: Using first image:`, firstImage);
         
         if (firstImage && typeof firstImage === 'string' && firstImage.trim() !== '') {
           const imageUrl = this.buildImageUrl(firstImage);
-          console.log(`🎆 [${callId}] REPORT MODAL: Generated image URL:`, imageUrl);
           return imageUrl;
         }
       }
     } catch (e) {
-      console.error('🎆 REPORT MODAL: Error processing product images:', e);
       
       // If processing failed but we have a string, try to use it directly
       if (typeof productImages === 'string' && productImages.length > 0 && productImages.trim() !== '') {
-        console.log('🎆 REPORT MODAL: Using direct path fallback:', productImages);
         const imageUrl = this.buildImageUrl(productImages.trim());
-        console.log('🎆 REPORT MODAL: Generated fallback URL:', imageUrl);
         return imageUrl;
       }
     }
 
-    console.log('🎆 REPORT MODAL: All methods failed, returning default image');
     return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
   }
 
   // Get all product image URLs for gallery view
   getProductImageUrls(productImages: string | null | undefined): string[] {
-    console.log('🖼️ PRODUCT GALLERY: getProductImageUrls called with:', productImages);
-    
     // Handle null, undefined, empty string cases
     if (!productImages || productImages === null || productImages === undefined || productImages === '') {
       return ['https://cdn-icons-png.flaticon.com/512/2972/2972185.png'];
@@ -1417,11 +1217,9 @@ export class ReportsComponent implements OnInit {
       }
       
       if (Array.isArray(images) && images.length > 0) {
-        console.log('🖼️ PRODUCT GALLERY: Processing images:', images);
         return images.map(image => this.buildImageUrl(image));
       }
     } catch (e) {
-      console.error('🖼️ PRODUCT GALLERY: Error parsing product images:', e);
       
       // If JSON parsing failed but we have a string, try to use it as a direct path
       if (typeof productImages === 'string' && productImages.length > 0) {
@@ -1438,11 +1236,8 @@ export class ReportsComponent implements OnInit {
   onImageError(event: any): void {
     const img = event.target as HTMLImageElement;
     const failedSrc = img?.src || 'unknown';
-    console.error('🚨 IMAGE ERROR: Failed to load image:', failedSrc);
-    console.error('🚨 IMAGE ERROR: Event details:', event);
     
     if (img && failedSrc !== 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png') {
-      console.log('🔄 IMAGE ERROR: Setting fallback image');
       img.src = 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
     }
   }
@@ -1450,15 +1245,12 @@ export class ReportsComponent implements OnInit {
   // Handle successful image loading
   onImageLoad(event: any): void {
     const img = event.target as HTMLImageElement;
-    console.log('✅ IMAGE SUCCESS: Successfully loaded:', img?.src);
-    console.log('✅ IMAGE SUCCESS: Image dimensions:', img?.naturalWidth, 'x', img?.naturalHeight);
   }
 
   // ==================== CARD LAYOUT METHODS ====================
   
   // Open report details modal
   openReportDetails(report: Report): void {
-    console.log('📋 Opening report details:', report);
     this.selectedReport = report;
     this.showReportDetailsModal = true;
   }
@@ -1483,7 +1275,6 @@ export class ReportsComponent implements OnInit {
         }
       }
     } catch (e) {
-      console.error('Error parsing proof for thumbnail:', e);
     }
     return null;
   }
@@ -1498,7 +1289,6 @@ export class ReportsComponent implements OnInit {
         return proofFiles.map(file => this.buildProofFileUrl(file));
       }
     } catch (e) {
-      console.error('Error parsing proof files:', e);
     }
     return [];
   }
@@ -1513,7 +1303,8 @@ export class ReportsComponent implements OnInit {
     }
     
     // Build URL from base path
-    return this.apiService.baseUrl + filePath;
+    const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   // Check if file is an image
@@ -1555,15 +1346,15 @@ export class ReportsComponent implements OnInit {
   // Get report type display with icon
   getReportTypeDisplay(reportType: string): string {
     switch (reportType) {
-      case 'product':
-        return '🛍️ Product Report';
-      case 'user_behavior':
-        return '👤 User Behavior';
-      case 'post_purchase_concern':
-        return '📦 Post-Purchase';
-      default:
-        return reportType;
-    }
+        case 'product':
+          return '🛍️ Product Report';
+        case 'user_behavior':
+          return '👤 User Behavior';
+        case 'post_purchase_concern':
+          return '📦 Post-Purchase';
+        default:
+          return reportType;
+      }
   }
 
   // Parse message reference JSON
@@ -1574,7 +1365,6 @@ export class ReportsComponent implements OnInit {
       const messages = JSON.parse(messageReference);
       return Array.isArray(messages) ? messages : [];
     } catch (e) {
-      console.error('Error parsing message reference:', e);
       return [];
     }
   }
@@ -1598,18 +1388,7 @@ export class ReportsComponent implements OnInit {
   // Get profile image URL
   getProfileImageUrl(profileImage: string | null | undefined): string {
     const defaultAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-    
-    if (!profileImage) return defaultAvatar;
-    
-    // Check if it's already a full URL or base64
-    if (profileImage.startsWith('http://') || profileImage.startsWith('https://') || profileImage.startsWith('data:')) {
-      return profileImage;
-    }
-    
-    // Build URL from uploads path
-    // Profile images are stored in CycleMart-api/uploads/ (not api/uploads/)
-    const baseUrl = this.apiService.baseUrl.replace('/api/', '/');
-    return baseUrl + profileImage;
+    return this.buildImageUrl(profileImage, defaultAvatar);
   }
 
   // Handle profile image errors

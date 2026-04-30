@@ -84,7 +84,7 @@
               <div *ngIf="report.product_id">
                 <strong>Product:</strong> {{report.product_name || 'Product #' + report.product_id}}
                 <div class="text-sm text-gray-600" *ngIf="report.product_price">
-                  Price: ${{report.product_price}}
+                  Price: ₱{{ report.product_price | number:'1.2-2' }}
                 </div>
               </div>
               <div *ngIf="report.reported_user_id">

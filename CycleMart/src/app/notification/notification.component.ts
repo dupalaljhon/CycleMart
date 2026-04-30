@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SidenavComponent } from '../sidenav/sidenav.component';
@@ -55,22 +55,18 @@ export class NotificationComponent implements OnInit {
       return;
     }
 
-    console.log('📥 Loading notifications for user:', userId);
-
     this.apiService.getUserNotifications(parseInt(userId)).subscribe({
       next: (response) => {
         if (response.status === 'success') {
           this.notifications = response.data || [];
           this.filteredNotifications = [...this.notifications];
           this.updatePagination();
-          console.log('📥 Loaded', this.notifications.length, 'notifications, unread:', this.getUnreadCount());
           // Emit event to update badge in sidenav
           window.dispatchEvent(new CustomEvent('notificationsUpdated'));
         }
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading notifications:', error);
         this.isLoading = false;
       }
     });
@@ -99,13 +95,11 @@ export class NotificationComponent implements OnInit {
         if (response.status === 'success') {
           notification.is_read = 1;
           notification.read_at = new Date().toISOString();
-          console.log('✅ Notification marked as read, dispatching update event');
           // Trigger badge update in sidenav
           window.dispatchEvent(new CustomEvent('notificationsUpdated'));
         }
       },
       error: (error) => {
-        console.error('Error marking notification as read:', error);
       }
     });
   }
@@ -121,13 +115,11 @@ export class NotificationComponent implements OnInit {
             notif.is_read = 1;
             notif.read_at = new Date().toISOString();
           });
-          console.log('✅ All notifications marked as read, dispatching update event');
           // Trigger badge update in sidenav
           window.dispatchEvent(new CustomEvent('notificationsUpdated'));
         }
       },
       error: (error) => {
-        console.error('Error marking all as read:', error);
       }
     });
   }
@@ -148,7 +140,6 @@ export class NotificationComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error deleting notification:', error);
       }
     });
   }
@@ -170,14 +161,14 @@ export class NotificationComponent implements OnInit {
   }
 
   getNotificationIcon(type: string): string {
-    switch(type) {
-      case 'Product Archived': return '🚫';
-      case 'Product Restored': return '✅';
-      case 'Message Received': return '💬';
-      case 'Product Approved': return '✅';
-      case 'Trade Proposal': return '🔄';
-      case 'Violation': return '⚠️';
-      default: return '🔔';
+      switch(type) {
+        case 'Product Archived': return '🚫';
+        case 'Product Restored': return '✅';
+        case 'Message Received': return '💬';
+        case 'Product Approved': return '✅';
+        case 'Trade Proposal': return '🔄';
+        case 'Violation': return '⚠️';
+        default: return '🔔';
     }
   }
 

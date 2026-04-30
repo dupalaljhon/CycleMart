@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 /**
  * Email Service
@@ -28,8 +29,7 @@ export interface VerificationEmailRequest {
 export class EmailService {
   
   // API base URL - adjust this based on your environment
-  // private readonly API_BASE_URL = 'http://localhost/CycleMart/CycleMart/CycleMart-api';
-  private readonly API_BASE_URL = 'http://api.cyclemart.shop/CycleMart-api';
+  private readonly API_BASE_URL = environment.apiBaseUrl;
   
   // HTTP headers for JSON requests
   private readonly httpOptions = {
@@ -66,7 +66,7 @@ export class EmailService {
     };
 
     // API endpoint URL
-    const url = `${this.API_BASE_URL}/api/sendVerification.php`;
+    const url = `${this.API_BASE_URL}/resend-verification`;
 
     // Make HTTP POST request
     return this.http.post<EmailApiResponse>(url, payload, this.httpOptions)
@@ -94,7 +94,7 @@ export class EmailService {
     }
 
     const payload = { email: email.trim() };
-    const url = `${this.API_BASE_URL}/api/sendPasswordReset.php`;
+    const url = `${this.API_BASE_URL}/password-reset`;
 
     return this.http.post<EmailApiResponse>(url, payload, this.httpOptions)
       .pipe(
@@ -161,13 +161,6 @@ export class EmailService {
       }
     }
 
-    console.error('EmailService Error:', {
-      status: error.status,
-      statusText: error.statusText,
-      message: errorMessage,
-      error: error.error
-    });
-
     return throwError(() => new Error(errorMessage));
   };
 
@@ -185,7 +178,6 @@ export class EmailService {
     }).pipe(
       map(() => true),
       catchError(() => {
-        console.warn('Email service health check failed');
         return throwError(() => new Error('Email service is not available'));
       })
     );

@@ -46,6 +46,20 @@ function sendEmail($recipientEmail, $subject, $body, $recipientName = '', $isHTM
         $mail->Password   = SMTP_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = SMTP_PORT;
+
+        // Local XAMPP/OpenSSL setups may miss CA bundles and fail TLS verification.
+        // Keep strict verification for production hosts; relax only on localhost.
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $isLocal = stripos($host, 'localhost') !== false || stripos($host, '127.0.0.1') !== false;
+        if ($isLocal) {
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
+        }
         
         // Enable verbose debug output (disable in production)
         // $mail->SMTPDebug = SMTP::DEBUG_SERVER;
@@ -94,11 +108,13 @@ function sendEmail($recipientEmail, $subject, $body, $recipientName = '', $isHTM
  * @param string $baseUrl - Base URL of your application
  * @return array - Response with status and message
  */
-function sendVerificationEmail($recipientEmail, $recipientName, $verificationToken, $baseUrl = 'https://cyclemart.shop') {
+function sendVerificationEmail($recipientEmail, $recipientName, $verificationToken, $baseUrl = 'http://localhost:4200') {
+// function sendVerificationEmail($recipientEmail, $recipientName, $verificationToken, $baseUrl = 'https://cyclemart.shop') {
     $subject = 'Verify Your CycleMart Account';
     
-    // Create verification URL
-    $verificationUrl = $baseUrl . '/email-verification?token=' . urlencode($verificationToken);
+    // Create verification URL (backend handler can show non-clickable "Verified" state on repeat clicks)
+    $verificationUrl = 'http://localhost/CycleMart/CycleMart/CycleMart-api/verify.php?token=' . urlencode($verificationToken) . '&email=' . urlencode($recipientEmail);
+    // $verificationUrl = 'https://cyclemart.shop/verify.php?token=' . urlencode($verificationToken) . '&email=' . urlencode($recipientEmail);
     
     // HTML email template
     $body = '
@@ -111,10 +127,10 @@ function sendVerificationEmail($recipientEmail, $recipientName, $verificationTok
         <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #6BA3BE; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .btn { display: inline-block; padding: 12px 24px; background: #6BA3BE; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }
-            .btn:hover { background: #5a92a5; }
+            .header { background: #2e7d32; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f3f7f4; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #d6e7d8; border-top: 0; }
+            .btn { display: inline-block; padding: 12px 24px; background: #2e7d32; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }
+            .btn:hover { background: #256b2a; }
             .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
         </style>
     </head>
@@ -130,7 +146,7 @@ function sendVerificationEmail($recipientEmail, $recipientName, $verificationTok
                 <p>To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="' . htmlspecialchars($verificationUrl) . '" class="btn">Verify My Account</a>
+                    <a href="' . htmlspecialchars($verificationUrl) . '" class="btn" style="color:#111111;">Verify My Account</a>
                 </div>
                 
                 <p>If the button above doesn\'t work, you can copy and paste this link into your browser:</p>
@@ -164,7 +180,8 @@ function sendVerificationEmail($recipientEmail, $recipientName, $verificationTok
  * @param string $baseUrl - Base URL of your application
  * @return array - Response with status and message
  */
-function sendEmailChangeVerificationEmail($recipientEmail, $recipientName, $verificationToken, $baseUrl = 'https://cyclemart.shop') {
+function sendEmailChangeVerificationEmail($recipientEmail, $recipientName, $verificationToken, $baseUrl = 'http://localhost:4200') {
+// function sendEmailChangeVerificationEmail($recipientEmail, $recipientName, $verificationToken, $baseUrl = 'https://cyclemart.shop') {
     $subject = 'Verify Your New Email Address - CycleMart';
     
     // Create verification URL
@@ -243,7 +260,8 @@ function sendEmailChangeVerificationEmail($recipientEmail, $recipientName, $veri
  * @param string $baseUrl - Base URL of your application
  * @return array - Response with status and message
  */
-function sendPasswordResetEmail($recipientEmail, $recipientName, $resetToken, $baseUrl = 'https://cyclemart.shop') {
+function sendPasswordResetEmail($recipientEmail, $recipientName, $resetToken, $baseUrl = 'http://localhost:4200') {
+// function sendPasswordResetEmail($recipientEmail, $recipientName, $resetToken, $baseUrl = 'https://cyclemart.shop') {
     $subject = 'Reset Your CycleMart Password';
     
     // Create reset URL
@@ -328,8 +346,10 @@ function sendCustomVerificationEmail($recipientEmail, $token) {
     $subject = 'Verify your Cycle MRT account';
     
     // Create verification URLs
-    $verifyUrl = 'https://mywebsite.com/verify.php?token=' . urlencode($token) . '&email=' . urlencode($recipientEmail);
-    $denyUrl = 'https://mywebsite.com/deny.php?token=' . urlencode($token) . '&email=' . urlencode($recipientEmail);
+    $verifyUrl = 'http://localhost/CycleMart/CycleMart/CycleMart-api/verify.php?token=' . urlencode($token) . '&email=' . urlencode($recipientEmail);
+    $denyUrl = 'http://localhost/CycleMart/CycleMart/CycleMart-api/deny.php?token=' . urlencode($token) . '&email=' . urlencode($recipientEmail);
+    // $verifyUrl = 'https://mywebsite.com/verify.php?token=' . urlencode($token) . '&email=' . urlencode($recipientEmail);
+    // $denyUrl = 'https://mywebsite.com/deny.php?token=' . urlencode($token) . '&email=' . urlencode($recipientEmail);
     
     // HTML email template with centered card design
     $body = '
@@ -357,7 +377,7 @@ function sendCustomVerificationEmail($recipientEmail, $token) {
                 overflow: hidden;
             }
             .header { 
-                background: linear-gradient(135deg, #6BA3BE 0%, #4a8ba8 100%); 
+                background: linear-gradient(135deg, #2e7d32 0%, #3f9a45 100%); 
                 color: white; 
                 padding: 30px 20px; 
                 text-align: center; 
@@ -390,22 +410,23 @@ function sendCustomVerificationEmail($recipientEmail, $token) {
                 cursor: pointer;
             }
             .btn-yes { 
-                background-color: #28a745; 
+                background-color: #2e7d32; 
                 color: white; 
             }
             .btn-yes:hover { 
-                background-color: #218838; 
+                background-color: #256b2a; 
                 transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+                box-shadow: 0 4px 8px rgba(46, 125, 50, 0.35);
             }
             .btn-no { 
-                background-color: #dc3545; 
-                color: white; 
+                background-color: #f3f7f4; 
+                color: #111827;
+                border: 1px solid #d1d5db;
             }
             .btn-no:hover { 
-                background-color: #c82333; 
+                background-color: #e5e7eb; 
                 transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+                box-shadow: 0 4px 8px rgba(17, 24, 39, 0.15);
             }
             .footer { 
                 background-color: #f8f9fa;
@@ -427,7 +448,7 @@ function sendCustomVerificationEmail($recipientEmail, $token) {
             .warning {
                 margin-top: 20px;
                 font-size: 13px;
-                color: #dc3545;
+                color: #475569;
                 font-weight: 500;
             }
         </style>
@@ -464,7 +485,9 @@ function sendCustomVerificationEmail($recipientEmail, $token) {
 }
 
 // Handle direct POST requests to this script
-if (false && $_SERVER['REQUEST_METHOD'] === 'POST') { // Temporarily disabled
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? '';
+
+if (false && $requestMethod === 'POST') { // Temporarily disabled
     // Set CORS headers
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -512,7 +535,7 @@ if (false && $_SERVER['REQUEST_METHOD'] === 'POST') { // Temporarily disabled
 }
 
 // Handle GET requests with query parameters (for testing)
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['test'])) {
+if ($requestMethod === 'GET' && isset($_GET['test'])) {
     header("Content-Type: application/json");
     
     echo json_encode([

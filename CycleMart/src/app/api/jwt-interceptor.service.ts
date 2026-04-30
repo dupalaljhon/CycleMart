@@ -5,7 +5,16 @@ import { catchError, throwError } from 'rxjs';
 import { AccountStatusService } from '../services/account-status.service';
 
 export const JwtInterceptor: HttpInterceptorFn = (req, next) => {
-  const token = localStorage.getItem('authToken');
+  const userToken = localStorage.getItem('authToken');
+  const adminToken = localStorage.getItem('admin_token');
+
+  // Staff-only endpoints must prefer admin token when both tokens exist.
+  const staffEndpointPattern = /(mark-user-violation|approve-product|reject-product|archiveProduct|update-report-status|update-user-report-status|listing-auto-approval-config|\/admin\/)/i;
+  const useAdminFirst = staffEndpointPattern.test(req.url);
+
+  const token = useAdminFirst
+    ? (adminToken || userToken)
+    : (userToken || adminToken);
   const router = inject(Router);
   const accountStatusService = inject(AccountStatusService);
   

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+﻿import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { ApiService } from '../../../api/api.service';
+import { environment } from '../../../../environments/environment';
 
 interface User {
   id: number;
@@ -16,6 +17,19 @@ interface User {
   profile_image?: string;
   terms_accepted: boolean;
   is_verified: boolean;
+  created_at: string;
+  account_status?: string;
+  violation_count?: number;
+}
+
+interface ViolationTimelineItem {
+  source: 'report' | 'admin_violation';
+  id: number;
+  title: string;
+  reason: string;
+  reason_type?: string;
+  status?: string;
+  reporter_name?: string;
   created_at: string;
 }
 
@@ -197,6 +211,96 @@ interface User {
                 </div>
               </div>
             </div>
+
+            <!-- Account Status -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center space-x-3">
+                <div class="bg-emerald-100 rounded-full p-2">
+                  <mat-icon class="text-emerald-600 text-sm">verified_user</mat-icon>
+                </div>
+                <div>
+                  <p class="text-sm text-gray-500 font-medium">Account Status</p>
+                  <p class="text-gray-900 font-semibold">{{ formatStatusLabel(data.account_status || 'active') }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Violations -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center space-x-3">
+                <div class="bg-orange-100 rounded-full p-2">
+                  <mat-icon class="text-orange-600 text-sm">gpp_bad</mat-icon>
+                </div>
+                <div>
+                  <p class="text-sm text-gray-500 font-medium">Total Violations</p>
+                  <p class="text-gray-900 font-semibold">{{ data.violation_count || 0 }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider class="my-6"></mat-divider>
+
+        <!-- Violation & Report History -->
+        <div>
+          <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <mat-icon class="text-red-600 mr-2">history</mat-icon>
+            Violation and Report History
+          </h4>
+
+          <div *ngIf="isViolationLoading" class="text-center py-6 text-gray-500">
+            <mat-icon class="animate-spin text-green-600">refresh</mat-icon>
+            <p class="mt-2">Loading violation details...</p>
+          </div>
+
+          <div *ngIf="!isViolationLoading && violationTimeline.length === 0" class="text-center py-6 bg-gray-50 rounded-lg text-gray-500">
+            <mat-icon class="text-gray-400">check_circle</mat-icon>
+            <p class="mt-2">No violation or report history found for this user.</p>
+          </div>
+
+          <div *ngIf="!isViolationLoading && violationTimeline.length > 0" class="timeline-wrap">
+            <div *ngFor="let item of violationTimeline" class="timeline-item relative pl-8 pb-5">
+              <div class="timeline-line absolute left-3 top-0 bottom-0"></div>
+              <div class="timeline-dot absolute left-1.5 top-1"
+                   [class.dot-report]="item.source === 'report'"
+                   [class.dot-violation]="item.source === 'admin_violation'">
+              </div>
+
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="font-semibold text-gray-900">{{ item.title }}</p>
+                    <p class="text-sm text-gray-500" *ngIf="item.source === 'report' && item.reporter_name">
+                      Reported by: {{ item.reporter_name }}
+                    </p>
+                  </div>
+
+                  <mat-chip-set>
+                    <mat-chip class="text-xs font-medium"
+                              [class]="item.source === 'report' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-orange-100 text-orange-800 border border-orange-200'">
+                      {{ item.source === 'report' ? 'Report' : 'Violation' }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </div>
+
+                <p class="text-sm text-gray-700 mt-3">
+                  <span class="font-semibold">Reason:</span> {{ item.reason }}
+                </p>
+
+                <div class="flex flex-wrap items-center gap-2 mt-3 text-xs">
+                  <span *ngIf="item.reason_type" class="px-2 py-1 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    Type: {{ formatStatusLabel(item.reason_type) }}
+                  </span>
+                  <span *ngIf="item.status" class="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                    Status: {{ formatStatusLabel(item.status) }}
+                  </span>
+                  <span class="px-2 py-1 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                    {{ formatDateTime(item.created_at) }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -223,14 +327,100 @@ interface User {
     .mat-chip {
       font-weight: 500;
     }
+
+    .timeline-wrap {
+      position: relative;
+    }
+
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .timeline-item:last-child .timeline-line {
+      display: none;
+    }
+
+    .timeline-line {
+      width: 2px;
+      background: #d1d5db;
+    }
+
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 9999px;
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px #e5e7eb;
+    }
+
+    .dot-report {
+      background: #ef4444;
+    }
+
+    .dot-violation {
+      background: #f97316;
+    }
+
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
   `]
 })
-export class UserDetailModalComponent {
+export class UserDetailModalComponent implements OnInit {
+  isViolationLoading = false;
+  violationTimeline: ViolationTimelineItem[] = [];
+
   constructor(
     public dialogRef: MatDialogRef<UserDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: User,
     private apiService: ApiService
   ) {}
+
+  ngOnInit(): void {
+    this.loadViolationDetails();
+  }
+
+  private loadViolationDetails(): void {
+    this.isViolationLoading = true;
+
+    this.apiService.getUserViolationDetails(this.data.id).subscribe({
+      next: (response: any) => {
+        this.isViolationLoading = false;
+
+        if (response?.status === 'success') {
+          const userData = response?.data?.user;
+          if (userData) {
+            this.data.account_status = userData.account_status || this.data.account_status || 'active';
+            this.data.violation_count = Number(userData.violation_count ?? this.data.violation_count ?? 0);
+          }
+
+          this.violationTimeline = (response?.data?.timeline || []).map((item: any) => ({
+            source: item.source,
+            id: Number(item.id),
+            title: item.title || (item.source === 'report' ? 'User Report Submitted' : 'Account Violation Notice'),
+            reason: item.reason || 'No reason provided',
+            reason_type: item.reason_type || null,
+            status: item.status || null,
+            reporter_name: item.reporter_name || null,
+            created_at: item.created_at
+          }));
+        }
+      },
+      error: (error: any) => {
+        this.isViolationLoading = false;
+      }
+    });
+  }
 
   closeModal(): void {
     this.dialogRef.close();
@@ -241,9 +431,6 @@ export class UserDetailModalComponent {
   }
 
   onImageError(event: any): void {
-    console.log('Image failed to load:', event.target.src);
-    console.log('User data for fallback:', this.data);
-    console.log('Trying alternative URL constructions...');
     
     // Get the original image path from the user data
     const imagePath = this.data.profile_image;
@@ -251,8 +438,7 @@ export class UserDetailModalComponent {
       const originalSrc = event.target.src;
       
       // Try without api/ in the path
-      const alternativeUrl1 = `http://localhost/CycleMart/CycleMart/CycleMart-api/${imagePath}`;
-      console.log('Trying alternative URL 1:', alternativeUrl1);
+      const alternativeUrl1 = `${environment.apiUploadsBaseUrl}${imagePath.replace(/^\/+/, '')}`;
       
       if (originalSrc !== alternativeUrl1) {
         event.target.src = alternativeUrl1;
@@ -260,8 +446,7 @@ export class UserDetailModalComponent {
       }
       
       // Try with different base structure
-      const alternativeUrl2 = `http://localhost/CycleMart/CycleMart-api/${imagePath}`;
-      console.log('Trying alternative URL 2:', alternativeUrl2);
+      const alternativeUrl2 = `${environment.apiUploadsBaseUrl}${imagePath.replace(/^\/+/, '')}`;
       
       if (originalSrc !== alternativeUrl2) {
         event.target.src = alternativeUrl2;
@@ -269,8 +454,7 @@ export class UserDetailModalComponent {
       }
 
       // Try direct access to uploads
-      const alternativeUrl3 = `http://localhost/CycleMart/CycleMart/CycleMart-api/${imagePath}`;
-      console.log('Trying alternative URL 3:', alternativeUrl3);
+      const alternativeUrl3 = `${environment.apiUploadsBaseUrl}${imagePath.replace(/^\/+/, '')}`;
       
       if (originalSrc !== alternativeUrl3) {
         event.target.src = alternativeUrl3;
@@ -279,7 +463,6 @@ export class UserDetailModalComponent {
     }
     
     // If all else fails, use placeholder with user's initial
-    console.log('All image URLs failed, using placeholder');
     const userInitial = this.data.full_name?.charAt(0).toUpperCase() || 
                        this.data.email?.charAt(0).toUpperCase() || 'U';
     event.target.src = `https://via.placeholder.com/96x96/6366f1/white?text=${userInitial}`;
@@ -287,7 +470,6 @@ export class UserDetailModalComponent {
 
   getProfileImageUrl(imagePath?: string): string {
     if (!imagePath) {
-      console.log('No image path provided, using placeholder');
       return 'https://via.placeholder.com/96x96/6366f1/white?text=' + 
              (this.data.full_name?.charAt(0).toUpperCase() || 'U');
     }
@@ -296,15 +478,9 @@ export class UserDetailModalComponent {
     // Base URL: http://api.cyclemart.shop/CycleMart-api/api
     // Final URL: http://api.cyclemart.shop/CycleMart-api/api/uploads/profile_xxx.jpeg
     
-    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
-    const fullUrl = `${this.apiService.baseUrl}${cleanPath}`;
+    const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+    const fullUrl = `${environment.apiUploadsBaseUrl}${cleanPath}`;
     
-    console.log('=== Image URL Debug ===');
-    console.log('Base URL:', this.apiService.baseUrl);
-    console.log('Image path from DB:', imagePath);
-    console.log('Final URL:', fullUrl);
-    console.log('User data:', this.data);
-    console.log('=======================');
     
     // Test the URL immediately
     this.testImageUrl(fullUrl);
@@ -316,12 +492,9 @@ export class UserDetailModalComponent {
   private async testImageUrl(url: string): Promise<void> {
     try {
       const response = await fetch(url, { method: 'HEAD' });
-      console.log(`Image URL test for ${url}:`, response.status, response.statusText);
       if (!response.ok) {
-        console.error('Image not accessible:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Failed to test image URL:', error);
     }
   }
 
@@ -341,5 +514,13 @@ export class UserDetailModalComponent {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  formatStatusLabel(status?: string): string {
+    if (!status) {
+      return 'N/A';
+    }
+
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
   }
 }

@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../api/api.service';
+import { environment } from '../../../environments/environment';
 
 interface ProductSpecification {
   spec_id?: number;
@@ -57,6 +58,14 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
   successMessage = '';
   errorMessage = '';
   isProcessing = false;
+  private readonly minProductNameLength = 4;
+  private readonly maxProductNameLength = 120;
+  private readonly minDescriptionLength = 20;
+  private readonly maxDescriptionLength = 2000;
+  private readonly maxPrice = 10000000;
+  private readonly maxLocationLength = 120;
+  private readonly maxImages = 10;
+  private readonly maxSpecificationRows = 20;
 
   // Brand options for dropdown
   brands = [
@@ -68,7 +77,7 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     { value: 'merida', label: 'Merida' },
     { value: 'scott', label: 'Scott' },
     { value: 'bianchi', label: 'Bianchi' },
-    { value: 'cervelo', label: 'Cervélo' },
+    { value: 'cervelo', label: 'CervÃ©lo' },
     { value: 'pinarello', label: 'Pinarello' },
     { value: 'shimano', label: 'Shimano' },
     { value: 'sram', label: 'SRAM' },
@@ -105,7 +114,6 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['productToEdit'] && this.productToEdit) {
-      console.log('🔧 Edit Modal - Original Product:', this.productToEdit);
       
       // Process and clean video data
       let cleanedVideos: string[] = [];
@@ -130,12 +138,10 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
               .slice(0, 3); // Limit to max 3 videos
           }
         } catch (e) {
-          console.warn('⚠️ Failed to parse product videos:', this.productToEdit.product_videos);
           cleanedVideos = [];
         }
       }
       
-      console.log('🎬 Edit Modal - Cleaned Videos:', cleanedVideos);
       
       // Create a deep copy to avoid modifying the original product
       this.editProduct = {
@@ -150,8 +156,6 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
           })) : []
       };
       
-      console.log('📝 Edit Modal - Edit Product:', this.editProduct);
-      console.log('🔧 Edit Modal - Specifications loaded:', this.editProduct.specifications);
       
       // Debug authorization information
       this.debugAuthInfo();
@@ -169,12 +173,26 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
   }
 
   saveChanges() {
-    if (!this.validateProduct(this.editProduct)) {
-      this.showError('Please fill in all required fields');
+    this.editProduct.product_name = this.normalizeText(this.editProduct.product_name);
+    this.editProduct.description = this.normalizeText(this.editProduct.description);
+    this.editProduct.location = this.normalizeText(this.editProduct.location);
+    this.editProduct.custom_brand = this.normalizeText(this.editProduct.custom_brand);
+
+    if (this.editProduct.specifications && this.editProduct.specifications.length > 0) {
+      this.editProduct.specifications = this.editProduct.specifications.map(spec => ({
+        ...spec,
+        spec_name: this.normalizeText(spec.spec_name),
+        spec_value: this.normalizeText(spec.spec_value)
+      }));
+    }
+
+    const validationError = this.validateProduct(this.editProduct);
+    if (validationError) {
+      this.showError(validationError);
       return;
     }
 
-    // 🔍 Authorization check
+    // ðŸ” Authorization check
     if (!this.editProduct.product_id) {
       this.showError('Product ID is missing');
       return;
@@ -210,6 +228,8 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       product_name: this.editProduct.product_name,
       brand_name: this.editProduct.brand_name || 'no brand',
       custom_brand: this.editProduct.custom_brand || '',
+      bicycle_brand_id: (this.editProduct as any).bicycle_brand_id ?? null,
+      bicycle_part_id: (this.editProduct as any).bicycle_part_id ?? null,
       price: this.editProduct.price,
       description: this.editProduct.description,
       location: this.editProduct.location,
@@ -220,23 +240,12 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       product_images: JSON.stringify(this.editProduct.product_images || []),
       product_videos: JSON.stringify(this.editProduct.product_videos || []),
       specifications: validSpecifications,
-      uploader_id: this.editProduct.uploader_id || this.userId // ✅ Use product's uploader_id first
+      uploader_id: this.editProduct.uploader_id || this.userId // âœ… Use product's uploader_id first
     };
 
-    // 🔍 Debug logging
-    console.log('💾 Save Debug Info:');
-    console.log('Product ID:', this.editProduct.product_id);
-    console.log('Current User ID:', this.userId);
-    console.log('Product Uploader ID:', this.editProduct.uploader_id);
-    console.log('Using Uploader ID:', updateData.uploader_id);
-    console.log('Authorization Info:', this.getAuthInfo());
-    console.log('Specifications to save:', validSpecifications);
-    console.log('Full Update Data:', updateData);
-
-    // ⚠️ Authorization warning
+    // ðŸ” Debug logging
+    // âš ï¸ Authorization warning
     if (!this.canEditProduct()) {
-      console.warn('⚠️ AUTHORIZATION WARNING: Current user may not be able to edit this product!');
-      console.warn('This might cause "Product not found or unauthorized" error');
     }
 
     this.apiService.updateProduct(updateData).subscribe({
@@ -254,7 +263,6 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       },
       error: (error: any) => {
         this.isProcessing = false;
-        console.error('Error updating product:', error);
         this.showError('Failed to update product. Please check your connection and try again.');
       }
     });
@@ -312,19 +320,40 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
 
   private handleImageFiles(files: FileList | null) {
     if (files) {
-      for (let file of files) {
-        if (file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024) { // 5MB limit
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            if (e.target?.result) {
-              if (!this.editProduct.product_images) {
-                this.editProduct.product_images = [];
-              }
+      this.editProduct.product_images = this.editProduct.product_images || [];
+
+      if (this.editProduct.product_images.length >= this.maxImages) {
+        this.showError(`Maximum ${this.maxImages} images allowed per product.`);
+        return;
+      }
+
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) {
+          continue;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+          this.showError(`${file.name} is too large. Maximum image size is 10MB.`);
+          continue;
+        }
+
+        if ((this.editProduct.product_images?.length || 0) >= this.maxImages) {
+          this.showError(`Maximum ${this.maxImages} images allowed per product.`);
+          break;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            if (!this.editProduct.product_images) {
+              this.editProduct.product_images = [];
+            }
+            if (this.editProduct.product_images.length < this.maxImages) {
               this.editProduct.product_images.push(e.target.result as string);
             }
-          };
-          reader.readAsDataURL(file);
-        }
+          }
+        };
+        reader.readAsDataURL(file);
       }
     }
   }
@@ -441,7 +470,8 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     if (videoPath.startsWith('data:')) {
       return videoPath; // Base64 video
     }
-    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
+    const cleanPath = videoPath.startsWith('/') ? videoPath.substring(1) : videoPath;
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   // Video Drag and Drop for Reordering
@@ -505,30 +535,142 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     return classes;
   }
 
-  private validateProduct(product: Partial<Product>): boolean {
-    // Check if brand is "others" and custom brand is required
-    const brandValid = product.brand_name !== 'others' || (product.brand_name === 'others' && product.custom_brand && product.custom_brand.trim().length > 0);
-    
-    return !!(
-      product.product_name &&
-      product.brand_name &&
-      brandValid &&
-      product.price &&
-      product.description &&
-      product.location &&
-      product.for_type &&
-      product.condition &&
-      product.category &&
-      product.quantity && product.quantity > 0
-    );
+  private validateProduct(product: Partial<Product>): string | null {
+    const productName = (product.product_name || '').trim();
+    const description = (product.description || '').trim();
+    const location = (product.location || '').trim();
+    const customBrand = (product.custom_brand || '').trim();
+    const priceNumber = Number(product.price);
+    const quantityNumber = Number(product.quantity);
+
+    if (!productName) {
+      return 'Product name is required.';
+    }
+
+    if (productName.length < this.minProductNameLength || productName.length > this.maxProductNameLength) {
+      return `Product name must be between ${this.minProductNameLength} and ${this.maxProductNameLength} characters.`;
+    }
+
+    if (!this.isValidSimpleText(productName)) {
+      return 'Product name contains invalid characters. Allowed: letters, numbers, spaces, and basic punctuation (.-,&()/#+).';
+    }
+
+    if (!product.brand_name) {
+      return 'Please select a valid product brand.';
+    }
+
+    if (product.brand_name === 'others' && !customBrand) {
+      return 'Custom brand is required when Others is selected.';
+    }
+
+    if (customBrand.length > 100) {
+      return 'Custom brand name must be 100 characters or less.';
+    }
+
+    if (customBrand && !this.isValidSimpleText(customBrand)) {
+      return 'Custom brand name contains invalid characters.';
+    }
+
+    if (!Number.isFinite(priceNumber) || priceNumber <= 0 || priceNumber > this.maxPrice) {
+      return `Price must be greater than 0 and not exceed ${this.maxPrice.toLocaleString()}.`;
+    }
+
+    if (!this.hasAtMostTwoDecimals(priceNumber)) {
+      return 'Price can only have up to 2 decimal places.';
+    }
+
+    if (!description) {
+      return 'Description is required.';
+    }
+
+    if (description.length < this.minDescriptionLength || description.length > this.maxDescriptionLength) {
+      return `Description must be between ${this.minDescriptionLength} and ${this.maxDescriptionLength} characters.`;
+    }
+
+    if (!location) {
+      return 'Location is required.';
+    }
+
+    if (location.length > this.maxLocationLength) {
+      return `Location must be ${this.maxLocationLength} characters or less.`;
+    }
+
+    if (!this.isValidSimpleText(location)) {
+      return 'Location contains invalid characters.';
+    }
+
+    if (!product.for_type || !product.condition || !product.category) {
+      return 'Please complete category, condition, and listing type.';
+    }
+
+    if (!Number.isInteger(quantityNumber) || quantityNumber < 1 || quantityNumber > 999) {
+      return 'Quantity must be a whole number between 1 and 999.';
+    }
+
+    const imageCount = product.product_images?.length || 0;
+    if (imageCount < 1) {
+      return 'Please upload at least 1 product image.';
+    }
+
+    if (imageCount > this.maxImages) {
+      return `Maximum ${this.maxImages} images allowed.`;
+    }
+
+    if ((product.specifications?.length || 0) > this.maxSpecificationRows) {
+      return `You can add up to ${this.maxSpecificationRows} custom specifications only.`;
+    }
+
+    for (const spec of product.specifications || []) {
+      const specName = (spec.spec_name || '').trim();
+      const specValue = (spec.spec_value || '').trim();
+
+      if ((specName && !specValue) || (!specName && specValue)) {
+        return 'Each custom specification requires both a name and a value.';
+      }
+
+      if (specName.length > 100) {
+        return 'Specification name must be 100 characters or less.';
+      }
+
+      if (specValue.length > 255) {
+        return 'Specification value must be 255 characters or less.';
+      }
+
+      if (specName && !this.isValidSimpleText(specName)) {
+        return 'A specification name contains invalid characters.';
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeText(value: unknown): string {
+    return String(value ?? '').replace(/\s+/g, ' ').trim();
+  }
+
+  private isValidSimpleText(value: string): boolean {
+    return /^[A-Za-z0-9\s.,'()&\-\/#:+]+$/.test(value);
+  }
+
+  private hasAtMostTwoDecimals(value: number): boolean {
+    return /^\d+(\.\d{1,2})?$/.test(value.toString());
   }
 
   getImageUrl(imagePath: string): string {
-    if (imagePath.startsWith('data:')) {
-      return imagePath; // Base64 image
+    if (!imagePath) {
+      return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
     }
-    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
-    return `${this.apiService.baseUrl}${cleanPath}`;
+
+    if (imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+
+    let cleanPath = imagePath.replace(/^\/+/, '');
+    cleanPath = cleanPath.replace(/^api\//, '');
+    cleanPath = cleanPath.replace(/^uploads[\/\\]/, '');
+    cleanPath = cleanPath.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   onModalClick(event: Event) {
@@ -612,7 +754,6 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
   updateSpecification(index: number, field: 'spec_name' | 'spec_value', value: string) {
     if (this.editProduct.specifications && index >= 0 && index < this.editProduct.specifications.length) {
       this.editProduct.specifications[index][field] = value;
-      console.log(`🔄 Updated specification ${index} ${field}:`, value);
     }
   }
 
@@ -631,26 +772,14 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
 
   // Debug method to show all relevant information
   debugAuthInfo() {
-    console.log('🔍 DETAILED AUTH DEBUG:');
-    console.log('localStorage id:', localStorage.getItem('id'));
-    console.log('localStorage email:', localStorage.getItem('email'));
-    console.log('localStorage full_name:', localStorage.getItem('full_name'));
-    console.log('Component userId:', this.userId);
-    console.log('productToEdit:', this.productToEdit);
-    console.log('editProduct:', this.editProduct);
-    console.log('editProduct.uploader_id:', this.editProduct.uploader_id);
-    console.log('Can edit product:', this.canEditProduct());
     
     if (!this.userId) {
-      console.error('❌ User not logged in - localStorage id is missing or invalid');
     }
     
     if (!this.editProduct.uploader_id) {
-      console.error('❌ Product uploader_id is missing from product data');
     }
     
     if (this.userId && this.editProduct.uploader_id && this.userId !== this.editProduct.uploader_id) {
-      console.error(`❌ Authorization mismatch: User ${this.userId} trying to edit product owned by ${this.editProduct.uploader_id}`);
     }
   }
 }

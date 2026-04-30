@@ -83,15 +83,23 @@
 
   <!-- Main Content -->
   <div class="relative z-10 flex items-start justify-center min-h-screen p-4 lg:p-8 pt-16 lg:pt-20">
+    <!-- Back to Landing Button -->
+    <button (click)="goToLanding()" class="back-button absolute top-6 left-6 flex items-center gap-2 px-4 py-2 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 z-20">
+      <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      <span class="font-bold text-sm text-black">Back to Home</span>
+    </button>
+    
     <div class="w-full max-w-7xl grid lg:grid-cols-2 gap-12 items-start">
       
       <!-- Welcome Section - Fixed Position -->
-      <div class="text-black text-center lg:text-left space-y-6 lg:sticky lg:top-20 lg:self-start">
+      <div class="text-black text-center lg:text-left space-y-6 lg:sticky lg:top-20 lg:self-start welcome-section">
         <div class="space-y-4">
           <!-- Logo/Icon -->
           <div class="flex justify-center lg:justify-start mb-6">
-            <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-6 border border-gray-300 shadow-lg">
-              <svg class="w-20 h-20 text-black" viewBox="0 0 24 24" fill="currentColor">
+            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-full p-6 border-2 border-green-200 shadow-lg">
+              <svg class="w-20 h-20 text-primary" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
               </svg>
             </div>
@@ -99,13 +107,13 @@
           
           <!-- Welcome Text -->
           <div class="space-y-3">
-            <h1 class="text-xl font-medium bg-gradient-to-r from-black to-gray-600 bg-clip-text text-transparent">
+            <h1 class="text-xl font-medium text-black">
               Welcome to
             </h1>
             <h2 class="text-3xl lg:text-4xl font-bold text-black">
               CycleMart
             </h2>
-            <p class="text-lg text-gray-700 max-w-md mx-auto lg:mx-0 leading-relaxed">
+            <p class="text-lg text-gray-600 max-w-md mx-auto lg:mx-0 leading-relaxed">
               Your ultimate destination for quality bike parts and cycling accessories
             </p>
           </div>
@@ -113,15 +121,15 @@
 
         <!-- Features -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12">
-          <div class="bg-white bg-opacity-15 backdrop-blur-sm rounded-xl p-6 text-center border border-gray-300 shadow-md hover:shadow-lg transition-shadow">
-            <svg class="w-10 h-10 text-black mx-auto mb-3" viewBox="0 0 24 24" fill="currentColor">
+          <div class="feature-card text-center hover:shadow-lg transition-shadow">
+            <svg class="w-10 h-10 text-primary mx-auto mb-3" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
             <p class="text-lg font-semibold text-black">Premium Quality</p>
             <p class="text-sm text-gray-600 mt-2">Top-grade bike parts & accessories</p>
           </div>
-          <div class="bg-white bg-opacity-15 backdrop-blur-sm rounded-xl p-6 text-center border border-gray-300 shadow-md hover:shadow-lg transition-shadow">
-            <svg class="w-10 h-10 text-black mx-auto mb-3" viewBox="0 0 24 24" fill="currentColor">
+          <div class="feature-card text-center hover:shadow-lg transition-shadow">
+            <svg class="w-10 h-10 text-primary mx-auto mb-3" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
             <p class="text-lg font-semibold text-black">Verified Sellers</p>
@@ -131,11 +139,11 @@
       </div>
 
       <!-- Login Form -->
-      <div class="bg-white p-8 lg:p-12 rounded-2xl shadow-2xl border border-gray-200 max-w-2xl mx-auto lg:mx-0 lg:min-h-[600px] flex flex-col justify-start">
-        <h2 class="mb-1 text-lg font-semibold text-black text-center">
+      <div class="form-container p-8 lg:p-12 max-w-2xl mx-auto lg:mx-0 lg:min-h-[600px] flex flex-col justify-start">
+        <h2 class="mb-1 text-xl font-bold text-black text-center">
           {{ isLoginMode ? 'Welcome Back!' : 'Join CycleMart' }}
         </h2>
-        <p class="mb-1 text-base text-gray-600 text-center">
+        <p class="mb-6 text-base text-gray-600 text-center">
           {{ isLoginMode ? 'Sign in to your account' : 'Create your new account' }}
         </p>
 
@@ -144,8 +152,8 @@
           <!-- Personal Information Section (Registration only) -->
           <div *ngIf="!isLoginMode" class="space-y-px">
             <!-- Section Header -->
-            <div class="pb-1">
-              <h3 class="text-base font-semibold text-black flex items-center">
+            <div class="section-divider mb-4">
+              <h3 class="section-header text-base font-bold text-black flex items-center">
                 <svg class="w-5 h-5 mr-2 text-black" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
@@ -157,7 +165,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               <!-- Full Name -->
               <div class="space-y-1">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Full Name<span class="text-red-500">*</span></label>
                 <input 
                   type="text" 
                   placeholder="Enter your full name" 
@@ -170,7 +178,7 @@
 
               <!-- Phone -->
               <div class="space-y-1">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number<span class="text-red-500">*</span></label>
                 <input 
                   type="tel" 
                   placeholder="Enter your phone number" 
@@ -186,8 +194,8 @@
           <!-- Account Credentials Section -->
           <div class="space-y-0.5">
             <!-- Section Header -->
-            <div class="pb-2" *ngIf="!isLoginMode">
-              <h3 class="text-base font-semibold text-black flex items-center">
+            <div class="section-divider mb-4" *ngIf="!isLoginMode">
+              <h3 class="section-header text-base font-bold text-black flex items-center">
                 <svg class="w-5 h-5 mr-2 text-black" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
                 </svg>
@@ -200,7 +208,9 @@
               <!-- Email -->
               <div class="space-y-0.5">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isLoginMode ? 'Email or Username' : 'Email Address' }}
+                  <!-- {{ isLoginMode ? 'Email or Username' : 'Email Address'  }}  -->
+                    {{ isLoginMode ? 'Email or Username' : 'Email Address' }} 
+<span *ngIf="!isLoginMode" class="text-red-500">*</span>
                 </label>
                 <input 
                   type="email" 
@@ -245,17 +255,21 @@
 
               <!-- Password -->
               <div class= "space-y-0.5">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <div class="relative">
-                  <input 
-                    [type]="showPassword ? 'text' : 'password'" 
-                    [attr.placeholder]="isLoginMode ? 'Enter your password' : 'Create a strong password'" 
-                    [(ngModel)]="password" 
-                    name="password"
-                    (input)="onPasswordInput()"
-                    required
-                    class="w-full px-4 py-3 pr-12 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black placeholder-gray-500 leading-6"
-                  >
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                    <span *ngIf="!isLoginMode" class="text-red-500">*</span>
+                  </label>
+
+                  <div class="relative">
+                    <input 
+                      [type]="showPassword ? 'text' : 'password'" 
+                      [attr.placeholder]="isLoginMode ? 'Enter your password' : 'Create a strong password'" 
+                      [(ngModel)]="password" 
+                      name="password"
+                      (input)="onPasswordInput()"
+                      required
+                      class="w-full px-4 py-3 pr-12 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black placeholder-gray-500 leading-6"
+                    >
                   <!-- Password Toggle Button -->
                   <button 
                     type="button"
@@ -358,85 +372,87 @@
           <!-- Address Information Section (Registration only) -->
           <div *ngIf="!isLoginMode" class="space-y-px">
             <!-- Section Header -->
-            <div class="pb-3">
-              <h3 class="text-base font-semibold text-black flex items-center">
+            <div class="section-divider mb-4">
+              <h3 class="section-header text-base font-bold text-black flex items-center">
                 <svg class="w-5 h-5 mr-2 text-black" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                 </svg>
-                Address Information
+                Address Information (Olongapo City)
               </h3>
+              <p class="text-sm text-gray-600 mt-1">All users must be located in Olongapo City</p>
             </div>
 
             <!-- Address Fields - 2 Column Layout on Desktop -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-              <!-- Street Address -->
+              <!-- Street Address (Full Width) -->
               <div class="space-y-2 lg:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Street Address
+                  <span class="text-red-500">*</span>
+                </label>
                 <input 
                   type="text" 
-                  placeholder="Enter your street number and street name" 
+                  placeholder="Enter street number and street name (e.g., 123 Rizal Avenue)" 
                   [(ngModel)]="street" 
                   name="street"
                   required
                   class="w-full px-4 py-3 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black placeholder-gray-500 leading-6"
                 >
+                <p class="text-xs text-gray-500 mt-1 ml-1">Include both street number and street name</p>
               </div>
 
-              <!-- Barangay -->
+              <!-- Barangay Dropdown -->
               <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
-                <input 
-                  type="text" 
-                  placeholder="Enter your barangay" 
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Barangay
+                  <span class="text-red-500">*</span>
+                </label>
+                <select 
                   [(ngModel)]="barangay" 
                   name="barangay"
                   required
-                  class="w-full px-4 py-3 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black placeholder-gray-500 leading-6"
+                  class="w-full px-4 py-3 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black appearance-none cursor-pointer"
+                  style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.7rem top 50%; background-size: 0.65rem auto;"
                 >
+                  <option value="" disabled selected>Select your barangay</option>
+                  <option *ngFor="let brgy of olongapoBarangays" [value]="brgy">{{ brgy }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1 ml-1">Choose from 17 barangays in Olongapo City</p>
               </div>
 
-              <!-- City -->
+              <!-- City (Auto-filled and Read-only) -->
               <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">City / Municipality</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  City / Municipality
+                  <span class="text-green-600 text-xs ml-1">(Auto-filled)</span>
+                </label>
                 <input 
                   type="text" 
-                  placeholder="Enter your city or municipality" 
                   [(ngModel)]="city" 
                   name="city"
-                  required
-                  class="w-full px-4 py-3 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black placeholder-gray-500 leading-6"
+                  readonly
+                  disabled
+                  class="w-full px-4 py-3 text-base rounded-lg h-12 border border-gray-300 bg-gray-100 text-gray-700 cursor-not-allowed opacity-75"
                 >
-              </div>
-
-              <!-- Province -->
-              <div class="space-y-2 lg:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Province</label>
-                <input 
-                  type="text" 
-                  placeholder="Enter your province (e.g., Zambales)" 
-                  [(ngModel)]="province" 
-                  name="province"
-                  required
-                  class="w-full px-4 py-3 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 h-12 border border-gray-300 bg-white text-black placeholder-gray-500 leading-6"
-                >
+                <p class="text-xs text-gray-500 mt-1 ml-1">Registration restricted to Olongapo City</p>
               </div>
             </div>
           </div>
 
           <!-- Terms -->
-          <div *ngIf="!isLoginMode" class="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-300">
+          <div *ngIf="!isLoginMode" class="flex items-start space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-300">
             <input 
               type="checkbox" 
               [(ngModel)]="termsAccepted" 
               name="termsAccepted"
               required
-              class="h-5 w-5 text-black border-2 border-gray-300 rounded focus:ring-black focus:ring-2 mt-1"
+              class="h-5 w-5 text-primary border-2 border-gray-300 rounded focus:ring-primary focus:ring-2 mt-1"
             >
             <label class="text-sm font-medium text-gray-700 leading-6">
               I agree to the 
-              <button type="button" (click)="openTermsModal()" class="text-black font-medium hover:underline transition-all duration-200">Terms and Conditions</button> 
+              <button type="button" (click)="openTermsModal()" class="text-black font-bold hover:underline transition-all duration-200">Terms and Conditions</button> 
               and 
-              <button type="button" (click)="openTermsModal()" class="text-black font-medium hover:underline transition-all duration-200">Privacy Policy</button>
+              <button type="button" (click)="openTermsModal()" class="text-black font-bold hover:underline transition-all duration-200">Privacy Policy</button>
             </label>
           </div>
 
@@ -444,7 +460,7 @@
             <button 
               type="submit" 
               [disabled]="isLoading"
-              class="w-full h-12 text-base font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-98 mt-8 bg-black text-white hover:bg-gray-800 flex items-center justify-center"
+              class="w-full h-12 text-base font-bold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-98 mt-8 bg-primary text-white hover:bg-green-700 flex items-center justify-center"
             >
               <span *ngIf="!isLoading" class="flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -470,7 +486,7 @@
           </p>
           <button 
             (click)="toggleMode($event)" 
-            class="text-base font-medium text-black hover:text-gray-600 hover:underline transition-all duration-200 transform hover:scale-105"
+            class="toggle-mode-btn text-base font-bold hover:underline transition-all duration-200 transform hover:scale-105"
           >
             {{ isLoginMode ? '🚀 Create Your Account' : '🔑 Sign In Here' }}
           </button>
@@ -539,7 +555,7 @@
   <div *ngIf="showTermsModal" class="fixed inset-0 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
       <!-- Modal Header -->
-      <div class="bg-black text-white p-6 flex items-center justify-between">
+      <div class="bg-[#2e7d32] text-white p-6 flex items-center justify-between">
         <h3 class="text-xl font-bold flex items-center">
           <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -589,11 +605,64 @@
               </li>
               <li class="flex items-start">
                 <span class="text-black mr-2 mt-1">•</span>
+                <span>Listings must use clear and truthful photos, complete product details, and honest condition labels.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Price manipulation, fake availability, duplicate spam listings, and misleading titles are prohibited.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Users must communicate respectfully; harassment, hate speech, threats, and abusive language are not allowed.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Sellers must disclose defects, prior repairs, and missing components before finalizing a transaction.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Buyers and sellers are expected to verify product authenticity and meet in safe, public locations when possible.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Any attempt to bypass moderation systems, reports, or account restrictions may result in immediate suspension.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
                 <span>CycleMart is only a platform and is not responsible for disputes, damages, or losses between buyers and sellers.</span>
               </li>
               <li class="flex items-start">
                 <span class="text-black mr-2 mt-1">•</span>
                 <span>We may suspend accounts that violate these terms.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Marketplace Rules and Enforcement -->
+          <div class="space-y-px">
+            <h4 class="text-lg font-bold text-black flex items-center">
+              Marketplace Rules and Regulation
+            </h4>
+            <ul class="space-y-px text-sm">
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Prohibited products include stolen bikes/parts, counterfeit goods, illegal substances, and regulated weapons.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Only the actual owner or authorized seller may list an item; proof of ownership may be requested during review.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Users must complete transactions in good faith, including agreed pricing, meetup time, and declared item condition.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>CycleMart moderators may remove listings, issue warnings, restrict features, or ban accounts for repeated violations.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
+                <span>Serious fraud or illegal activity may be escalated to proper authorities when required by law.</span>
               </li>
             </ul>
           </div>
@@ -617,6 +686,10 @@
               </li>
               <li class="flex items-start">
                 <span class="text-black mr-2 mt-1">•</span>
+                <span>We may use account activity (such as reports and moderation history) for fraud prevention and platform safety.</span>
+              </li>
+              <li class="flex items-start">
+                <span class="text-black mr-2 mt-1">•</span>
                 <span>You have the right to access, update, or request deletion of your personal information.</span>
               </li>
               <li class="flex items-start">
@@ -633,7 +706,7 @@
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
-              <span>📧 CycleMart&#64;gmail.com</span>
+              <span>📧 cyclemrt&#64;gmail.com</span>
             </div>
           </div>
         </div>

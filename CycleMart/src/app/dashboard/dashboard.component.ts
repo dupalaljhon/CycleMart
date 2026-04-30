@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { NgIf, NgClass } from '@angular/common';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,13 +28,12 @@ export class DashboardComponent {
     this.openMenu = this.openMenu === menu ? null : menu;
   }
 
-  // Profiles should be served via images subdomain in production
   getProfileImageUrl(imagePath: string | null): string {
     if (!imagePath) return '';
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
     }
     const stripped = imagePath.replace(/^\/?uploads[\\/]/, '');
-    return `http://images.cyclemart.shop/${stripped}`;
+    return `${environment.apiUploadsBaseUrl}${stripped}`;
   }
 }

@@ -7,8 +7,8 @@
       "type": "chrome",
       "request": "launch",
       "preLaunchTask": "npm: start",
-      // "url": "http://localhost:4200/"
-      "url": "http://api.cyclemart.shop/CycleMart-api/api/login"
+      "url": "http://localhost:4200/"
+      // "url": "http://api.cyclemart.shop/CycleMart-api/api/login"
     },
     {
       "name": "ng test",

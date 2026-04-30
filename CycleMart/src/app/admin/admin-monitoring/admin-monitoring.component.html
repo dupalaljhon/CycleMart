@@ -1,11 +1,11 @@
-<div class="flex h-screen bg-gray-100">
+<div class="admin-monitoring-root flex h-screen bg-gray-100">
   <!-- Sidenav -->
   <app-admin-sidenav></app-admin-sidenav>
 
   <!-- Main Content -->
-  <div class="flex-1 p-6 overflow-y-auto">
+  <div class="monitor-shell flex-1 p-6 overflow-y-auto">
     <!-- Header Section -->
-    <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-300">
+    <div class="monitor-header-card bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-300">
       <div class="flex justify-between items-center mb-6">
         <div>
           <h1 class="text-4xl font-bold text-black mb-3">
@@ -39,8 +39,8 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <div class="stats-grid grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="stat-card bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
@@ -55,7 +55,7 @@
           </div>
         </div>
         
-        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div class="stat-card bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
@@ -70,7 +70,7 @@
           </div>
         </div>
         
-        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div class="stat-card bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
@@ -85,7 +85,7 @@
           </div>
         </div>
 
-        <div class="bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div class="stat-card bg-gray-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="flex items-center justify-between">
             <div>
               <div class="flex items-center mb-2">
@@ -103,7 +103,7 @@
     </div>
 
     <!-- Admin Table -->
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden relative border border-gray-300">
+    <div class="monitor-table-card bg-white rounded-2xl shadow-xl overflow-hidden relative border border-gray-300">
       <!-- Processing Overlay -->
       <div *ngIf="isProcessing" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 backdrop-blur-sm">
         <div class="text-center bg-white rounded-2xl shadow-lg p-8">
@@ -119,7 +119,41 @@
       </div>
 
       <!-- Admin Table -->
-      <div *ngIf="!isLoading" class="overflow-x-auto">
+      <div *ngIf="!isLoading" class="md:hidden p-3 space-y-3">
+        <div *ngFor="let admin of dataSource.data" class="rounded-xl border border-gray-300 bg-white p-3 shadow-sm">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900 truncate">{{ admin.full_name }}</p>
+              <p class="text-xs text-gray-500 truncate">{{ admin.username }} • {{ admin.email }}</p>
+            </div>
+            <span class="text-xs px-2 py-1 rounded-full" [class]="getStatusColor(admin.status)">{{ admin.status | titlecase }}</span>
+          </div>
+
+          <div class="mt-2 flex items-center gap-2 text-xs">
+            <span class="px-2 py-1 rounded-full" [class]="getRoleColor(admin.role)">{{ formatRole(admin.role) }}</span>
+            <span class="text-gray-500">Created: {{ formatDate(admin.created_at) }}</span>
+          </div>
+
+          <div class="mt-3 flex items-center gap-2">
+            <button *ngIf="canEditAdmin(admin)" mat-icon-button (click)="editAdmin(admin)"><mat-icon class="text-black">edit</mat-icon></button>
+            <button *ngIf="canEditAdmin(admin) && admin.username !== getCurrentUsername()" mat-icon-button (click)="blockAdminAccess(admin)"><mat-icon class="text-black">{{ admin.status === 'active' ? 'block' : 'check_circle' }}</mat-icon></button>
+            <button *ngIf="canEditAdmin(admin)" mat-icon-button (click)="toggleAdminStatus(admin)"><mat-icon class="text-black">{{ admin.status === 'active' ? 'person_off' : 'person_add' }}</mat-icon></button>
+            <button *ngIf="canDeleteAdmin(admin) && admin.username !== getCurrentUsername()" mat-icon-button (click)="deleteAdmin(admin)"><mat-icon class="text-black">delete</mat-icon></button>
+          </div>
+        </div>
+
+        <div *ngIf="dataSource.data.length === 0" class="text-center py-10">
+          <div class="flex flex-col items-center">
+            <div class="bg-gray-200 rounded-full p-5 mb-3 shadow-sm">
+              <mat-icon class="text-5xl text-black">admin_panel_settings</mat-icon>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-1">No administrators found</h3>
+            <p class="text-gray-600 text-sm">Add your first administrator account to get started.</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading" class="hidden md:block overflow-x-auto">
         <table mat-table [dataSource]="dataSource" class="w-full">
           
           <!-- Username Column -->
@@ -329,10 +363,11 @@
       <div *ngIf="!isLoading && dataSource.data.length > 0" 
            class="border-t border-gray-300 bg-gray-50">
         <mat-paginator 
+          class="hidden md:block bg-transparent"
           [pageSizeOptions]="pageSizeOptions"
           [pageSize]="pageSize"
           showFirstLastButtons
-          class="bg-transparent">
+          >
         </mat-paginator>
       </div>
     </div>
@@ -340,10 +375,10 @@
 </div>
 
 <!-- Modal Overlay -->
-<div *ngIf="isModalOpen" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-screen overflow-y-auto border border-gray-300">
+<div *ngIf="isModalOpen" class="monitor-modal-overlay fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+  <div class="monitor-modal-card admin-form-modal bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-screen overflow-y-auto border border-gray-300">
     <!-- Modal Header -->
-    <div class="bg-black text-white p-6 rounded-t-2xl">
+    <div class="monitor-modal-header admin-form-modal-header bg-black text-white p-6 rounded-t-2xl">
       <div class="flex justify-between items-center">
         <div>
           <h2 class="text-2xl font-bold mb-1">
@@ -360,13 +395,13 @@
     </div>
 
     <!-- Modal Form -->
-    <form [formGroup]="adminForm" (ngSubmit)="onModalSubmit()" class="p-8 space-y-6">
+    <form [formGroup]="adminForm" (ngSubmit)="onModalSubmit()" class="admin-form-modal-body p-8 space-y-6">
       <!-- First Row: Username and Full Name -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Username Field -->
         <div class="space-y-3">
-          <label class="flex items-center text-sm font-semibold text-black mb-2">
-            <div class="bg-gray-200 p-2 rounded-full mr-3">
+          <label class="admin-field-label flex items-center text-sm font-semibold text-black mb-2">
+            <div class="admin-field-icon bg-gray-200 p-2 rounded-full mr-3">
               <mat-icon class="text-black text-lg">account_circle</mat-icon>
             </div>
             Username
@@ -384,8 +419,8 @@
 
         <!-- Full Name Field -->
         <div class="space-y-3">
-          <label class="flex items-center text-sm font-semibold text-black mb-2">
-            <div class="bg-gray-200 p-2 rounded-full mr-3">
+          <label class="admin-field-label flex items-center text-sm font-semibold text-black mb-2">
+            <div class="admin-field-icon bg-gray-200 p-2 rounded-full mr-3">
               <mat-icon class="text-black text-lg">person</mat-icon>
             </div>
             Full Name
@@ -403,8 +438,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Email Field -->
         <div class="space-y-3">
-          <label class="flex items-center text-sm font-semibold text-black mb-2">
-            <div class="bg-gray-200 p-2 rounded-full mr-3">
+          <label class="admin-field-label flex items-center text-sm font-semibold text-black mb-2">
+            <div class="admin-field-icon bg-gray-200 p-2 rounded-full mr-3">
               <mat-icon class="text-black text-lg">email</mat-icon>
             </div>
             Email Address
@@ -422,8 +457,8 @@
 
         <!-- Role Field -->
         <div class="space-y-3">
-          <label class="flex items-center text-sm font-semibold text-black mb-2">
-            <div class="bg-gray-200 p-2 rounded-full mr-3">
+          <label class="admin-field-label flex items-center text-sm font-semibold text-black mb-2">
+            <div class="admin-field-icon bg-gray-200 p-2 rounded-full mr-3">
               <mat-icon class="text-black text-lg">security</mat-icon>
             </div>
             Administrator Role
@@ -432,7 +467,6 @@
             <mat-select formControlName="role" class="bg-gray-50 text-gray-800">
               <mat-option value="super_admin">🔥 Super Administrator</mat-option>
               <mat-option value="moderator">🛡️ Moderator</mat-option>
-              <mat-option value="support">🎧 Support Staff</mat-option>
             </mat-select>
             <mat-error *ngIf="adminForm.get('role')?.hasError('required')">
               Role is required
@@ -442,24 +476,63 @@
       </div>
 
       <!-- Password Fields (Only for new admin) -->
-      <div *ngIf="!isEditMode" class="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
-        <div class="flex items-center mb-4">
-          <mat-icon class="text-black mr-2">lock</mat-icon>
-          <h3 class="text-lg font-semibold text-black">Security Settings</h3>
+      <div *ngIf="!isEditMode" class="admin-security-panel space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <div class="admin-security-header flex items-center justify-between mb-4">
+          <div class="flex items-center">
+            <mat-icon class="text-black mr-2">lock</mat-icon>
+            <h3 class="text-lg font-semibold text-black">Security Settings</h3>
+          </div>
+          
+          <!-- Auto-generate Password Toggle -->
+          <div class="flex items-center space-x-3">
+            <label class="admin-security-toggle flex items-center cursor-pointer group">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="autoGeneratePassword" 
+                [ngModelOptions]="{standalone: true}"
+                (change)="toggleAutoGeneratePassword()"
+                class="w-5 h-5 text-black border-2 border-gray-300 rounded focus:ring-2 focus:ring-black focus:ring-offset-2 cursor-pointer">
+              <span class="ml-3 text-sm font-medium text-gray-700 group-hover:text-black transition-colors">
+                <mat-icon class="text-lg align-middle mr-1">auto_awesome</mat-icon>
+                Auto-generate secure password
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Password Generation Info -->
+        <div *ngIf="autoGeneratePassword" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div class="flex items-start">
+            <mat-icon class="text-green-600 mr-3">check_circle</mat-icon>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-green-900 mb-1">✨ Secure Password Generated!</p>
+              <p class="text-xs text-green-700">
+                A 12-character password has been automatically generated below. The password fields are read-only. 
+                You can preview it now and it will also be shown after creating the account.
+              </p>
+            </div>
+          </div>
         </div>
         
-        <!-- Third Row: Password Fields -->
+        <!-- Password Fields (Always Visible) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Password Field -->
           <div class="space-y-3">
-            <label class="flex items-center text-sm font-semibold text-black mb-2">
-              <div class="bg-gray-200 p-2 rounded-full mr-3">
+            <label class="admin-field-label flex items-center text-sm font-semibold text-black mb-2">
+              <div class="admin-field-icon bg-gray-200 p-2 rounded-full mr-3">
                 <mat-icon class="text-black text-lg">lock</mat-icon>
               </div>
               Password
+              <span *ngIf="autoGeneratePassword" class="ml-2 text-xs text-green-600 font-normal">(Auto-generated)</span>
             </label>
-            <mat-form-field appearance="fill" class="w-full custom-form-field">
-              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Enter secure password" class="bg-white text-gray-800">
+            <mat-form-field appearance="fill" class="w-full custom-form-field" [class.opacity-75]="autoGeneratePassword">
+              <input matInput 
+                     [type]="hidePassword ? 'password' : 'text'" 
+                     formControlName="password" 
+                     [placeholder]="autoGeneratePassword ? 'Auto-generated secure password' : 'Enter secure password'" 
+                     [class.bg-gray-100]="autoGeneratePassword"
+                     [class.bg-white]="!autoGeneratePassword"
+                     class="text-gray-800">
               <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword" class="text-gray-500 hover:text-black">
                 <mat-icon>{{ hidePassword ? 'visibility' : 'visibility_off' }}</mat-icon>
               </button>
@@ -467,21 +540,58 @@
                 Password is required
               </mat-error>
               <mat-error *ngIf="adminForm.get('password')?.hasError('minlength')">
-                Password must be at least 6 characters long
+                Password must be at least 8 characters long
+              </mat-error>
+              <mat-error *ngIf="adminForm.get('password')?.hasError('weakPassword')">
+                Password must include uppercase, lowercase, number, and special character
               </mat-error>
             </mat-form-field>
+
+            <!-- Password Strength Indicators -->
+            <div *ngIf="adminForm.get('password')?.value" class="space-y-2 mt-2">
+              <p class="text-xs font-semibold text-gray-700">Password Requirements:</p>
+              <div class="space-y-1">
+                <div class="flex items-center text-xs" [class.text-green-600]="hasMinLength(adminForm.get('password')?.value)" [class.text-gray-400]="!hasMinLength(adminForm.get('password')?.value)">
+                  <mat-icon class="text-sm mr-1">{{ hasMinLength(adminForm.get('password')?.value) ? 'check_circle' : 'cancel' }}</mat-icon>
+                  At least 8 characters
+                </div>
+                <div class="flex items-center text-xs" [class.text-green-600]="hasUpperCase(adminForm.get('password')?.value)" [class.text-gray-400]="!hasUpperCase(adminForm.get('password')?.value)">
+                  <mat-icon class="text-sm mr-1">{{ hasUpperCase(adminForm.get('password')?.value) ? 'check_circle' : 'cancel' }}</mat-icon>
+                  One uppercase letter
+                </div>
+                <div class="flex items-center text-xs" [class.text-green-600]="hasLowerCase(adminForm.get('password')?.value)" [class.text-gray-400]="!hasLowerCase(adminForm.get('password')?.value)">
+                  <mat-icon class="text-sm mr-1">{{ hasLowerCase(adminForm.get('password')?.value) ? 'check_circle' : 'cancel' }}</mat-icon>
+                  One lowercase letter
+                </div>
+                <div class="flex items-center text-xs" [class.text-green-600]="hasNumber(adminForm.get('password')?.value)" [class.text-gray-400]="!hasNumber(adminForm.get('password')?.value)">
+                  <mat-icon class="text-sm mr-1">{{ hasNumber(adminForm.get('password')?.value) ? 'check_circle' : 'cancel' }}</mat-icon>
+                  One number
+                </div>
+                <div class="flex items-center text-xs" [class.text-green-600]="hasSpecialChar(adminForm.get('password')?.value)" [class.text-gray-400]="!hasSpecialChar(adminForm.get('password')?.value)">
+                  <mat-icon class="text-sm mr-1">{{ hasSpecialChar(adminForm.get('password')?.value) ? 'check_circle' : 'cancel' }}</mat-icon>
+                  One special character
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Confirm Password Field -->
           <div class="space-y-3">
-            <label class="flex items-center text-sm font-semibold text-black mb-2">
-              <div class="bg-gray-200 p-2 rounded-full mr-3">
+            <label class="admin-field-label flex items-center text-sm font-semibold text-black mb-2">
+              <div class="admin-field-icon bg-gray-200 p-2 rounded-full mr-3">
                 <mat-icon class="text-black text-lg">lock_outline</mat-icon>
               </div>
               Confirm Password
+              <span *ngIf="autoGeneratePassword" class="ml-2 text-xs text-green-600 font-normal">(Auto-generated)</span>
             </label>
-            <mat-form-field appearance="fill" class="w-full custom-form-field">
-              <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" formControlName="confirmPassword" placeholder="Confirm your password" class="bg-white text-gray-800">
+            <mat-form-field appearance="fill" class="w-full custom-form-field" [class.opacity-75]="autoGeneratePassword">
+              <input matInput 
+                     [type]="hideConfirmPassword ? 'password' : 'text'" 
+                     formControlName="confirmPassword" 
+                     [placeholder]="autoGeneratePassword ? 'Matches password above' : 'Confirm your password'" 
+                     [class.bg-gray-100]="autoGeneratePassword"
+                     [class.bg-white]="!autoGeneratePassword"
+                     class="text-gray-800">
               <button mat-icon-button matSuffix type="button" (click)="hideConfirmPassword = !hideConfirmPassword" class="text-gray-500 hover:text-black">
                 <mat-icon>{{ hideConfirmPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
               </button>
@@ -497,7 +607,7 @@
       </div>
 
       <!-- Modal Actions -->
-      <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
+      <div class="admin-modal-actions flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
         <button type="button" 
                 mat-stroked-button 
                 (click)="closeModal()" 
@@ -525,5 +635,97 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Generated Password Modal -->
+<div *ngIf="showGeneratedPasswordModal" class="generated-modal-overlay fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
+  <div class="generated-modal-card bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-gray-300">
+    <!-- Modal Header -->
+    <div class="generated-modal-header bg-gradient-to-r from-green-600 to-green-700 text-white p-6 rounded-t-2xl">
+      <div class="flex items-center">
+        <div class="bg-white bg-opacity-20 p-3 rounded-full mr-4">
+          <mat-icon class="text-3xl">check_circle</mat-icon>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold">Administrator Created!</h2>
+          <p class="text-green-100 text-sm mt-1">Secure password generated successfully</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="p-8 space-y-6">
+      <!-- Warning Message -->
+      <div class="generated-notice bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r">
+        <div class="flex items-start">
+          <mat-icon class="text-yellow-600 mr-3 mt-0.5">warning</mat-icon>
+          <div>
+            <p class="text-sm font-semibold text-yellow-800">Important Security Notice</p>
+            <p class="text-xs text-yellow-700 mt-1">
+              This password will only be shown once. Make sure to copy and securely share it with the new administrator.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password Display -->
+      <div class="space-y-3">
+        <label class="text-sm font-semibold text-gray-700 flex items-center">
+          <mat-icon class="text-black mr-2">vpn_key</mat-icon>
+          Generated Password
+        </label>
+        <div class="relative">
+          <div class="generated-password-box bg-gray-100 border-2 border-gray-300 rounded-lg p-4 font-mono text-lg text-center tracking-wider select-all break-all">
+            {{ generatedPassword }}
+          </div>
+          <button 
+            type="button"
+            (click)="copyPasswordToClipboard()"
+            class="generated-copy-btn absolute top-2 right-2 bg-black text-white p-2 rounded-lg hover:bg-gray-800 transition-colors shadow-md"
+            matTooltip="Copy to clipboard">
+            <mat-icon class="text-sm">content_copy</mat-icon>
+          </button>    
+        </div>
+      </div>
+
+      <!-- Password Requirements Info -->
+      <div class="generated-requirements bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="text-xs font-semibold text-blue-900 mb-2">Password meets all requirements:</p>
+        <div class="grid grid-cols-2 gap-2 text-xs text-blue-800">
+          <div class="flex items-center">
+            <mat-icon class="text-sm text-green-600 mr-1">check</mat-icon>
+            12 characters
+          </div>
+          <div class="flex items-center">
+            <mat-icon class="text-sm text-green-600 mr-1">check</mat-icon>
+            Uppercase letters
+          </div>
+          <div class="flex items-center">
+            <mat-icon class="text-sm text-green-600 mr-1">check</mat-icon>
+            Lowercase letters
+          </div>
+          <div class="flex items-center">
+            <mat-icon class="text-sm text-green-600 mr-1">check</mat-icon>
+            Numbers
+          </div>
+          <div class="flex items-center">
+            <mat-icon class="text-sm text-green-600 mr-1">check</mat-icon>
+            Special characters
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="flex justify-center pt-4">
+        <button 
+          type="button"
+          (click)="closeGeneratedPasswordModal()"
+          class="generated-save-btn px-8 py-3 bg-black hover:bg-gray-800 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+          <mat-icon class="mr-2 align-middle">done</mat-icon>
+          I've Saved the Password
+        </button>
+      </div>
+    </div>
   </div>
 </div>

@@ -1,0 +1,78 @@
+.notification-landing {
+	--landing-primary: #2e7d32;
+	--landing-primary-dark: #25692a;
+	--landing-soft: #ebf6ec;
+	--landing-soft-border: #d6ead8;
+	--landing-surface: #ffffff;
+	--landing-text: #212121;
+	--landing-muted: #545861;
+	font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+	color: var(--landing-text);
+}
+
+.notification-landing .notification-content {
+	background: #f5f5f5 !important;
+}
+
+.notification-landing .notification-header-card {
+	background: #f7fbf7;
+	border: 1px solid var(--landing-soft-border);
+	border-radius: 14px;
+	padding: 0.95rem 1.05rem;
+	box-shadow: 0 10px 24px rgba(33, 33, 33, 0.06);
+}
+
+.notification-landing .notification-unread-chip {
+	border-color: var(--landing-soft-border) !important;
+	background: #ffffff;
+}
+
+.notification-landing h1,
+.notification-landing h2,
+.notification-landing h3,
+.notification-landing .text-gray-800,
+.notification-landing .text-gray-900,
+.notification-landing .text-black {
+	color: var(--landing-text) !important;
+}
+
+.notification-landing .text-gray-700,
+.notification-landing .text-gray-600,
+.notification-landing .text-gray-500,
+.notification-landing .text-gray-400 {
+	color: var(--landing-muted) !important;
+}
+
+.notification-landing .bg-white,
+.notification-landing .bg-gray-50 {
+	background-color: #ffffff !important;
+}
+
+.notification-landing .border,
+.notification-landing .border-gray-200,
+.notification-landing .border-gray-300 {
+	border-color: var(--landing-soft-border) !important;
+}
+
+.notification-landing .notification-item-unread {
+	background: #f7fbf7 !important;
+	border-left-color: var(--landing-primary) !important;
+}
+
+.notification-landing .notification-primary-btn {
+	background-color: var(--landing-primary) !important;
+	border: 1px solid var(--landing-primary);
+	color: #ffffff !important;
+}
+
+.notification-landing .notification-primary-btn:hover {
+	background-color: var(--landing-primary-dark) !important;
+}
+
+.notification-landing .notification-modal-header {
+	background: linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-dark) 100%) !important;
+}
+
+.notification-landing .focus\:ring-\[\#2e7d32\]:focus {
+	--tw-ring-color: rgba(46, 125, 50, 0.35) !important;
+}

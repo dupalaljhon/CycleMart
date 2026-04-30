@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -17,6 +17,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { AdminSidenavComponent } from "../admin-sidenav/admin-sidenav.component";
 import { ApiService } from '../../api/api.service';
 import { ProfileImageService } from '../../services/profile-image.service';
+import { environment } from '../../../environments/environment';
 
 interface Product {
   product_id: number;
@@ -40,6 +41,16 @@ interface Product {
   seller_email?: string;
   seller_profile_image?: string;
   specifications?: any[];
+  buyer_name?: string;
+  buyer_user_id?: number;
+  buyer_email?: string;
+  buyer_phone?: string;
+  buyer_profile_image?: string;
+}
+
+interface UserRatingSummary {
+  averageStars: number;
+  totalRatings: number;
 }
 
 @Component({
@@ -72,8 +83,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   isLoading = false;
   
   searchTerm = '';
-  statusFilter = 'all';
-  saleStatusFilter = 'all';
+  statusQuery = 'all';
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -85,6 +95,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     'product_name',
     'seller',
+    'buyer',
     'status',
     'sale_status',
     'actions'
@@ -127,11 +138,43 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   successMessage = '';
   successTitle = '';
 
+  // Buyer information cache
+  buyerInfoCache: { [productId: number]: any } = {};
+  loadingBuyerInfo: { [productId: number]: boolean } = {};
+
+  // User rating cache (seller and buyer)
+  ratingInfoCache: { [userId: number]: UserRatingSummary } = {};
+  loadingRatingInfo: { [userId: number]: boolean } = {};
+
   constructor(
     private apiService: ApiService,
     private dialog: MatDialog,
     private profileImageService: ProfileImageService
   ) {}
+
+  private getAdminId(): number | null {
+    const adminIdString = localStorage.getItem('admin_id');
+    if (adminIdString) {
+      const parsed = parseInt(adminIdString, 10);
+      if (!isNaN(parsed)) return parsed;
+    }
+
+    const adminUser = localStorage.getItem('admin_user');
+    if (adminUser) {
+      try {
+        const parsed = JSON.parse(adminUser);
+        const id = parsed?.admin_id || parsed?.id;
+        if (id) {
+          const parsedId = parseInt(String(id), 10);
+          if (!isNaN(parsedId)) return parsedId;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return null;
+  }
 
   ngOnInit() {
     this.loadAllProducts();
@@ -184,15 +227,20 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
           }));
           this.dataSource.data = this.products;
           
+          // Load buyer information for sold/traded products
+          this.products.forEach(product => {
+            if (product.sale_status === 'sold' || product.sale_status === 'traded') {
+              this.loadBuyerInfo(product.product_id);
+            }
+          });
+          
           // Reconnect paginator after data loads and view updates
           setTimeout(() => this.connectPaginatorAndSort(), 0);
         } else {
-          console.error('Failed to load products:', response.message);
         }
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('Error loading products:', error);
       }
     });
   }
@@ -209,7 +257,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const adminId = localStorage.getItem('id');
+    const adminId = this.getAdminId();
     const adminRole = localStorage.getItem('role') || 'moderator';
 
     if (!adminId) {
@@ -219,7 +267,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
     const archiveData = {
       product_id: this.productToArchive.product_id,
-      admin_id: parseInt(adminId),
+      admin_id: adminId,
       role: adminRole,
       reason: this.archiveReason.trim(),
       action: 'archived'
@@ -240,7 +288,6 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
         }
       },
       error: (error) => {
-        console.error('Error archiving product:', error);
         alert('Failed to archive product. Please try again.');
       }
     });
@@ -264,7 +311,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const adminId = localStorage.getItem('id');
+    const adminId = this.getAdminId();
     const adminRole = localStorage.getItem('role') || 'moderator';
 
     if (!adminId) {
@@ -274,7 +321,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
     const restoreData = {
       product_id: this.productToRestore.product_id,
-      admin_id: parseInt(adminId),
+      admin_id: adminId,
       role: adminRole,
       reason: this.restoreReason.trim(),
       action: 'restored'
@@ -289,7 +336,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
           this.closeRestoreModal();
           
           // Show success modal instead of alert
-          this.successTitle = '✅ Product Restored Successfully';
+          this.successTitle = 'âœ… Product Restored Successfully';
           this.successMessage = `The product "${productName}" has been restored and is now active. The seller has been notified via notification.`;
           this.showSuccessModal = true;
         } else {
@@ -297,7 +344,6 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
         }
       },
       error: (error) => {
-        console.error('Error restoring product:', error);
         alert('Failed to restore product. Please try again.');
       }
     });
@@ -370,19 +416,37 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   }
 
   getImageUrl(imagePath: string): string {
-    if (imagePath.startsWith('data:')) {
+    if (!imagePath) {
+      return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
+    }
+
+    if (imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
     }
-    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
-    return `${this.apiService.baseUrl}${cleanPath}`;
+
+    let cleanPath = imagePath.replace(/^\/+/, '');
+    cleanPath = cleanPath.replace(/^api\//, '');
+    cleanPath = cleanPath.replace(/^uploads[\/\\]/, '');
+    cleanPath = cleanPath.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   getVideoUrl(videoPath: string): string {
-    if (videoPath.startsWith('data:')) {
+    if (!videoPath) {
+      return '';
+    }
+
+    if (videoPath.startsWith('data:') || videoPath.startsWith('http://') || videoPath.startsWith('https://')) {
       return videoPath;
     }
-    const cleanPath = videoPath.startsWith('/') ? videoPath : '/' + videoPath;
-    return `${this.apiService.baseUrl}${cleanPath}`;
+
+    let cleanPath = videoPath.replace(/^\/+/, '');
+    cleanPath = cleanPath.replace(/^api\//, '');
+    cleanPath = cleanPath.replace(/^uploads[\/\\]/, '');
+    cleanPath = cleanPath.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   getVideoExtension(videoPath: string): string {
@@ -453,7 +517,15 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
       }
     }
   }
-
+  // Format specification names: replace underscores with spaces and capitalize
+  formatSpecName(specName: string): string {
+    if (!specName) return '';
+    return specName
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
   getForTypeText(forType: string): string {
     switch (forType) {
       case 'sale': return 'For Sale';
@@ -477,10 +549,12 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
   applyFilters() {
     this.dataSource.data = this.products.filter(product => {
-      const statusMatch = this.statusFilter === 'all' || product.status === this.statusFilter;
-      const saleStatusMatch = this.saleStatusFilter === 'all' || product.sale_status === this.saleStatusFilter;
+      const statusQueryMatch =
+        this.statusQuery === 'all' ||
+        product.status === this.statusQuery ||
+        product.sale_status === this.statusQuery;
       const typeMatch = this.typeFilter === 'all' || product.for_type === this.typeFilter;
-      return statusMatch && saleStatusMatch && typeMatch;
+      return statusQueryMatch && typeMatch;
     });
     
     // Apply search filter if exists
@@ -494,11 +568,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onStatusFilterChange() {
-    this.applyFilters();
-  }
-
-  onSaleStatusFilterChange() {
+  onStatusQueryChange() {
     this.applyFilters();
   }
 
@@ -516,8 +586,7 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
 
   clearFilters() {
     this.searchTerm = '';
-    this.statusFilter = 'all';
-    this.saleStatusFilter = 'all';
+    this.statusQuery = 'all';
     this.typeFilter = 'all';
     this.dataSource.filter = '';
     this.applyFilters();
@@ -643,16 +712,13 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
           this.dataSource.data = [...this.products];
           
           // Show success message (you might want to add a snackbar service)
-          console.log('Description and specifications updated successfully');
           
           this.closeDescriptionModal();
         } else {
-          console.error('Failed to update product:', response.message);
           this.isUpdatingDescription = false;
         }
       },
       error: (error) => {
-        console.error('Error updating product:', error);
         this.isUpdatingDescription = false;
       }
     });
@@ -661,6 +727,15 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
   // View-Only Modal Methods
   viewDescriptionSpecificationsReadOnly(product: Product): void {
     this.selectedViewProduct = product;
+    this.loadUserRating(product.uploader_id);
+
+    if (product.sale_status === 'sold' || product.sale_status === 'traded') {
+      this.loadBuyerInfo(product.product_id);
+      if (product.buyer_user_id) {
+        this.loadUserRating(product.buyer_user_id);
+      }
+    }
+
     this.showViewOnlyModal = true;
     this.currentImageIndex = 0;
     this.currentVideoIndex = 0;
@@ -723,5 +798,152 @@ export class ListingMonitoringComponent implements OnInit, AfterViewInit {
     this.showSuccessModal = false;
     this.successTitle = '';
     this.successMessage = '';
+  }
+
+  /**
+   * Load buyer information for a sold/traded product
+   */
+  loadBuyerInfo(productId: number): void {
+    if (this.buyerInfoCache[productId] || this.loadingBuyerInfo[productId]) {
+      return; // Already loaded or loading
+    }
+
+    this.loadingBuyerInfo[productId] = true;
+
+    this.apiService.getProductBuyer(productId).subscribe({
+      next: (response) => {
+        this.loadingBuyerInfo[productId] = false;
+        if (response.status === 'success' && response.data) {
+          this.buyerInfoCache[productId] = response.data;
+          
+          // Update the product with buyer information
+          const product = this.products.find(p => p.product_id === productId);
+          if (product) {
+            product.buyer_name = response.data.buyer_name;
+            product.buyer_user_id = response.data.buyer_user_id;
+            product.buyer_email = response.data.buyer_email;
+            product.buyer_phone = response.data.buyer_phone;
+            product.buyer_profile_image = response.data.buyer_profile_image;
+          }
+
+          if (response.data.buyer_user_id) {
+            this.loadUserRating(response.data.buyer_user_id);
+          }
+          
+          // Update data source to refresh table
+          this.dataSource.data = [...this.products];
+        }
+      },
+      error: (error) => {
+        this.loadingBuyerInfo[productId] = false;
+      }
+    });
+  }
+
+  /**
+   * Get buyer information for display
+   */
+  getBuyerInfo(productId: number): any {
+    return this.buyerInfoCache[productId] || null;
+  }
+
+  /**
+   * Check if buyer info is loading
+   */
+  isBuyerInfoLoading(productId: number): boolean {
+    return this.loadingBuyerInfo[productId] || false;
+  }
+
+  /**
+   * Get buyer avatar or generate initials
+   */
+  getBuyerAvatar(buyer: any): string {
+    if (buyer && buyer.buyer_profile_image) {
+      // Profile images are stored under uploads/ on the API
+      const imagePath = buyer.buyer_profile_image.replace(/^\/?uploads[\/\\]/, '');
+      return `${environment.apiUploadsBaseUrl}${imagePath}`;
+    }
+    return this.generateAvatarUrl(buyer?.buyer_name || 'Unknown Buyer');
+  }
+
+  /**
+   * Generate avatar URL from name
+   */
+  private generateAvatarUrl(name: string): string {
+    const colors = ['3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6', 'EC4899'];
+    const initials = name.split(' ').map(n => n.charAt(0)).join('').toUpperCase();
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${color}&color=fff&bold=true&size=128`;
+  }
+
+  /**
+   * Handle buyer image load error
+   */
+  onBuyerImageError(event: any, buyer: any) {
+    // Fallback to generated avatar
+    event.target.src = this.generateAvatarUrl(buyer?.buyer_name || 'Unknown Buyer');
+  }
+
+  getBuyerDisplayInfo(product: Product | null): any {
+    if (!product) return null;
+
+    const cachedBuyer = this.getBuyerInfo(product.product_id);
+    if (cachedBuyer) return cachedBuyer;
+
+    if (product.buyer_name) {
+      return {
+        buyer_name: product.buyer_name,
+        buyer_user_id: product.buyer_user_id,
+        buyer_email: product.buyer_email,
+        buyer_phone: product.buyer_phone,
+        buyer_profile_image: product.buyer_profile_image
+      };
+    }
+
+    return null;
+  }
+
+  loadUserRating(userId?: number): void {
+    if (!userId || this.ratingInfoCache[userId] || this.loadingRatingInfo[userId]) {
+      return;
+    }
+
+    this.loadingRatingInfo[userId] = true;
+
+    this.apiService.getUserAverageRatings(userId).subscribe({
+      next: (response) => {
+        this.loadingRatingInfo[userId] = false;
+
+        if (response.status === 'success' && response.data && response.data.length > 0) {
+          const ratingData = response.data[0];
+          this.ratingInfoCache[userId] = {
+            averageStars: parseFloat(ratingData.average_stars) || 0,
+            totalRatings: parseInt(ratingData.total_ratings, 10) || 0
+          };
+        } else {
+          this.ratingInfoCache[userId] = { averageStars: 0, totalRatings: 0 };
+        }
+      },
+      error: () => {
+        this.loadingRatingInfo[userId] = false;
+        this.ratingInfoCache[userId] = { averageStars: 0, totalRatings: 0 };
+      }
+    });
+  }
+
+  getUserRating(userId?: number): UserRatingSummary {
+    if (!userId) return { averageStars: 0, totalRatings: 0 };
+    return this.ratingInfoCache[userId] || { averageStars: 0, totalRatings: 0 };
+  }
+
+  isUserRatingLoading(userId?: number): boolean {
+    if (!userId) return false;
+    return this.loadingRatingInfo[userId] || false;
+  }
+
+  getRatingStarIcon(rating: number, starIndex: number): string {
+    if (rating >= starIndex) return 'star';
+    if (rating >= starIndex - 0.5) return 'star_half';
+    return 'star_border';
   }
 }

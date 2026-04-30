@@ -1,9 +1,10 @@
-import { Component, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+﻿import { Component, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import { SidenavComponent } from '../sidenav/sidenav.component';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../api/api.service';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -22,8 +23,7 @@ export class ProfileComponent implements OnInit {
   phone = '';
   street = '';
   barangay = '';
-  city = '';
-  province = '';
+  city = 'Olongapo City'; // Auto-filled, read-only
   profile_image = '';
   terms_accepted = false;
   is_verified = false;
@@ -31,6 +31,27 @@ export class ProfileComponent implements OnInit {
   token_expires_at = '';
   created_at = '';
   updated_at = '';
+  
+  // Olongapo City barangays list
+  olongapoBarangays: string[] = [
+    'Asinan',
+    'Banicain',
+    'Barretto',
+    'East Bajac-Bajac',
+    'Gordon Heights',
+    'Kalaklan',
+    'Mabayuan',
+    'New Cabalan',
+    'Old Cabalan',
+    'Pag-asa',
+    'Santa Rita',
+    'West Bajac-Bajac',
+    'East Tapinac',
+    'West Tapinac',
+    'New Kalalake',
+    'Kababae',
+    'Ilalim'
+  ];
   
   // UI properties
   imagePreview: string | ArrayBuffer | null = null;
@@ -72,7 +93,6 @@ export class ProfileComponent implements OnInit {
 
     this.api.getUser(Number(userId)).subscribe({
       next: (res: any) => {
-        console.log('Fetched user:', res);
         if (res.status === 'success' && res.data.length > 0) {
           const user = res.data[0];
           this.id = user.id || 0;
@@ -83,8 +103,7 @@ export class ProfileComponent implements OnInit {
           this.phone = user.phone || '';
           this.street = user.street || '';
           this.barangay = user.barangay || '';
-          this.city = user.city || '';
-          this.province = user.province || '';
+          this.city = user.city || 'Olongapo City';
           this.profile_image = user.profile_image || '';
           this.terms_accepted = user.terms_accepted || false;
           this.is_verified = user.is_verified || false;
@@ -103,7 +122,6 @@ export class ProfileComponent implements OnInit {
         }
       },
       error: (err: unknown) => {
-        console.error('Error fetching user:', err);
         this.errorMessage = 'Failed to load profile information.';
       }
     });
@@ -125,7 +143,6 @@ export class ProfileComponent implements OnInit {
           }
         },
         error: (err: unknown) => {
-          console.error('Error fetching user ratings:', err);
           // Don't show error message for ratings as it's not critical
         }
       });
@@ -138,7 +155,6 @@ export class ProfileComponent implements OnInit {
           }
         },
         error: (err: unknown) => {
-          console.error('Error fetching detailed ratings:', err);
         }
       });
     }
@@ -185,44 +201,32 @@ export class ProfileComponent implements OnInit {
         return;
       }
       
-      console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
       this.readFile(file);
       
       // Clear the input so the same file can be selected again
       input.value = '';
     } else {
-      console.log('No file selected');
     }
   }
 
   // Read file and convert to base64
   private readFile(file: File): void {
-    console.log('Reading file:', file.name, 'Size:', file.size, 'Type:', file.type);
     const reader = new FileReader();
     
     reader.onload = () => {
       this.imagePreview = reader.result;
-      console.log('File loaded successfully!');
-      console.log('imagePreview type:', typeof this.imagePreview);
-      console.log('imagePreview length:', this.imagePreview ? this.imagePreview.toString().length : 0);
-      console.log('imagePreview starts with data:image:', this.imagePreview ? this.imagePreview.toString().startsWith('data:image') : false);
-      console.log('isEditModalOpen:', this.isEditModalOpen);
       
       // Clear any previous error messages
       this.errorMessage = '';
       
       // Only automatically save if we're not in edit modal
       if (!this.isEditModalOpen) {
-        console.log('Auto-saving image outside modal');
         this.saveProfileImage(reader.result as string);
       } else {
-        console.log('In edit modal - image preview updated but not saved yet');
-        console.log('Image will be saved when Save Changes is clicked');
       }
     };
     
     reader.onerror = (error) => {
-      console.error('Error reading file:', error);
       this.errorMessage = 'Error reading selected image file';
     };
     
@@ -231,7 +235,6 @@ export class ProfileComponent implements OnInit {
 
   // Save profile image (when uploaded outside modal)
   private saveProfileImage(imageData: string): void {
-    console.log('Auto-saving profile image outside modal...');
     
     const payload = {
       user_id: this.id,
@@ -241,7 +244,6 @@ export class ProfileComponent implements OnInit {
       street: this.street,
       barangay: this.barangay,
       city: this.city,
-      province: this.province,
       email_changed: false, // No email change for image-only update
       image: imageData
     };
@@ -254,22 +256,17 @@ export class ProfileComponent implements OnInit {
           // Update the profile_image path from server response
           if (res.data && res.data.profile_image) {
             this.profile_image = res.data.profile_image;
-            console.log('Profile image updated on server:', this.profile_image);
             
             // Update imagePreview to use the images subdomain for consistency
             this.imagePreview = this.toImagesCdnUrl(res.data.profile_image);
-            console.log('Updated imagePreview to server path:', this.imagePreview);
           } else {
             // Keep the base64 imagePreview if server doesn't return path
-            console.log('Server did not return profile_image path, keeping base64');
           }
         } else {
           this.errorMessage = res.message || 'Failed to update profile picture';
-          console.error('Server error:', res.message);
         }
       },
       error: (err: unknown) => {
-        console.error('Error updating profile picture:', err);
         this.errorMessage = 'Error updating profile picture';
       }
     });
@@ -287,7 +284,6 @@ export class ProfileComponent implements OnInit {
       }
     }
     
-    console.log('Opening edit modal with image:', this.imagePreview); // Debug log
     this.isEditModalOpen = true;
   }
 
@@ -301,10 +297,8 @@ export class ProfileComponent implements OnInit {
     // This ensures that any uploaded but unsaved images are discarded
     if (this.profile_image) {
       this.imagePreview = this.toImagesCdnUrl(this.profile_image);
-      console.log('Modal closed - reset imagePreview to server image:', this.imagePreview);
     } else {
       this.imagePreview = null;
-      console.log('Modal closed - no server image, set imagePreview to null');
     }
   }
 
@@ -362,9 +356,7 @@ export class ProfileComponent implements OnInit {
     // Only send image if it's a base64 string (newly uploaded)
     if (this.imagePreview && this.imagePreview.toString().startsWith('data:image')) {
       imageDataToSend = this.imagePreview;
-      console.log('Sending new base64 image data to server');
     } else {
-      console.log('No new image to upload - keeping existing server image');
     }
 
     const payload = {
@@ -375,12 +367,10 @@ export class ProfileComponent implements OnInit {
       street: this.street.trim(),
       barangay: this.barangay.trim(),
       city: this.city.trim(),
-      province: this.province.trim(),
       email_changed: emailChanged,
       image: imageDataToSend // Only send if it's new base64 data
     };
 
-    console.log('Saving profile with payload:', { ...payload, image: payload.image ? 'Base64 data (' + payload.image.toString().length + ' chars)' : null });
 
     this.api.editProfile(payload).subscribe({
       next: (res: any) => {
@@ -404,14 +394,13 @@ export class ProfileComponent implements OnInit {
             this.street = res.data.street || this.street;
             this.barangay = res.data.barangay || this.barangay;
             this.city = res.data.city || this.city;
-            this.province = res.data.province || this.province;
+            // this.province = res.data.province || this.province; // Removed - province no longer used
             
             // Update profile image if server returned a new path
             if (res.data && res.data.profile_image) {
               this.profile_image = res.data.profile_image;
               // Update image preview to use server path
               this.imagePreview = this.toImagesCdnUrl(res.data.profile_image);
-              console.log('Profile image updated from server:', this.profile_image);
             }
             
             this.closeModal();
@@ -421,7 +410,6 @@ export class ProfileComponent implements OnInit {
         }
       },
       error: (err: unknown) => {
-        console.error('Error updating profile:', err);
         this.errorMessage = 'Error updating profile';
       }
     });
@@ -429,7 +417,7 @@ export class ProfileComponent implements OnInit {
 
   // Format full address from separate fields
   formatFullAddress(): string {
-    const parts = [this.street, this.barangay, this.city, this.province].filter(part => part && part.trim());
+    const parts = [this.street, this.barangay, this.city].filter(part => part && part.trim());
     return parts.join(', ') || 'Not provided';
   }
 
@@ -466,13 +454,8 @@ export class ProfileComponent implements OnInit {
       let images: any;
       
       // If it's already a valid URL string (not JSON)
-      if (productImages.startsWith('http') || productImages.startsWith('/') || productImages.startsWith('uploads/')) {
-        if (productImages.startsWith('http')) {
-          return productImages;
-        }
-        const cleanPath = productImages.startsWith('/') ? productImages : '/' + productImages;
-        const directPath = this.api.baseUrl + cleanPath;
-        return directPath;
+      if (productImages.startsWith('http') || productImages.startsWith('/') || productImages.startsWith('uploads/') || productImages.startsWith('api/uploads/')) {
+        return this.normalizeUploadsUrl(productImages);
       }
       
       // Try to parse as JSON
@@ -486,26 +469,12 @@ export class ProfileComponent implements OnInit {
           firstImage = firstImage.path;
         }
         
-        // If it's a full URL, return as is
-        if (firstImage.startsWith('http')) {
-          return firstImage;
-        }
-        
-        // If it's a relative path, prepend the correct base URL
-        const cleanPath = firstImage.startsWith('/') ? firstImage : '/' + firstImage;
-        const fullPath = this.api.baseUrl + cleanPath;
-        
-        return fullPath;
+        return this.normalizeUploadsUrl(firstImage);
       }
     } catch (e) {
       // If JSON parsing failed, try treating it as a direct path
       if (typeof productImages === 'string' && productImages.length > 0) {
-        if (productImages.startsWith('http')) {
-          return productImages;
-        }
-        const cleanPath = productImages.startsWith('/') ? productImages : '/' + productImages;
-        const fallbackPath = this.api.baseUrl + cleanPath;
-        return fallbackPath;
+        return this.normalizeUploadsUrl(productImages);
       }
     }
     
@@ -548,16 +517,20 @@ export class ProfileComponent implements OnInit {
   // Handle image error
   onImageError(event: Event): void {
     const img = event.target as HTMLImageElement;
-    console.error('Failed to load image:', img.src);
-    console.log('Fallback will be used');
     if (img) {
       img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(this.full_name)}&background=000000&color=fff&size=128`;
     }
   }
 
+  onProductImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = 'https://via.placeholder.com/150x150/e5e7eb/9ca3af?text=No+Image';
+    }
+  }
+
   // Handle image load success
   onImageLoad(event: Event): void {
-    console.log('Image loaded successfully:', (event.target as HTMLImageElement).src);
   }
 
   // Open image enlargement modal
@@ -575,12 +548,12 @@ export class ProfileComponent implements OnInit {
   }
 
   // Listen for Escape key to close modal
-  @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKey(event: KeyboardEvent): void {
-    if (this.isImageModalOpen) {
-      this.closeImageModal();
-    }
-  }
+  // @HostListener('document:keydown.escape', ['$event'])
+  // onEscapeKey(event: KeyboardEvent): void {
+  //   if (this.isImageModalOpen) {
+  //     this.closeImageModal();
+  //   }
+  // }
 
   // Utility function for template
   encodeURIComponent(value: string): string {
@@ -597,12 +570,10 @@ export class ProfileComponent implements OnInit {
     if (this.imagePreview) {
       // If imagePreview is a base64 string, use it
       if (this.imagePreview.toString().startsWith('data:image')) {
-        console.log('Using base64 imagePreview for display');
         return this.imagePreview.toString();
       }
       // If imagePreview is already a URL, use it
       if (this.imagePreview.toString().startsWith('http') || this.imagePreview.toString().includes('/CycleMart/')) {
-        console.log('Using URL imagePreview for display:', this.imagePreview);
         return this.imagePreview.toString();
       }
     }
@@ -610,20 +581,48 @@ export class ProfileComponent implements OnInit {
     // If we have a profile_image path from server
     if (this.profile_image) {
       const serverUrl = this.toImagesCdnUrl(this.profile_image);
-      console.log('Using server profile_image:', serverUrl);
       return serverUrl;
     }
     
     // Fallback to generated avatar
     const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(this.full_name)}&background=000000&color=fff&size=128`;
-    console.log('Using fallback avatar:', fallbackUrl);
     return fallbackUrl;
   }
 
   // Convert a stored profile image path to the images subdomain URL
   private toImagesCdnUrl(path: string): string {
-    const stripped = (path || '').replace(/^\/?uploads[\/]/, '');
-    return `http://images.cyclemart.shop/${stripped}`;
+    if (!path) {
+      return '';
+    }
+
+    if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+
+    const stripped = String(path)
+      .replace(/^\/?api\/uploads[\/\\]/, '')
+      .replace(/^\/?uploads[\/\\]/, '');
+    // Production URL (use when deploying)
+    // return `http://images.cyclemart.shop/${stripped}`;
+    
+    return `${environment.apiUploadsBaseUrl}${stripped}`;
+  }
+
+  private normalizeUploadsUrl(path: string): string {
+    if (!path) {
+      return 'https://via.placeholder.com/150x150/e5e7eb/9ca3af?text=No+Image';
+    }
+
+    if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+
+    const cleaned = String(path)
+      .replace(/^\/?api\/uploads[\/\\]/, '')
+      .replace(/^\/?uploads[\/\\]/, '')
+      .replace(/^\/+/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleaned}`;
   }
 
 

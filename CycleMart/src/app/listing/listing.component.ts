@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidenavComponent } from '../sidenav/sidenav.component';
 import { ListingModalComponent } from './listing-modal/listing-modal.component';
@@ -7,6 +7,7 @@ import { SoldItemsComponent } from './sold-items/sold-items.component';
 import { ApiService } from '../api/api.service';
 import { AccountStatusService } from '../services/account-status.service';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../environments/environment';
 
 interface ProductSpecification {
   spec_id?: number;
@@ -31,6 +32,8 @@ interface Product {
   quantity: number;
   status: 'active' | 'archived';
   sale_status: 'available' | 'sold' | 'reserved' | 'traded';
+  approval_status?: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
   created_at: string;
   uploader_id: number;
   specifications?: ProductSpecification[];
@@ -81,6 +84,70 @@ export class ListingComponent implements OnInit, OnDestroy {
   lightboxCurrentIndex = 0;
   lightboxProduct: Product | null = null;
 
+  // Restriction modal properties
+  showRestrictionModal = false;
+  restrictionDetails: any = null;
+  restrictionTimeLeft = '';
+  private restrictionTimer: any = null;
+  private restrictionSyncInterval: any = null;
+
+  // Guidelines dropdown
+  showGuidelines = false;
+  expandedRules: { [key: number]: boolean } = {};
+  
+  guidelines = [
+    {
+      id: 1,
+      title: 'Only Bicycle-Related Items',
+      description: 'List only bicycles, bicycle parts, components, accessories, and cycling gear. Items must be relevant to cycling activities. We do not accept listings for motorcycles, scooters, e-bikes with throttle controls, or non-cycling related products.'
+    },
+    {
+      id: 2,
+      title: 'Provide Accurate Descriptions',
+      description: 'Be honest and detailed about your item\'s condition, age, specifications, and any defects or damage. Include brand, model, size, and relevant technical details. Misleading information may result in listing removal and account restrictions.'
+    },
+    {
+      id: 3,
+      title: 'Use Clear, Original Photos',
+      description: 'Upload your own high-quality photos showing the actual item from multiple angles. Stock images or photos from other sources are not allowed. Include close-ups of any damage, wear, or unique features.'
+    },
+    {
+      id: 4,
+      title: 'Set Fair & Realistic Prices',
+      description: 'Price your items competitively based on condition, age, and market value. Overpricing or price manipulation tactics are discouraged. Consider the local market in Olongapo City when setting prices.'
+    },
+    {
+      id: 5,
+      title: 'No Prohibited or Illegal Items',
+      description: 'Do not list stolen property, counterfeit goods, or items obtained through fraudulent means. All listings must comply with Philippine laws and regulations.'
+    },
+    {
+      id: 6,
+      title: 'Respond to Inquiries Promptly',
+      description: 'Reply to messages and inquiries within 24-48 hours. Maintain professional communication with potential buyers. Ignoring messages repeatedly may affect your seller reputation.'
+    },
+    {
+      id: 7,
+      title: 'Complete Transactions Safely',
+      description: 'Meet in public places for transactions. Avoid advance payments to unknown parties. Report suspicious activities to administrators. Your safety is our priority.'
+    },
+    {
+      id: 8,
+      title: 'No Spam or Duplicate Listings',
+      description: 'Create only one listing per item. Do not repeatedly post the same item or flood the marketplace with similar listings. Quality over quantity is encouraged.'
+    },
+    {
+      id: 9,
+      title: 'Respect Location Restrictions',
+      description: 'CycleMart primarily serves Olongapo City and nearby areas. Listings must be available for local pickup or delivery. International shipping items may be considered on a case-by-case basis.'
+    },
+    {
+      id: 10,
+      title: 'Update Listing Status',
+      description: 'Mark your listing as sold, reserved, or delete it once the item is no longer available. Keeping listings current helps maintain marketplace accuracy and user trust.'
+    }
+  ];
+
   // Categories for dropdown
   categories = [
     { value: 'whole bike', label: 'Whole Bike' },
@@ -105,7 +172,7 @@ export class ListingComponent implements OnInit, OnDestroy {
     { value: 'merida', label: 'Merida' },
     { value: 'scott', label: 'Scott' },
     { value: 'bianchi', label: 'Bianchi' },
-    { value: 'cervelo', label: 'Cervélo' },
+    { value: 'cervelo', label: 'CervÃ©lo' },
     { value: 'pinarello', label: 'Pinarello' },
     { value: 'shimano', label: 'Shimano' },
     { value: 'sram', label: 'SRAM' },
@@ -128,7 +195,15 @@ export class ListingComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Check for expired reservations first
+    this.checkExpiredReservations();
+    
+    // Then load user products
     this.loadUserProducts();
+
+    // Keep restriction state synchronized and auto-restore when expired.
+    this.syncRestrictionStatus();
+    this.restrictionSyncInterval = setInterval(() => this.syncRestrictionStatus(), 60000);
     
     // Add keyboard event listener for lightbox navigation
     document.addEventListener('keydown', (event) => this.onLightboxKeydown(event));
@@ -141,6 +216,11 @@ export class ListingComponent implements OnInit, OnDestroy {
     // Clean up event listeners
     document.removeEventListener('keydown', (event) => this.onLightboxKeydown(event));
     document.removeEventListener('click', (event) => this.onDocumentClick(event));
+
+    if (this.restrictionSyncInterval) {
+      clearInterval(this.restrictionSyncInterval);
+    }
+    this.stopRestrictionTimer();
     
     // Restore body scroll if component is destroyed while modals are open
     document.body.style.overflow = 'auto';
@@ -156,7 +236,6 @@ export class ListingComponent implements OnInit, OnDestroy {
 
   loadUserProducts() {
     if (!this.userId) {
-      console.error('No user ID found');
       return;
     }
 
@@ -165,15 +244,8 @@ export class ListingComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.isLoading = false;
         if (response.status === 'success') {
-          console.log('=== API Response Data ===');
-          console.log('Raw response data:', response.data);
-          
           // Filter out sold/traded items - only show available items
           const allProducts = response.data.map((product: any) => {
-            console.log('Processing product:', product.product_name);
-            console.log('Raw product_images:', product.product_images);
-            console.log('Raw product_videos:', product.product_videos);
-            
             // Format brand display
             const brand_display = this.formatBrandDisplay(product.brand_name, product.custom_brand);
 
@@ -186,7 +258,6 @@ export class ListingComponent implements OnInit, OnDestroy {
                   : product.product_images;
               }
             } catch (e) {
-              console.warn('Failed to parse product images:', product.product_images);
               productImages = [];
             }
 
@@ -208,12 +279,8 @@ export class ListingComponent implements OnInit, OnDestroy {
                 }
               }
             } catch (e) {
-              console.warn('Failed to parse product videos:', product.product_videos);
               productVideos = [];
             }
-
-            console.log('Parsed product_images:', productImages);
-            console.log('Parsed product_videos:', productVideos);
 
             return {
               ...product,
@@ -231,21 +298,194 @@ export class ListingComponent implements OnInit, OnDestroy {
           this.listings = allProducts.filter((product: Product) => 
             product.sale_status === 'available' || product.sale_status === 'reserved'
           );
-        } else {
-          console.error('Failed to load products:', response.message);
         }
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('Error loading products:', error);
       }
     });
   }
 
   addNewListing() {
-    this.showAddModal = true;
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
+    // Immediate UI guard: restricted/suspended/banned users should never open listing modal first.
+    if (!this.accountStatusService.canPerformAction('list_product')) {
+      this.restrictionDetails = this.restrictionDetails || this.getFallbackRestrictionDetails();
+      this.showRestrictionModal = true;
+      this.showAddModal = false;
+      document.body.style.overflow = 'hidden';
+      this.syncRestrictionStatus();
+      return;
+    }
+
+    this.syncRestrictionStatus(true);
+  }
+
+  private syncRestrictionStatus(openListingOnAllowed: boolean = false) {
+    if (!this.userId) {
+      return;
+    }
+
+    this.apiService.checkUserRestriction(this.userId).subscribe({
+      next: (response) => {
+        const payload = response?.data ?? response;
+        const hasExplicitRestrictionFlag = typeof payload?.is_restricted === 'boolean';
+        const isRestricted = hasExplicitRestrictionFlag
+          ? payload.is_restricted
+          : this.accountStatusService.isRestricted();
+
+        if (isRestricted) {
+          this.accountStatusService.updateAccountStatus({
+            account_status: 'restricted',
+            violation_count: Number(payload?.violation_count ?? this.accountStatusService.getCurrentStatus().violation_count ?? 0)
+          });
+
+          this.restrictionDetails = payload?.is_restricted
+            ? this.normalizeRestrictionDetails(payload)
+            : this.getFallbackRestrictionDetails();
+          this.startRestrictionTimer(this.restrictionDetails?.expires_at);
+
+          if (openListingOnAllowed) {
+            this.showRestrictionModal = true;
+            this.showAddModal = false;
+            document.body.style.overflow = 'hidden';
+          }
+        } else {
+          this.stopRestrictionTimer();
+          this.restrictionDetails = null;
+
+          if (this.accountStatusService.getCurrentStatus().account_status === 'restricted') {
+            this.accountStatusService.updateAccountStatus({
+              account_status: 'active',
+              violation_count: this.accountStatusService.getCurrentStatus().violation_count
+            });
+          }
+
+          if (openListingOnAllowed) {
+            this.showRestrictionModal = false;
+            this.showAddModal = true;
+            document.body.style.overflow = 'hidden';
+          }
+        }
+      },
+      error: () => {
+        if (openListingOnAllowed) {
+          // If status is already restricted locally, keep blocking listing creation.
+          if (this.accountStatusService.isRestricted()) {
+            this.restrictionDetails = this.getFallbackRestrictionDetails();
+            this.showRestrictionModal = true;
+            this.showAddModal = false;
+          } else {
+            this.showAddModal = true;
+            this.showRestrictionModal = false;
+          }
+          document.body.style.overflow = 'hidden';
+        }
+      }
+    });
+  }
+
+  private getFallbackRestrictionDetails() {
+    const fallbackExpiry = new Date(Date.now() + (48 * 60 * 60 * 1000)).toISOString();
+    return {
+      is_restricted: true,
+      reason: 'Your account is currently restricted from creating new listings. Please wait until the restriction period ends.',
+      restriction_type: 'temporary_restriction',
+      violation_count: this.accountStatusService.getCurrentStatus().violation_count,
+      expires_at: fallbackExpiry,
+      violation_code: 'other'
+    };
+  }
+
+  private normalizeRestrictionDetails(details: any) {
+    if (!details) {
+      return details;
+    }
+
+    const normalized = { ...details };
+    const restrictionType = String(normalized.restriction_type || '').toLowerCase();
+    const isTemporary = restrictionType.includes('temporary') || restrictionType === 'listing_ban';
+
+    if (!normalized.expires_at && isTemporary && normalized.starts_at) {
+      const startsAtTime = new Date(normalized.starts_at).getTime();
+      if (!Number.isNaN(startsAtTime)) {
+        normalized.expires_at = new Date(startsAtTime + (48 * 60 * 60 * 1000)).toISOString();
+      }
+    }
+
+    return normalized;
+  }
+
+  isPermanentRestriction(): boolean {
+    const type = String(this.restrictionDetails?.restriction_type || '').toLowerCase();
+    return type.includes('permanent') || type === 'banned';
+  }
+
+  closeRestrictionModal() {
+    this.showRestrictionModal = false;
+    document.body.style.overflow = 'auto';
+  }
+
+  private startRestrictionTimer(expiresAt?: string) {
+    this.stopRestrictionTimer();
+
+    if (!expiresAt) {
+      this.restrictionTimeLeft = '';
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(expiresAt).getTime();
+      const diff = expiry - now;
+
+      if (diff <= 0) {
+        this.restrictionTimeLeft = 'Expired';
+        this.stopRestrictionTimer();
+        this.syncRestrictionStatus();
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      this.restrictionTimeLeft = `${hours}h ${minutes}m`;
+    };
+
+    updateTimer();
+    this.restrictionTimer = setInterval(updateTimer, 60000);
+  }
+
+  private stopRestrictionTimer() {
+    if (this.restrictionTimer) {
+      clearInterval(this.restrictionTimer);
+      this.restrictionTimer = null;
+    }
+    this.restrictionTimeLeft = '';
+  }
+
+  getRestrictionWaitMessage(): string {
+    if (this.restrictionDetails?.expires_at) {
+      return 'Please wait until your restriction period ends before adding a new listing.';
+    }
+
+    if (this.restrictionDetails?.restriction_type === 'listing_ban') {
+      return 'Please wait for 48 hours before using this feature again.';
+    }
+
+    return 'Please wait for admin review before using this feature again.';
+  }
+
+  getViolationTypeLabel(code: string): string {
+    const labels: { [key: string]: string } = {
+      'not_bike_related': 'Not Bicycle Related',
+      'prohibited_item': 'Prohibited Item',
+      'spam': 'Spam/Duplicates',
+      'fraud': 'Fraudulent Content',
+      'inappropriate_content': 'Inappropriate Content',
+      'misleading_info': 'Misleading Information',
+      'price_manipulation': 'Price Manipulation',
+      'other': 'Policy Violation'
+    };
+    return labels[code] || 'Policy Violation';
   }
 
   closeAddModal() {
@@ -269,13 +509,37 @@ export class ListingComponent implements OnInit, OnDestroy {
   onProductAdded() {
     // Reload products when a new product is added
     this.loadUserProducts();
+    
+    // Auto-submit new products for approval (enables auto-approval logic)
+    setTimeout(() => {
+      // Get the just-added product from the list
+      if (this.userProducts && this.userProducts.length > 0) {
+        const lastProduct = this.userProducts[0]; // Most recent product
+        if (lastProduct && lastProduct.approval_status === 'pending') {
+          // Auto-submit for approval (triggers auto-review checks)
+          this.apiService.submitForApproval({
+            product_id: lastProduct.product_id,
+            uploader_id: this.userId
+          }).subscribe({
+            next: (response) => {
+              // Product auto-submitted for approval
+              if (response.status === 'success') {
+                console.log('Product auto-submitted for approval', response);
+                // Reload to show updated status
+                setTimeout(() => this.loadUserProducts(), 1000);
+              }
+            },
+            error: (error) => {
+              console.error('Failed to auto-submit product for approval', error);
+              // Continue anyway - not critical
+            }
+          });
+        }
+      }
+    }, 1500); // Wait for product list to reload
   }
 
   editListing(product: Product) {
-    console.log('🎯 EditListing - Raw Product:', JSON.stringify(product, null, 2));
-    console.log('🎥 EditListing - Raw product_videos:', product.product_videos);
-    console.log('🎥 EditListing - Type of product_videos:', typeof product.product_videos);
-    
     // Process video data before passing to modal
     let processedProduct = { ...product };
     
@@ -286,7 +550,6 @@ export class ListingComponent implements OnInit, OnDestroy {
         // Parse if it's a string
         if (typeof videoData === 'string') {
           videoData = JSON.parse(videoData);
-          console.log('🔄 EditListing - Parsed video data:', videoData);
         }
         
         // Ensure it's an array and clean it
@@ -301,21 +564,15 @@ export class ListingComponent implements OnInit, OnDestroy {
             .slice(0, 3); // Limit to max 3 videos
           
           processedProduct.product_videos = cleanedVideos;
-          console.log('✅ EditListing - Cleaned videos:', cleanedVideos);
         } else {
           processedProduct.product_videos = [];
-          console.log('⚠️ EditListing - Video data is not an array, setting to empty');
         }
       } catch (e) {
-        console.error('❌ EditListing - Error processing videos:', e);
         processedProduct.product_videos = [];
       }
     } else {
       processedProduct.product_videos = [];
-      console.log('ℹ️ EditListing - No videos found');
     }
-    
-    console.log('📤 EditListing - Final processed product:', processedProduct);
     
     this.productToEdit = processedProduct;
     this.showEditModal = true;
@@ -361,7 +618,6 @@ export class ListingComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.isProcessing = false;
-        console.error('Error deleting product:', error);
         this.showError('Failed to delete product. Please check your internet connection and try again.');
       }
     });
@@ -413,6 +669,7 @@ export class ListingComponent implements OnInit, OnDestroy {
       product_id: product.product_id,
       sale_status: newStatus,
       uploader_id: this.userId,
+      seller_id: this.userId,
       for_type: product.for_type
     };
 
@@ -452,21 +709,12 @@ export class ListingComponent implements OnInit, OnDestroy {
           }
           
           // Log the status change
-          console.log('Product status updated:', {
-            product_id: product.product_id,
-            product_name: product.product_name,
-            new_status: newStatus,
-            for_type: product.for_type,
-            timestamp: new Date().toISOString(),
-            user_id: this.userId
-          });
         } else {
           this.showError('Failed to update product status: ' + (response.message || 'Unknown error occurred'));
         }
       },
       error: (error) => {
         this.isProcessing = false;
-        console.error('Error updating product status:', error);
         this.showError('Failed to update product status. Please check your internet connection and try again.');
       }
     });
@@ -483,7 +731,6 @@ export class ListingComponent implements OnInit, OnDestroy {
 
   // Toggle dropdown for a specific product
   toggleDropdown(productId: number, event?: Event) {
-    console.log('toggleDropdown called for product:', productId);
     if (event) {
       event.stopPropagation();
     }
@@ -497,7 +744,6 @@ export class ListingComponent implements OnInit, OnDestroy {
     
     // Toggle current dropdown
     this.dropdownStates[productId] = !this.dropdownStates[productId];
-    console.log('Dropdown state for product', productId, ':', this.dropdownStates[productId]);
   }
 
   // Close all dropdowns (useful for click outside)
@@ -510,7 +756,6 @@ export class ListingComponent implements OnInit, OnDestroy {
   // Check if dropdown is open for specific product
   isDropdownOpen(productId: number): boolean {
     const isOpen = !!this.dropdownStates[productId];
-    console.log('isDropdownOpen for product', productId, ':', isOpen);
     return isOpen;
   }
 
@@ -574,18 +819,39 @@ export class ListingComponent implements OnInit, OnDestroy {
   }
 
   getImageUrl(imagePath: string): string {
-    if (imagePath.startsWith('data:')) {
-      return imagePath; // Base64 image
+    if (!imagePath) {
+      return 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png';
     }
-    const cleanPath = imagePath.startsWith('/') ? imagePath : '/' + imagePath;
-    return `${this.apiService.baseUrl}${cleanPath}`;
+
+    if (imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+
+    let cleanPath = imagePath.replace(/^\/+/, '');
+    cleanPath = cleanPath.replace(/^api\//, '');
+    cleanPath = cleanPath.replace(/^uploads[\/\\]/, '');
+    cleanPath = cleanPath.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
   }
 
   getVideoUrl(videoPath: string): string {
-    if (videoPath.startsWith('data:')) {
-      return videoPath; // Base64 video
+    if (!videoPath) {
+      return '';
     }
-    return `http://api.cyclemart.shop/CycleMart-api/api${videoPath}`;
+    
+    // Check if it's already a complete URL or base64
+    if (videoPath.startsWith('http://') || videoPath.startsWith('https://') || videoPath.startsWith('data:')) {
+      return videoPath;
+    }
+    
+    let cleanPath = videoPath.replace(/^\/+/, '');
+    cleanPath = cleanPath.replace(/^api\//, '');
+    cleanPath = cleanPath.replace(/^uploads[\/\\]/, '');
+    cleanPath = cleanPath.replace(/^api[\/\\]uploads[\/\\]/, '');
+
+    return `${environment.apiUploadsBaseUrl}${cleanPath}`;
+
   }
 
   removeImage(index: number, product: Product) {
@@ -603,6 +869,28 @@ export class ListingComponent implements OnInit, OnDestroy {
     
     // Format brand name for display (capitalize first letter)
     return brandName.charAt(0).toUpperCase() + brandName.slice(1);
+  }
+
+  // Format specification names: replace underscores with spaces and capitalize
+  formatSpecName(specName: string): string {
+    if (!specName) return '';
+    return specName
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  toggleGuidelines() {
+    this.showGuidelines = !this.showGuidelines;
+  }
+
+  toggleRule(ruleId: number) {
+    this.expandedRules[ruleId] = !this.expandedRules[ruleId];
+  }
+
+  isRuleExpanded(ruleId: number): boolean {
+    return this.expandedRules[ruleId] || false;
   }
 
   getBrandDisplayClass(brandName?: string): string {
@@ -667,5 +955,59 @@ export class ListingComponent implements OnInit, OnDestroy {
 
   closeErrorModal() {
     this.showErrorModal = false;
+  }
+
+  /**
+   * ================================================================================================
+   * RESERVATION SYSTEM METHODS
+   * ================================================================================================
+   */
+
+  /**
+   * Check for expired reservations when component loads
+   * This ensures reservations are automatically released when they expire
+   */
+  checkExpiredReservations() {
+    this.apiService.checkExpiredReservations().subscribe({
+      next: (response) => {
+        if (response.status === 'success' && response.data.expired_count > 0) {
+          // Reload products to reflect updated statuses
+          this.loadUserProducts();
+        }
+      },
+      error: (error) => {
+      }
+    });
+  }
+
+  /**
+   * Get reservation status badge class
+   */
+  getReservationBadgeClass(product: Product): string {
+    if (product.sale_status === 'reserved') {
+      return 'bg-orange-100 text-orange-800 border-orange-300';
+    }
+    return '';
+  }
+
+  /**
+   * Format reservation time remaining
+   */
+  formatReservationTime(reservedUntil: string): string {
+    const until = new Date(reservedUntil);
+    const now = new Date();
+    const diff = until.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      return 'Expired';
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m remaining`;
+    }
+    return `${minutes}m remaining`;
   }
 }

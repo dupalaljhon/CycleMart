@@ -172,7 +172,8 @@ if (empty($token) || empty($email)) {
                 </div>
                 
                 <div style="margin-top: 30px;">
-                    <a href="http://cyclemart.shop/login" class="btn">Go to Login Page</a>
+                    <a href="http://localhost:4200/login" class="btn">Go to Login Page</a>
+                    <!-- <a href="http://cyclemart.shop/login" class="btn">Go to Login Page</a> -->
                     <a href="mailto:cyclemrt@gmail.com?subject=Security%20Report%20-%20Denied%20Account" class="btn btn-danger">Report Security Issue</a>
                 </div>
             </div>
