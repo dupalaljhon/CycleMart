@@ -2470,139 +2470,22 @@ async function submitForApproval(data) {
 		return sendPayload(null, 'error', 'Missing product ID or uploader ID', 400);
 	}
 
-	// Fetch product details for auto-review
-	const productRows = await query(
-		`SELECT product_name, description, location FROM products WHERE product_id = ? AND uploader_id = ?`,
+	const result = await query(
+		`UPDATE products
+		SET approval_submitted_at = NOW()
+		WHERE product_id = ?
+			AND uploader_id = ?`,
 		[productId, uploaderId]
 	);
 
-	if (productRows.length === 0) {
-		return sendPayload(null, 'error', 'Product not found or unauthorized', 404);
+	if (Number(result.affectedRows || 0) > 0) {
+		return sendPayload({
+			product_id: productId,
+			message: 'Product submitted for approval'
+		}, 'success', 'Product submitted for approval', 200);
 	}
 
-	const product = productRows[0];
-
-	// Check if auto-approval is enabled
-	const configRows = await query('SELECT is_enabled FROM listing_auto_approval_config WHERE config_id = 1 LIMIT 1');
-	const isAutoApprovalEnabled = Number(configRows[0]?.is_enabled || 0) === 1;
-
-	console.log(`[AUTO-APPROVAL] Product ${productId}: Auto-approval enabled: ${isAutoApprovalEnabled}`);
-
-	let approvalStatus = 'pending';
-	let rejectionReason = null;
-
-	if (isAutoApprovalEnabled) {
-		// Run auto-review checks
-		const autoReviewResult = runAutoReviewChecks(product);
-		console.log(`[AUTO-APPROVAL] Product ${productId}: Review failures: ${JSON.stringify(autoReviewResult.failures)}`);
-		
-		if (autoReviewResult.failures.length > 0) {
-			// Auto-reject if prohibited content detected
-			approvalStatus = 'rejected';
-			rejectionReason = JSON.stringify(autoReviewResult.failures);
-			console.log(`[AUTO-APPROVAL] Product ${productId}: AUTO-REJECTED - ${rejectionReason}`);
-		} else {
-			// Auto-approve if all checks pass
-			approvalStatus = 'approved';
-			console.log(`[AUTO-APPROVAL] Product ${productId}: AUTO-APPROVED`);
-		}
-	}
-
-	// Update product with appropriate status
-	if (approvalStatus === 'approved') {
-		const updateResult = await query(
-			`UPDATE products
-			SET approval_submitted_at = NOW(), approval_status = 'approved', status = 'active'
-			WHERE product_id = ? AND uploader_id = ?`,
-			[productId, uploaderId]
-		);
-		
-		if (Number(updateResult.affectedRows || 0) > 0) {
-			console.log(`[AUTO-APPROVAL] Product ${productId}: Successfully updated to approved`);
-			return sendPayload({
-				product_id: productId,
-				message: 'Product auto-approved',
-				auto_approved: true
-			}, 'success', 'Product auto-approved and activated', 200);
-		}
-	} else if (approvalStatus === 'rejected') {
-		const updateResult = await query(
-			`UPDATE products
-			SET approval_submitted_at = NOW(), approval_status = 'rejected', rejection_reason = ?, status = 'inactive'
-			WHERE product_id = ? AND uploader_id = ?`,
-			[rejectionReason, productId, uploaderId]
-		);
-		
-		if (Number(updateResult.affectedRows || 0) > 0) {
-			console.log(`[AUTO-APPROVAL] Product ${productId}: Successfully updated to rejected`);
-			return sendPayload({
-				product_id: productId,
-				message: 'Product auto-rejected due to policy violations',
-				auto_rejected: true,
-				failures: JSON.parse(rejectionReason)
-			}, 'success', 'Product auto-rejected', 200);
-		}
-	} else {
-		// Pending review
-		const updateResult = await query(
-			`UPDATE products
-			SET approval_submitted_at = NOW()
-			WHERE product_id = ? AND uploader_id = ?`,
-			[productId, uploaderId]
-		);
-		
-		if (Number(updateResult.affectedRows || 0) > 0) {
-			console.log(`[AUTO-APPROVAL] Product ${productId}: Submitted for manual review (auto-approval disabled)`);
-			return sendPayload({
-				product_id: productId,
-				message: 'Product submitted for manual review'
-			}, 'success', 'Product submitted for approval', 200);
-		}
-	}
-
-	return sendPayload(null, 'error', 'Failed to update product status', 500);
-}
-
-function runAutoReviewChecks(product) {
-	const failures = [];
-	
-	// Simple prohibited words (case-insensitive)
-	const prohibitedWords = [
-		'facebook', 'whatsapp', 'telegram', 'viber', 'tiktok', 'instagram',
-		'gcash', 'paypal'
-	];
-
-	const textToCheck = [product.product_name || '', product.description || '', product.location || ''].join(' ').toLowerCase();
-
-	// Check for prohibited words (simple substring match)
-	for (const word of prohibitedWords) {
-		if (textToCheck.includes(word)) {
-			failures.push(`Contains prohibited word: "${word}"`);
-		}
-	}
-
-	// Check for phone numbers (be strict only for obvious patterns)
-	if (/0\d{10,}/.test(textToCheck)) {
-		failures.push('Phone number detected');
-	}
-	if (/\+63\d{9,}/.test(textToCheck)) {
-		failures.push('Phone number detected');
-	}
-
-	// Check for email addresses
-	if (/[a-z0-9][a-z0-9._-]*@[a-z0-9.-]+\.[a-z]{2,}/i.test(textToCheck)) {
-		failures.push('Email address detected');
-	}
-
-	// Check for external links
-	if (/https?:\/\/|www\./i.test(textToCheck)) {
-		failures.push('External links detected');
-	}
-
-	console.log(`[AUTO-REVIEW] Checked text: "${textToCheck.substring(0, 100)}..."`);
-	console.log(`[AUTO-REVIEW] Failures: ${failures.length} - ${JSON.stringify(failures)}`);
-
-	return { failures };
+	return sendPayload(null, 'error', 'Product not found or unauthorized', 404);
 }
 
 function isValidJsonString(value) {

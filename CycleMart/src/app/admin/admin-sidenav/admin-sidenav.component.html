@@ -16,7 +16,24 @@
     </svg>
   </button>
 
-  <!-- Desktop Collapse/Expand Button moved inside sidebar -->
+  <!-- Desktop Collapse/Expand Button -->
+  <button 
+    *ngIf="!isMobile"
+    (click)="toggleSidebar()"
+    class="fixed top-4 z-50 bg-white text-black p-2 rounded-lg shadow-2xl border border-gray-300 hover:bg-gray-100 transition-all duration-300"
+    [ngClass]="{
+      'left-4': isCollapsed,
+      'left-60 lg:left-60 md:left-52': !isCollapsed
+    }"
+  >
+    <!-- Collapse/Expand Icons -->
+    <svg *ngIf="!isCollapsed" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+    </svg>
+    <svg *ngIf="isCollapsed" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+    </svg>
+  </button>
 
   <!-- Mobile Overlay -->
   <div 
@@ -39,8 +56,8 @@
     (mouseleave)="collapseSidebar()"
   >
     <!-- Header -->
-    <div class="p-4 lg:p-6 border-b border-gray-300 flex items-center justify-between" [ngClass]="{'p-2': !isMobile && isCollapsed}">
-      <div class="flex items-center space-x-2 lg:space-x-3 flex-1" [ngClass]="{'justify-center': !isMobile && isCollapsed}">
+    <div class="p-4 lg:p-6 border-b border-gray-300" [ngClass]="{'p-2': !isMobile && isCollapsed}">
+      <div class="flex items-center space-x-2 lg:space-x-3" [ngClass]="{'justify-center': !isMobile && isCollapsed}">
         <div class="brand-logo-wrap" [ngClass]="{'brand-logo-wrap-collapsed': !isMobile && isCollapsed}">
           <img
             src="assets/images/cyclemart-logo2.png"
@@ -53,12 +70,6 @@
           <p class="text-gray-600 text-xs lg:text-sm">Admin Panel</p>
         </div>
       </div>
-      <!-- Collapse button (desktop only) -->
-      <button *ngIf="!isMobile" class="text-black hover:text-white hover:bg-[#2e7d32] p-2 rounded-lg transition-all duration-200 flex-shrink-0" (click)="toggleSidebar()">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" [ngClass]="{'rotate-180': isCollapsed}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
     </div>
 
     <!-- Admin Info -->

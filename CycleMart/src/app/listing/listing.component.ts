@@ -509,34 +509,6 @@ export class ListingComponent implements OnInit, OnDestroy {
   onProductAdded() {
     // Reload products when a new product is added
     this.loadUserProducts();
-    
-    // Auto-submit new products for approval (enables auto-approval logic)
-    setTimeout(() => {
-      // Get the just-added product from the list
-      if (this.userProducts && this.userProducts.length > 0) {
-        const lastProduct = this.userProducts[0]; // Most recent product
-        if (lastProduct && lastProduct.approval_status === 'pending') {
-          // Auto-submit for approval (triggers auto-review checks)
-          this.apiService.submitForApproval({
-            product_id: lastProduct.product_id,
-            uploader_id: this.userId
-          }).subscribe({
-            next: (response) => {
-              // Product auto-submitted for approval
-              if (response.status === 'success') {
-                console.log('Product auto-submitted for approval', response);
-                // Reload to show updated status
-                setTimeout(() => this.loadUserProducts(), 1000);
-              }
-            },
-            error: (error) => {
-              console.error('Failed to auto-submit product for approval', error);
-              // Continue anyway - not critical
-            }
-          });
-        }
-      }
-    }, 1500); // Wait for product list to reload
   }
 
   editListing(product: Product) {
