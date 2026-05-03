@@ -211,7 +211,8 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
   canEditAdmin(admin: Admin): boolean {
     if (this.isSuperAdminRole(this.currentUserRole)) return true;
-    if (this.currentUserRole === 'moderator' && admin.role === 'support') return true;
+    // Moderators can manage support accounts and other moderators (but not super admins)
+    if (this.currentUserRole === 'moderator' && (admin.role === 'support' || admin.role === 'moderator')) return true;
     return false;
   }
 

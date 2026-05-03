@@ -212,6 +212,26 @@ export class LoginComponent {
     this.resetForm();
   }
 
+  onPhoneInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let val = (input.value || '') as string;
+    // Allow a single leading +, then digits only
+    const hasPlus = val.startsWith('+');
+    if (hasPlus) {
+      const rest = val.slice(1).replace(/\D+/g, '');
+      val = '+' + rest;
+    } else {
+      val = val.replace(/\D+/g, '');
+    }
+    // Ensure only one leading plus and trim to maxlength 13
+    if (val.indexOf('+') > 0) {
+      val = val.replace(/\+/g, '');
+    }
+    if (val.length > 13) val = val.slice(0, 13);
+    if (val !== input.value) input.value = val;
+    this.phone = val;
+  }
+
   resetForm() {
     this.full_name = '';
     this.email = '';

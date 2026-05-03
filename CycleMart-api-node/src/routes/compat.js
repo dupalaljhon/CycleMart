@@ -198,7 +198,13 @@ function applyAuthGuards(req, res, endpoint, action) {
 		const claims = verifyToken(token);
 		req.jwt = claims;
 	} catch (error) {
-		respond(res, sendPayload(null, 'error', 'Invalid or expired JWT token', 401));
+			// Log verification error for debugging (do not leak token in production)
+			try {
+				console.error('JWT verification failed:', { message: error && error.message, tokenPreview: token ? `${String(token).slice(0, 20)}...` : null });
+			} catch (e) {
+				console.error('JWT verification failed (unable to log token preview)');
+			}
+			respond(res, sendPayload(null, 'error', 'Invalid or expired JWT token', 401));
 		return false;
 	}
 
@@ -435,6 +441,96 @@ async function getListingAutoApprovalConfig() {
 		updated_by: config.updated_by ? Number(config.updated_by) : null,
 		updated_at: config.updated_at || null
 	}, 'success', 'Listing auto-approval config fetched', 200);
+}
+
+async function isListingAutoApprovalEnabled() {
+	await ensureListingAutoApprovalConfigTable();
+	const rows = await query('SELECT is_enabled FROM listing_auto_approval_config WHERE config_id = 1 LIMIT 1');
+	const cfg = rows[0] || {};
+	return Number(cfg.is_enabled || 0) === 1;
+}
+
+async function ensureAutoApprovalAuditTable() {
+	await query(`CREATE TABLE IF NOT EXISTS listing_auto_approval_audit (
+		audit_id BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		product_id BIGINT UNSIGNED NOT NULL,
+		summary VARCHAR(255) NOT NULL,
+		details JSON NULL,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+}
+
+async function insertAutoApprovalAudit(productId, summary, details = null) {
+	await ensureAutoApprovalAuditTable();
+	const detailsJson = details ? JSON.stringify(details) : null;
+	await query(`INSERT INTO listing_auto_approval_audit (product_id, summary, details)
+		VALUES (?, ?, ?)`, [productId, String(summary || ''), detailsJson]);
+}
+
+function serverEvaluatePendingReasons(listing) {
+	// Listing is a plain object with fields similar to frontend PendingListing
+	const failures = [];
+	const name = String(listing.product_name || '').trim();
+	const description = String(listing.description || '').trim();
+	const location = String(listing.location || '').trim();
+	const combinedText = (name + ' ' + description).toLowerCase();
+	const images = Array.isArray(listing.product_images) ? listing.product_images : [];
+	const specs = Array.isArray(listing.specifications) ? listing.specifications : [];
+
+	const descriptionWordCount = (description.match(/[a-z0-9]+/gi) || []).length;
+	// Require at least one bike-related keyword specifically in the description for auto-approval
+	const bikeKeywordRegex = /\b(?:bike|bicycle|cycle|cycles|bikes|mtb|mountain\s?bike|mountainbike|mountain|road\b|roadbike|gravel|hybrid|bmx|wheel|wheelset|rim|tyre|tire|tube|tubes|tubeless|frame|frameset|groupset|drivetrain|derailleur|cassette|chainring|chain|crank|brake|brakes|fork|suspension|handlebar|stem|saddle|seatpost|pedal|pedals|shifter|gear|shimano|sram|campagnolo|trek|giant|specialized|cannondale)\b/i;
+	const technicalDetailRegex = /\b(?:\d{1,4}\s?(?:mm|cm|in|inch|"|')|\d+\s?(?:speed|spd|s)\b|\d+x\d+|\b(?:11|12|10|9|8)(?:-|\s)?speed\b|xx1|x01|deore|slx|xt|xtr|tiagra|105|ultegra|dura-ace|nx|gx|axs|cassette|chainring|chainset|clinch|tubeless|tubular|clincher)\b/i;
+
+	const autoRejectPatterns = [
+		{ regex: /\b(?:fake|counterfeit|replica|class a|clone)\b/i, reason: 'counterfeit or replica terms detected' },
+		{ regex: /\b(?:stolen|smuggled|illegal|prohibited|drugs?|weapon|gun)\b/i, reason: 'illegal or prohibited terms detected' },
+		{ regex: /(?:https?:\/\/|www\.|t\.me\/|telegram|whatsapp|viber|@gmail\.com|@yahoo\.com|09\d{9})/i, reason: 'off-platform contact details detected' },
+		{ regex: /\b(?:nude|porn|sex|adult)\b/i, reason: 'inappropriate terms detected' }
+	];
+
+	for (const pattern of autoRejectPatterns) {
+		if (pattern.regex.test(combinedText)) failures.push(pattern.reason);
+	}
+
+	if (name === '' || name.length < 4) failures.push('Product name is too short');
+	if (name.length > 120) failures.push('Product name exceeds 120 characters');
+	if (!/[a-z]/i.test(name)) failures.push('Product name must contain readable letters');
+	if (description === '' || description.length < 20) failures.push('Description must be at least 20 characters');
+	if (description.length > 2000) failures.push('Description must be 2000 characters or less');
+	if (descriptionWordCount < 3) failures.push('Description must include at least 3 words');
+	if (/\b([a-z]{2,})\b(?:\s+\1){1,}/i.test(description)) failures.push('Description appears repetitive or spam-like');
+
+	const bikeCategories = ['whole bike','frame','wheelset','groupset','drivetrain','brakes'];
+	const isCategoryBike = bikeCategories.includes(((listing.category || '') + '').toLowerCase());
+	const hasBikeTaxonomy = Boolean(listing.bicycle_brand_id || listing.bicycle_part_id);
+	// Enforce bike keyword in DESCRIPTION (not just name) when category/taxonomy don't indicate a bike
+	if (!isCategoryBike && !hasBikeTaxonomy && !bikeKeywordRegex.test(description)) {
+		failures.push('Description should include at least one bike-related keyword');
+	}
+
+	if (location === '') failures.push('Location is required');
+	if ((listing.price || 0) <= 0) failures.push('Price must be greater than 0');
+	if ((listing.price || 0) > 10000000) failures.push('Price exceeds allowed limit');
+	if ((listing.quantity || 0) < 1) failures.push('Quantity must be at least 1');
+	if ((listing.quantity || 0) > 999) failures.push('Quantity must be 999 or less');
+	if (images.length < 1) failures.push('At least one product image is required');
+	if (images.length > 10) failures.push('Maximum 10 product images allowed');
+	if (!['sale', 'trade', 'both'].includes(((listing.for_type || '') + '').toLowerCase())) failures.push('Listing type must be sale, trade, or both');
+	if (!['brand new', 'second hand'].includes(((listing.condition || '') + '').toLowerCase())) failures.push('Condition must be brand new or second hand');
+	if (((listing.category || '') + '').trim() === '') failures.push('Category is required');
+
+	const brandName = ((listing.brand_name || '') + '').trim().toLowerCase();
+	const customBrand = ((listing.custom_brand || '') + '').trim();
+	if (brandName === 'others' && customBrand === '') failures.push('Custom brand detail is required for Others');
+	if (listing.bicycle_brand_id === null || listing.bicycle_brand_id === undefined || listing.bicycle_part_id === null || listing.bicycle_part_id === undefined) failures.push('Bicycle brand and part must be selected');
+
+	const hasNumericIndicator = /\d/.test(description);
+	if ((specs.length || 0) < 1 && !technicalDetailRegex.test(description) && !hasNumericIndicator) {
+		failures.push('Provide at least one specification or technical detail');
+	}
+
+	return failures;
 }
 
 async function updateListingAutoApprovalConfig(data) {
@@ -2479,6 +2575,75 @@ async function submitForApproval(data) {
 	);
 
 	if (Number(result.affectedRows || 0) > 0) {
+		// If auto-approval is enabled, evaluate server-side rules and possibly approve
+		try {
+			const autoEnabled = await isListingAutoApprovalEnabled();
+			if (autoEnabled) {
+				// fetch product details for evaluation
+				const prodRows = await query('SELECT product_id, product_name, brand_name, custom_brand, bicycle_brand_id, bicycle_part_id, product_images, price, description, location, for_type, `condition`, category, quantity, specifications FROM products WHERE product_id = ? LIMIT 1', [productId]);
+				const prod = prodRows[0] || null;
+				let serverFailures = [];
+				if (prod) {
+					try {
+						prod.product_images = prod.product_images ? JSON.parse(prod.product_images || '[]') : [];
+						prod.specifications = prod.specifications ? (Array.isArray(prod.specifications) ? prod.specifications : JSON.parse(prod.specifications || '[]')) : [];
+						serverFailures = serverEvaluatePendingReasons(prod);
+					} catch (e) {
+						console.error('Error parsing product for server evaluation', e && e.message);
+					}
+				}
+				if (serverFailures.length === 0) {
+					await query(`UPDATE products
+						SET approval_status = 'approved', approved_by = 0, approval_date = NOW(), status = 'active'
+						WHERE product_id = ?`, [productId]);
+					try {
+						await insertAutoApprovalAudit(productId, 'auto-approved by config', { method: 'submitForApproval', reasons: [] });
+					} catch (e) {
+						console.error('Failed to insert auto-approval audit', e && e.message);
+					}
+					try {
+						if (prod) {
+							await createUserNotification(
+								prod.uploader_id,
+								'listing approved',
+								'Listing Approved',
+								`Your listing '${prod.product_name}' was automatically approved and is now live.`,
+								productId
+							);
+						}
+					} catch (e) {
+						console.error('Auto-approval notification failed', e && e.message);
+					}
+					return sendPayload({ product_id: productId, message: 'Product auto-approved' }, 'success', 'Product auto-approved and is now live', 200);
+					} else {
+						try {
+							await insertAutoApprovalAudit(productId, 'auto-approval-skip', { method: 'submitForApproval', reasons: serverFailures });
+						} catch (e) {
+							console.error('Failed to insert auto-approval audit (skip)', e && e.message);
+						}
+						// notify uploader with reasons the listing remains pending
+						try {
+							const prodRows2 = await query('SELECT product_name, uploader_id FROM products WHERE product_id = ? LIMIT 1', [productId]);
+							const prod2 = prodRows2[0] || null;
+							if (prod2) {
+								const reasonText = Array.isArray(serverFailures) ? serverFailures.join('; ') : String(serverFailures || '');
+								await createUserNotification(
+									prod2.uploader_id,
+									'Listing Pending Review',
+									'Your listing is still pending review',
+									`Your listing '${prod2.product_name}' is still pending admin review because: ${reasonText}. Please update your listing to address these issues.`,
+									productId
+								);
+							}
+						} catch (e) {
+							console.error('Auto-approval skip notification failed', e && e.message);
+						}
+					}
+			}
+		} catch (e) {
+			console.error('Error checking auto-approval config:', e && e.message);
+		}
+
 		return sendPayload({
 			product_id: productId,
 			message: 'Product submitted for approval'
@@ -3425,10 +3590,20 @@ async function submitRating(data) {
 
 async function approveProduct(data) {
 	const productId = Number(data?.product_id || 0);
-	const adminId = Number(data?.admin_id || 0);
+	let adminId = Number(data?.admin_id || 0);
 	const adminRole = normalizeRoleName(data?.admin_role);
+	const adminEmail = String(data?.admin_email || '').trim().toLowerCase();
 
-	if (!productId || !adminId || !adminRole) {
+	// If admin_id is missing but we have an admin email (moderator logged in via user JWT),
+	// try to resolve the admin_id by email from the admins table.
+	if (!adminId && adminEmail) {
+		const rows = await query('SELECT admin_id FROM admins WHERE LOWER(email) = ? LIMIT 1', [adminEmail]);
+		if (rows && rows[0] && rows[0].admin_id) {
+			adminId = Number(rows[0].admin_id || 0);
+		}
+	}
+
+ 	if (!productId || !adminId || !adminRole) {
 		return sendPayload(null, 'error', 'Missing required fields', 400);
 	}
 
@@ -3466,9 +3641,18 @@ async function approveProduct(data) {
 
 async function rejectProduct(data) {
 	const productId = Number(data?.product_id || 0);
-	const adminId = Number(data?.admin_id || 0);
+	let adminId = Number(data?.admin_id || 0);
 	const adminRole = normalizeRoleName(data?.admin_role);
+	const adminEmail = String(data?.admin_email || '').trim().toLowerCase();
 	const rejectionReason = String(data?.rejection_reason || '').trim();
+
+	// Attempt to resolve admin_id from admin_email when missing
+	if (!adminId && adminEmail) {
+		const rows = await query('SELECT admin_id FROM admins WHERE LOWER(email) = ? LIMIT 1', [adminEmail]);
+		if (rows && rows[0] && rows[0].admin_id) {
+			adminId = Number(rows[0].admin_id || 0);
+		}
+	}
 
 	if (!productId || !adminId || !adminRole || !rejectionReason) {
 		return sendPayload(null, 'error', 'Missing required fields', 400);
@@ -4091,6 +4275,79 @@ router.post('/:endpoint/:action?', async (req, res) => {
 					JSON.stringify(processedSpecs)
 				]);
 
+				// If listing auto-approval is enabled, immediately approve the newly created product
+				try {
+					const autoEnabled = await isListingAutoApprovalEnabled();
+					if (autoEnabled && result?.insertId) {
+						// Fetch inserted product for server-side review
+						const prodRowsBefore = await query('SELECT product_id, product_name, brand_name, custom_brand, bicycle_brand_id, bicycle_part_id, product_images, price, description, location, for_type, `condition`, category, quantity, specifications FROM products WHERE product_id = ? LIMIT 1', [result.insertId]);
+						const prodBefore = prodRowsBefore[0] || null;
+						let serverFailures = [];
+						if (prodBefore) {
+							try {
+								prodBefore.product_images = prodBefore.product_images ? JSON.parse(prodBefore.product_images || '[]') : [];
+								prodBefore.specifications = prodBefore.specifications ? (Array.isArray(prodBefore.specifications) ? prodBefore.specifications : JSON.parse(prodBefore.specifications || '[]')) : [];
+								serverFailures = serverEvaluatePendingReasons(prodBefore);
+							} catch (e) {
+								console.error('Error parsing product for server evaluation', e && e.message);
+							}
+						}
+						if (serverFailures.length === 0) {
+							await query(`UPDATE products
+								SET approval_status = 'approved', approved_by = 0, approval_date = NOW(), status = 'active'
+								WHERE product_id = ?`, [result.insertId]);
+							// insert audit row
+							try {
+								await insertAutoApprovalAudit(result.insertId, 'auto-approved by config', { method: 'addProduct', reasons: [] });
+							} catch (e) {
+								console.error('Failed to insert auto-approval audit', e && e.message);
+							}
+							// notify uploader
+							try {
+								const prodRows = await query('SELECT product_name, uploader_id FROM products WHERE product_id = ? LIMIT 1', [result.insertId]);
+								const prod = prodRows[0];
+								if (prod) {
+									await createUserNotification(
+										prod.uploader_id,
+										'listing approved',
+										'Listing Approved',
+										`Your listing '${prod.product_name}' was automatically approved and is now live.`,
+										result.insertId
+									);
+								}
+							} catch (e) {
+								console.error('Auto-approval notification failed', e && e.message);
+							}
+						} else {
+							// record audit that auto-approval was skipped due to server evaluation
+							try {
+								await insertAutoApprovalAudit(result.insertId, 'auto-approval-skip', { method: 'addProduct', reasons: serverFailures });
+							} catch (e) {
+								console.error('Failed to insert auto-approval audit (skip)', e && e.message);
+							}
+							// notify uploader with reasons why the listing remains pending
+							try {
+								const prodRows2 = await query('SELECT product_name, uploader_id FROM products WHERE product_id = ? LIMIT 1', [result.insertId]);
+								const prod2 = prodRows2[0];
+								if (prod2) {
+									const reasonText = Array.isArray(serverFailures) ? serverFailures.join('; ') : String(serverFailures || '');
+									await createUserNotification(
+										prod2.uploader_id,
+										'Listing Pending Review',
+										'Your listing is still pending review',
+										`Your listing '${prod2.product_name}' is still pending admin review because: ${reasonText}. Please update your listing to address these issues.`,
+										result.insertId
+									);
+								}
+							} catch (e) {
+								console.error('Auto-approval skip notification failed', e && e.message);
+							}
+						}
+					}
+				} catch (e) {
+					console.error('Error checking auto-approval config:', e && e.message);
+				}
+
 				return respond(res, sendPayload({
 					product_id: result.insertId,
 					product_name: productName,
@@ -4267,7 +4524,8 @@ router.post('/:endpoint/:action?', async (req, res) => {
 				const payload = await approveProduct({
 					...(req.body || {}),
 					admin_id: req.jwt?.admin_id || req.body?.admin_id,
-					admin_role: req.jwt?.role || req.body?.admin_role
+					admin_role: req.jwt?.role || req.body?.admin_role,
+					admin_email: req.jwt?.email || req.body?.admin_email
 				});
 				return respond(res, payload);
 			}
@@ -4275,7 +4533,8 @@ router.post('/:endpoint/:action?', async (req, res) => {
 				const payload = await rejectProduct({
 					...(req.body || {}),
 					admin_id: req.jwt?.admin_id || req.body?.admin_id,
-					admin_role: req.jwt?.role || req.body?.admin_role
+					admin_role: req.jwt?.role || req.body?.admin_role,
+					admin_email: req.jwt?.email || req.body?.admin_email
 				});
 				return respond(res, payload);
 			}

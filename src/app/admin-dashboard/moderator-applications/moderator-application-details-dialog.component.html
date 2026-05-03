@@ -1,0 +1,47 @@
+<mat-card class="details-card">
+  <mat-card-content>
+    <div class="dialog-header">
+      <img [src]="data.profileImageUrl || data.profile_image || data.profile_picture || ('https://ui-avatars.com/api/?name=' + (data.full_name || 'User'))" alt="Avatar" class="avatar">
+      <div class="header-meta">
+        <h2 class="name">{{ data.full_name || 'Unknown Applicant' }}</h2>
+        <p class="email"><mat-icon class="icon">email</mat-icon> {{ data.email || '—' }}</p>
+        <mat-chip class="status-chip">{{ (data.status || 'pending') | uppercase }}</mat-chip>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="details-body">
+      <section class="detail-section">
+        <h3>Reason for Applying</h3>
+        <p class="detail-text">{{ data.reason || 'No reason provided.' }}</p>
+      </section>
+
+      <section class="detail-section">
+        <h3>Experience / Background</h3>
+        <p class="detail-text">{{ data.experience || 'Not provided' }}</p>
+      </section>
+
+      <section class="detail-meta-grid">
+        <div>
+          <h4>Submitted</h4>
+          <p>{{ formatDate(data.created_at) }}</p>
+        </div>
+        <div>
+          <h4>Reviewed At</h4>
+          <p>{{ formatDate(data.reviewed_at) }}</p>
+        </div>
+        <div>
+          <h4>Reviewer</h4>
+          <p>{{ data.reviewer_username || '—' }}</p>
+        </div>
+      </section>
+    </div>
+  </mat-card-content>
+
+  <mat-card-actions align="end" class="actions-row">
+    <button *ngIf="data.status === 'pending'" mat-flat-button color="primary" (click)="approve()"><mat-icon>check</mat-icon> Approve</button>
+    <button *ngIf="data.status === 'pending'" mat-flat-button color="warn" (click)="reject()"><mat-icon>close</mat-icon> Reject</button>
+    <button mat-stroked-button (click)="close()"><mat-icon>close</mat-icon> Close</button>
+  </mat-card-actions>
+</mat-card>

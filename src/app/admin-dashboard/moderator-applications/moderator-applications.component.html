@@ -238,7 +238,18 @@
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef class="font-semibold">Actions</th>
                   <td mat-cell *matCellDef="let app" class="py-4">
-                    <span class="text-sm text-green-600 font-medium">✓ Moderator</span>
+                    <div class="flex gap-2" *ngIf="app.status === 'approved'">
+                      <button mat-mini-fab color="primary" matTooltip="Open Admin Monitor" (click)="openAdminMonitoring(app)">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="accent" matTooltip="View Admin Account" (click)="viewAdminAccount(app)">
+                        <mat-icon>account_circle</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="warn" matTooltip="Revoke Moderator" (click)="revokeModerator(app)">
+                        <mat-icon>person_remove</mat-icon>
+                      </button>
+                    </div>
+                    <span *ngIf="app.status !== 'approved'" class="text-sm text-gray-500">{{ app.status !== 'pending' ? 'Reviewed' : '' }}</span>
                   </td>
                 </ng-container>
 
@@ -268,7 +279,7 @@
                   <td mat-cell *matCellDef="let app" class="py-4">
                     <div class="flex items-center gap-3">
                       <img 
-                        [src]="app.profile_picture || 'assets/default-avatar.png'" 
+                        [src]="getProfileImageUrl(app.profile_picture, app.full_name)"
                         alt="Profile"
                         class="w-10 h-10 rounded-full object-cover">
                       <div>
@@ -337,7 +348,7 @@
                   <td mat-cell *matCellDef="let app" class="py-4">
                     <div class="flex items-center gap-3">
                       <img 
-                        [src]="app.profile_picture || 'assets/default-avatar.png'" 
+                        [src]="getProfileImageUrl(app.profile_picture, app.full_name)"
                         alt="Profile"
                         class="w-10 h-10 rounded-full object-cover">
                       <div>

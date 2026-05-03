@@ -286,8 +286,12 @@ export class ListingApprovalComponent implements OnInit, OnDestroy {
     const specs = Array.isArray(listing.specifications) ? listing.specifications : [];
 
     const descriptionWordCount = (description.match(/[a-z0-9]+/gi) || []).length;
-    const bikeKeywordRegex = /\b(?:bike|bicycle|frame|frameset|wheel|wheelset|groupset|drivetrain|fork|shock|brake|cassette|chain|derailleur|shifter|road|roadbike|mtb|gravel|dropbar|handlebar|stem|saddle|seatpost|tires?|trek|giant|specialized|shimano|sram|campagnolo)\b/i;
-    const technicalDetailRegex = /\b(?:\d{2,4}\s?(?:mm|cm|inch|in)|\d{1,2}\s?speed|\d{1,2}x\d{1,2}|xx1|x01|deore|slx|xt|xtr|tiagra|105|ultegra|dura-ace|nx|gx|axs)\b/i;
+    // Broadened bike keyword detection to include common terms; however,
+    // if category or taxonomy fields already identify this as a bicycle-related
+    // listing we skip the strict keyword requirement to avoid false negatives.
+    const bikeKeywordRegex = /\b(?:bike|bicycle|frame|frameset|wheel|wheelset|groupset|drivetrain|fork|shock|brake|cassette|chain|derailleur|shifter|road|roadbike|mtb|gravel|dropbar|handlebar|stem|saddle|seatpost|tyre|tire|tires?|trek|giant|specialized|shimano|sram|campagnolo|wheel|cassette|crank|chainring)\b/i;
+    // Technical details: include measurements, speeds, common drivetrain/wheel specs, and numeric indicators
+    const technicalDetailRegex = /\b(?:\d{1,4}\s?(?:mm|cm|in|inch|"|')|\d+\s?(?:speed|spd|s)\b|\d+x\d+|\b(?:11|12|10|9|8)(?:-|\s)?speed\b|xx1|x01|deore|slx|xt|xtr|tiagra|105|ultegra|dura-ace|nx|gx|axs|cassette|chainring|chainset|clinch|tubeless|tubular|clincher)\b/i;
 
     const autoRejectPatterns: Array<{ regex: RegExp; reason: string }> = [
       { regex: /\b(?:fake|counterfeit|replica|class a|clone)\b/i, reason: 'Auto-reject regex: counterfeit or replica terms detected' },
@@ -309,7 +313,14 @@ export class ListingApprovalComponent implements OnInit, OnDestroy {
     if (description.length > 2000) failures.push('Description must be 2000 characters or less');
     if (descriptionWordCount < 3) failures.push('Description must include at least 3 words');
     if (/\b([a-z]{2,})\b(?:\s+\1){1,}/i.test(description)) failures.push('Description appears repetitive or spam-like');
-    if (!bikeKeywordRegex.test(combinedText)) failures.push('Description must include at least one bike-related keyword');
+    // Only require an explicit bike-related keyword if the listing does not already
+    // indicate bicycle intent via category, bicycle brand or part taxonomy.
+    const bikeCategories = ['whole bike','frame','wheelset','groupset','drivetrain','brakes'];
+    const isCategoryBike = bikeCategories.includes((listing.category || '').toLowerCase());
+    const hasBikeTaxonomy = Boolean(listing.bicycle_brand_id || listing.bicycle_part_id);
+    if (!isCategoryBike && !hasBikeTaxonomy && !bikeKeywordRegex.test(combinedText)) {
+      failures.push('Description should include at least one bike-related keyword');
+    }
     if (location === '') failures.push('Location is required');
     if (location.length > 120) failures.push('Location must be 120 characters or less');
     if (Number(listing.price) <= 0) failures.push('Price must be greater than 0');
@@ -332,7 +343,10 @@ export class ListingApprovalComponent implements OnInit, OnDestroy {
       failures.push('Bicycle brand and part must be selected');
     }
 
-    if (specs.length < 1 && !technicalDetailRegex.test(description)) {
+    // Require at least one specification or a recognizable technical detail in description.
+    // Relax the rule to accept a simple numeric or measurement mention as a technical indicator.
+    const hasNumericIndicator = /\d/.test(description);
+    if (specs.length < 1 && !technicalDetailRegex.test(description) && !hasNumericIndicator) {
       failures.push('Provide at least one specification or technical detail');
     }
 

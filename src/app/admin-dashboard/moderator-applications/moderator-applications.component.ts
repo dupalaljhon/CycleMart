@@ -1,4 +1,5 @@
 ﻿import { Component, OnInit, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ModeratorApplicationDetailsDialogComponent } from './moderator-application-details-dialog.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -37,6 +40,7 @@ import { environment } from '../../../environments/environment';
     FormsModule,
     AdminSidenavComponent
 ],
+  providers: [],
   templateUrl: './moderator-applications.component.html',
   styleUrls: ['./moderator-applications.component.css']
 })
@@ -53,6 +57,7 @@ export class ModeratorApplicationsComponent implements OnInit {
   private apiService = inject(ApiService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
+  private router = inject(Router);
 
   ngOnInit(): void {
     // Get admin ID directly from localStorage (it's stored as 'admin_id', not in an admin object)
@@ -121,19 +126,41 @@ export class ModeratorApplicationsComponent implements OnInit {
   }
 
   approveApplication(application: any): void {
-    if (!confirm(`Are you sure you want to approve ${application.full_name} as a moderator?`)) {
-      return;
-    }
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Approve Moderator',
+        message: `Are you sure you want to approve ${application.full_name} as a moderator?`,
+        confirmText: 'Approve',
+        cancelText: 'Cancel',
+        confirmColor: 'primary'
+      }
+    });
 
-    this.reviewApplication(application.application_id, 'approve', application.full_name);
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.reviewApplication(application.application_id, 'approve', application.full_name);
+      }
+    });
   }
 
   rejectApplication(application: any): void {
-    if (!confirm(`Are you sure you want to reject ${application.full_name}'s application?`)) {
-      return;
-    }
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Reject Moderator',
+        message: `Are you sure you want to reject ${application.full_name}'s application?`,
+        confirmText: 'Reject',
+        cancelText: 'Cancel',
+        confirmColor: 'warn'
+      }
+    });
 
-    this.reviewApplication(application.application_id, 'reject', application.full_name);
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.reviewApplication(application.application_id, 'reject', application.full_name);
+      }
+    });
   }
 
   private reviewApplication(applicationId: number, action: string, fullName: string): void {
@@ -186,15 +213,24 @@ export class ModeratorApplicationsComponent implements OnInit {
   }
 
   viewDetails(application: any): void {
-    // Open dialog with full application details
-    alert(`
-Applicant: ${application.full_name}
-Email: ${application.email}
-Reason: ${application.reason}
-Experience: ${application.experience || 'Not provided'}
-Status: ${application.status}
-Submitted: ${new Date(application.created_at).toLocaleString()}
-    `);
+    // Resolve profile image URL and open Material dialog with full application details
+    const profileImageUrl = this.getProfileImageUrl(application.profile_image || application.profile_picture, application.full_name);
+    const dialogRef = this.dialog.open(ModeratorApplicationDetailsDialogComponent, {
+      width: '680px',
+      data: { ...application, profileImageUrl },
+      autoFocus: false
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (!result || !result.action) return;
+
+      if (result.action === 'approve') {
+        // Use existing action which includes confirmation
+        this.approveApplication(application);
+      } else if (result.action === 'reject') {
+        this.rejectApplication(application);
+      }
+    });
   }
 
   getStatusColor(status: string): string {
@@ -251,6 +287,79 @@ Submitted: ${new Date(application.created_at).toLocaleString()}
       .replace(/^\/?uploads[\/\\]/, '');
 
     return `${environment.apiUploadsBaseUrl}${cleanPath}`;
+  }
+
+  // Navigation: open admin monitoring list
+  openAdminMonitoring(application: any): void {
+    // Navigate to admin monitoring page
+    this.router.navigate(['/admin-monitoring']);
+  }
+
+  // Try to navigate or surface admin account details
+  viewAdminAccount(application: any): void {
+    // If admin id exists in application, navigate and include query param for easier lookup
+    if (application.admin_id) {
+      this.router.navigate(['/admin-monitoring'], { queryParams: { highlight: application.admin_id } });
+      return;
+    }
+
+    // Fallback: notify admin to use Admin Monitor to find the account
+    this.snackBar.open('Admin account not directly available. Open Admin Monitor to find the account.', 'Close', { duration: 3500 });
+  }
+
+  // Revoke moderator by deleting admin account (attempt to resolve admin id by email if missing)
+  revokeModerator(application: any): void {
+    if (!confirm(`Revoke moderator privileges for ${application.full_name}? This will remove their admin account.`)) return;
+
+    this.isLoading = true;
+
+    const performDelete = (adminId: number) => {
+      const payload = {
+        admin_id: adminId,
+        deleted_by_role: localStorage.getItem('role') || 'admin',
+        deleted_by_id: parseInt(localStorage.getItem('admin_id') || '0')
+      };
+
+      this.apiService.deleteAdmin(payload).subscribe({
+        next: (res: any) => {
+          this.isLoading = false;
+          if (res.status === 'success') {
+            this.snackBar.open('Moderator revoked and admin account removed.', 'Close', { duration: 3000, panelClass: ['success-snackbar'] });
+            this.loadApplications(this.selectedFilter === 'all' ? undefined : this.selectedFilter);
+          } else {
+            this.snackBar.open(res.message || 'Failed to revoke moderator', 'Close', { duration: 3000, panelClass: ['error-snackbar'] });
+          }
+        },
+        error: (err: any) => {
+          this.isLoading = false;
+          this.snackBar.open('Error revoking moderator. Please try again.', 'Close', { duration: 3500, panelClass: ['error-snackbar'] });
+        }
+      });
+    };
+
+    // If admin_id present, use it
+    if (application.admin_id) {
+      performDelete(application.admin_id);
+      return;
+    }
+
+    // Otherwise, attempt to locate admin by email
+    this.apiService.getAllAdmins().subscribe({
+      next: (resp: any) => {
+        const admins = resp.data || [];
+        const match = admins.find((a: any) => (a.email || '').toLowerCase() === (application.email || '').toLowerCase());
+        if (match && match.admin_id) {
+          performDelete(match.admin_id);
+        } else {
+          this.isLoading = false;
+          this.snackBar.open('Could not find associated admin account. Please remove manually in Admin Monitor.', 'Close', { duration: 4000, panelClass: ['error-snackbar'] });
+        }
+      },
+      error: () => {
+        this.isLoading = false;
+        this.snackBar.open('Failed to fetch admin list. Try again later.', 'Close', { duration: 3500, panelClass: ['error-snackbar'] });
+      }
+    });
   }
 
   private generateAvatarUrl(name: string): string {

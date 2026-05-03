@@ -68,7 +68,55 @@
             maxlength="100">
           <p class="text-xs text-blue-600 mt-1">Please enter the specific brand name that's not listed above.</p>
         </div>
+<!-- 🚲 Bicycle Component Details (Edit) -->
+        <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <div class="flex items-center mb-2">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-xl mr-3 shadow-md">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Bicycle Component Details</h3>
+          </div>
 
+          <p class="text-sm text-gray-600">Select component brand, part, and component-specific specifications (optional)</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Component Brand</label>
+              <select [(ngModel)]="selectedBicycleBrandId" name="bicycle_brand_id_edit" (change)="onBicycleBrandChange()" class="w-full p-3 border rounded-lg bg-white">
+                <option [ngValue]="null">-- Select Component Brand --</option>
+                <option *ngFor="let b of bicycleBrands" [ngValue]="b.brand_id">{{b.brand_name}}</option>
+              </select>
+            </div>
+
+            <div *ngIf="selectedBicycleBrandId">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Component Type</label>
+              <select [(ngModel)]="selectedBicyclePartId" name="bicycle_part_id_edit" (change)="onBicyclePartChange()" class="w-full p-3 border rounded-lg bg-white">
+                <option [ngValue]="null">-- Select Component Type --</option>
+                <option *ngFor="let p of bicycleParts" [ngValue]="p.part_id">{{p.part_name}}</option>
+              </select>
+            </div>
+          </div>
+
+          <div *ngIf="selectedBicyclePartId && partSpecifications?.length" class="mt-4 bg-white p-4 rounded-lg border">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Component Specifications</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div *ngFor="let spec of partSpecifications" class="space-y-1">
+                <label class="text-xs text-gray-600">{{ formatSpecName(spec.spec_label || spec.spec_name) }} <span *ngIf="spec.is_required" class="text-red-500">*</span></label>
+                <ng-container [ngSwitch]="spec.spec_type">
+                  <input *ngSwitchCase="'text'" type="text" [(ngModel)]="specificationValues[spec.spec_name]" name="spec_{{spec.spec_name}}_edit" (ngModelChange)="onSpecificationValueChange(spec.spec_name)" class="w-full p-2 border rounded" />
+                  <input *ngSwitchCase="'number'" type="number" [(ngModel)]="specificationValues[spec.spec_name]" name="spec_{{spec.spec_name}}_edit_num" (ngModelChange)="onSpecificationValueChange(spec.spec_name)" class="w-full p-2 border rounded" />
+                  <select *ngSwitchCase="'select'" [(ngModel)]="specificationValues[spec.spec_name]" name="spec_{{spec.spec_name}}_edit_sel" (ngModelChange)="onSpecificationValueChange(spec.spec_name)" class="w-full p-2 border rounded">
+                    <option value="">-- Select --</option>
+                    <option *ngFor="let opt of optionListForSpec(spec)" [value]="opt">{{opt}}</option>
+                  </select>
+                  <textarea *ngSwitchCase="'textarea'" [(ngModel)]="specificationValues[spec.spec_name]" name="spec_{{spec.spec_name}}_edit_txt" (ngModelChange)="onSpecificationValueChange(spec.spec_name)" class="w-full p-2 border rounded" rows="2"></textarea>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- Price and Location -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -171,6 +219,7 @@
             placeholder="Describe your product in detail..."></textarea>
           <p class="text-xs text-gray-500 mt-1">20 to 2000 characters.</p>
         </div>
+        
  <!-- Product Specifications (Optional) -->
         <div>
           <div class="flex items-center justify-between mb-4">
@@ -183,7 +232,7 @@
               <button 
                 type="button"
                 (click)="addSpecification()"
-                class="bg-[#6BA3BE] text-white px-4 py-2 rounded-lg hover:bg-[#5a92a5] transition-colors flex items-center gap-2 text-sm font-medium">
+                class="bg-[#2e7d32] text-white px-4 py-2 rounded-lg hover:bg-[#5a92a5] transition-colors flex items-center gap-2 text-sm font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
@@ -195,7 +244,7 @@
           <!-- Specifications List -->
           <div *ngIf="editProduct.specifications && editProduct.specifications.length > 0" class="space-y-3">
             <div 
-              *ngFor="let spec of editProduct.specifications; let i = index; trackBy: trackByIndex"
+              *ngFor="let originalIndex of getCustomSpecificationIndices(); let i = index; trackBy: trackByIndex"
               class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
               
               <!-- Specification Name -->
@@ -203,8 +252,8 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">Specification Name</label>
                 <input 
                   type="text"
-                  name="edit_spec_name_{{i}}"
-                  [(ngModel)]="spec.spec_name"
+                  name="edit_spec_name_{{originalIndex}}"
+                  [(ngModel)]="editProduct.specifications[originalIndex].spec_name"
                   placeholder="e.g., Frame Material, Weight, Speed"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent text-sm"
                   pattern="[A-Za-z0-9\s.,'()&\-/#:+]+"
@@ -217,8 +266,8 @@
                   <label class="block text-xs font-medium text-gray-600 mb-1">Value</label>
                   <input 
                     type="text"
-                    name="edit_spec_value_{{i}}"
-                    [(ngModel)]="spec.spec_value"
+                    name="edit_spec_value_{{originalIndex}}"
+                    [(ngModel)]="editProduct.specifications[originalIndex].spec_value"
                     placeholder="e.g., Carbon Fiber, 8.5kg, 21-speed"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6BA3BE] focus:border-transparent text-sm"
                     maxlength="255">
@@ -229,7 +278,7 @@
                   <!-- Remove Button -->
                   <button 
                     type="button"
-                    (click)="removeSpecification(i)"
+                    (click)="removeSpecificationByIndex(originalIndex)"
                     class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-colors"
                     title="Delete this specification">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -500,7 +549,7 @@
             type="button"
             (click)="saveChanges()"
             [disabled]="isProcessing"
-            class="flex-1 bg-[#6BA3BE] text-white px-8 py-4 rounded-xl hover:bg-[#5a92a5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+            class="flex-1 bg-[#2e7d32] text-white px-8 py-4 rounded-xl hover:bg-[#5a92a5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
             <span class="flex items-center justify-center gap-2">
               <svg *ngIf="!isProcessing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -524,13 +573,13 @@
   </div>
 
   <!-- Success Modal -->
-  <div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
-       (click)="closeSuccessModal()">
+    <div *ngIf="showSuccessModal" class="fixed inset-0 flex items-center justify-center z-[60]"
+      (click)="closeSuccessModal()">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300"
          (click)="$event.stopPropagation()">
       <div class="p-6 text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
+          <svg class="h-6 w-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
@@ -546,12 +595,12 @@
   </div>
 
   <!-- Error Modal -->
-  <div *ngIf="showErrorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
+  <div *ngIf="showErrorModal" class="fixed inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-[60]"
        (click)="closeErrorModal()">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300"
          (click)="$event.stopPropagation()">
       <div class="p-6 text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
           <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>

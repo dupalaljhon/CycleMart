@@ -99,14 +99,14 @@
               <div class="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-md animate-pulse w-28 shadow-sm"></div>
             </div>
             <!-- Loaded State -->
-            <div *ngIf="!isLoadingProfile" class="space-y-1">
-              <p class="text-sm font-semibold text-gray-900 leading-tight">
-                {{ userName ? 'Hi, ' + getFirstName(userName) + '!' : 'Welcome back!' }}
-              </p>
-              <p class="text-xs text-gray-500 leading-relaxed font-medium">
-                {{ userName ? 'Ready to manage your listings?' : 'Manage your bike parts' }}
-              </p>
-            </div>
+            <div *ngIf="!isLoadingProfile" class="space-y-1 bg-white px-2 py-1 rounded-sm">
+                <p class="text-sm font-semibold text-gray-900 leading-tight">
+                  {{ userName ? 'Hi, ' + getFirstName(userName) + '!' : 'Welcome back!' }}
+                </p>
+                <p class="text-xs font-semibold leading-relaxed">
+                  {{ userName ? 'Ready to manage your listings?' : 'Manage your bike parts' }}
+                </p>
+              </div>
           </div>
           
           <!-- Debug Button (Temporary) -->

@@ -170,7 +170,15 @@ addProduct(data: any): Observable<any> {
 
 // Update product
 updateProduct(data: any): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}/updateProduct`, data);
+  const token = localStorage.getItem('authToken') || localStorage.getItem('admin_token');
+  const headers = token
+    ? new HttpHeaders({
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      })
+    : new HttpHeaders({ 'Content-Type': 'application/json' });
+
+  return this.http.post<any>(`${this.baseUrl}/updateProduct`, data, { headers });
 }
 
 // Submit product for approval

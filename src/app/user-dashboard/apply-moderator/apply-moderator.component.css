@@ -114,3 +114,28 @@
 		border-radius: 0.8rem;
 	}
 }
+
+/* Green submit button to match system design */
+:host ::ng-deep .btn-submit-green {
+	background: linear-gradient(180deg, #1f6b3f 0%, #155a32 100%) !important;
+	color: #ffffff !important;
+	border-radius: 0.6rem !important;
+	padding: 0.5rem 1rem !important;
+	box-shadow: 0 8px 18px rgba(31,106,63,0.18) !important;
+	font-weight: 700 !important;
+	text-transform: none !important;
+}
+
+:host ::ng-deep .btn-submit-green:hover {
+	background: linear-gradient(180deg, #1b5e39 0%, #114f2d 100%) !important;
+}
+
+:host ::ng-deep .btn-submit-green[disabled],
+:host ::ng-deep .btn-submit-green.mat-mdc-button--disabled {
+	opacity: 0.65 !important;
+	box-shadow: none !important;
+}
+
+:host ::ng-deep .btn-submit-green mat-spinner {
+	color: #ffffff !important;
+}

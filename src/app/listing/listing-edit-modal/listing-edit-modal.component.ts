@@ -8,6 +8,7 @@ interface ProductSpecification {
   spec_id?: number;
   spec_name: string;
   spec_value: string;
+  spec_label?: string;
 }
 
 interface Product {
@@ -90,6 +91,16 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     { value: 'others', label: 'Others' }
   ];
 
+  // Bicycle brand/part/spec related (used by template)
+  bicycleBrands: any[] = [];
+  bicycleParts: any[] = [];
+  selectedBicycleBrandId: number | null = null;
+  selectedBicyclePartId: number | null = null;
+  partSpecifications: any[] = [];
+  // Map of spec_name -> current value in the form
+  specificationValues: { [specName: string]: string } = {};
+  // When true, onSpecificationValueChange will not sync values into editProduct.specifications
+  private suppressSpecSync: boolean = false;
   // Categories for dropdown
   categories = [
     { value: 'whole bike', label: 'Whole Bike' },
@@ -110,7 +121,7 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     this.userId = storedId ? parseInt(storedId) : 0;
   }
 
-  ngOnInit() {}
+  
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['productToEdit'] && this.productToEdit) {
@@ -162,7 +173,67 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       
       // Specifications are now automatically loaded with product data
       // No need for separate specification loading
+      // If the product has bicycle brand/part info, select them and load related parts/specs
+      const brandId = (this.editProduct as any).bicycle_brand_id || null;
+      const partId = (this.editProduct as any).bicycle_part_id || null;
+      if (brandId) {
+        this.selectedBicycleBrandId = brandId;
+        // load parts then select part and load specs
+        this.apiService.getBicyclePartsByBrand(brandId).subscribe({
+          next: (res: any) => {
+            const parts = res && res.data ? res.data : (Array.isArray(res) ? res : []);
+            this.bicycleParts = parts;
+            if (partId) {
+              this.selectedBicyclePartId = partId;
+              // load specs for selected part
+              this.onBicyclePartChange();
+            }
+            // After parts/specs load, extract any matching product specs into Bicycle Component Details
+            setTimeout(() => this.extractPartSpecificationsFromProduct(), 50);
+          },
+          error: () => {
+            // still attempt extraction
+            setTimeout(() => this.extractPartSpecificationsFromProduct(), 50);
+          }
+        });
+      } else {
+        // no brand - still attempt extraction in case there are specs with matching names
+        setTimeout(() => this.extractPartSpecificationsFromProduct(), 50);
+      }
     }
+  }
+
+  private normalizeKey(s: string): string {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  private extractPartSpecificationsFromProduct() {
+    if (!this.editProduct || !this.editProduct.specifications) return;
+
+    const partSpecs = this.partSpecifications || [];
+    if (!partSpecs.length) return;
+
+    const remainingSpecs: any[] = [];
+    // suppress syncing while we programmatically move values
+    this.suppressSpecSync = true;
+    for (const prodSpec of this.editProduct.specifications || []) {
+      const prodKey = this.normalizeKey(prodSpec.spec_name || prodSpec.spec_label || prodSpec.spec_name);
+      let matched = false;
+      for (const p of partSpecs) {
+        const nameKey = this.normalizeKey(p.spec_name || p.spec_label || '');
+        if (nameKey && prodKey && nameKey === prodKey) {
+          // move to specificationValues
+          this.specificationValues[p.spec_name] = prodSpec.spec_value;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) remainingSpecs.push(prodSpec);
+    }
+    this.suppressSpecSync = false;
+
+    // replace editProduct.specifications with remaining (user custom specs)
+    this.editProduct.specifications = remainingSpecs;
   }
 
   close() {
@@ -177,6 +248,28 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     this.editProduct.description = this.normalizeText(this.editProduct.description);
     this.editProduct.location = this.normalizeText(this.editProduct.location);
     this.editProduct.custom_brand = this.normalizeText(this.editProduct.custom_brand);
+
+    // Sanitize specification names early to avoid client-side validation errors
+    if (this.editProduct.specifications && Array.isArray(this.editProduct.specifications)) {
+      // Normalize names and remove invalid characters; also collapse duplicates
+      const seen = new Set<string>();
+      const cleanedSpecs: any[] = [];
+      for (const s of this.editProduct.specifications) {
+        const rawName = String(s.spec_name || '').trim();
+        const rawValue = String(s.spec_value || '').trim();
+        if (!rawName || !rawValue) continue;
+        const cleanName = this.sanitizeSpecName(rawName);
+        if (!cleanName) continue;
+        const key = this.normalizeKey(cleanName);
+        if (seen.has(key)) {
+          // merge values by skipping duplicates (keep first)
+          continue;
+        }
+        seen.add(key);
+        cleanedSpecs.push({ spec_name: cleanName, spec_value: rawValue });
+      }
+      this.editProduct.specifications = cleanedSpecs;
+    }
 
     if (this.editProduct.specifications && this.editProduct.specifications.length > 0) {
       this.editProduct.specifications = this.editProduct.specifications.map(spec => ({
@@ -214,14 +307,39 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     }
 
     this.isProcessing = true;
-    
-    // Filter out empty specifications and prepare for API
-    const validSpecifications = (this.editProduct.specifications || [])
-      .filter(spec => spec.spec_name.trim() && spec.spec_value.trim())
-      .map(spec => ({
-        spec_name: spec.spec_name.trim(),
-        spec_value: spec.spec_value.trim()
-      }));
+
+    // Merge specificationValues (dropdowns) into editProduct.specifications,
+    // prioritizing dropdown values. Sanitize names and deduplicate by a
+    // normalized key to avoid duplicates between Bicycle Component Details
+    // and custom Product Specifications.
+    const mergedMap: { [normalizedKey: string]: { spec_name: string; spec_value: string } } = {};
+
+    // Add existing custom specifications first
+    for (const spec of (this.editProduct.specifications || [])) {
+      const rawName = String(spec.spec_name || '').trim();
+      const rawValue = String(spec.spec_value || '').trim();
+      if (!rawName || !rawValue) continue;
+      const key = this.normalizeKey(rawName);
+      const cleanName = this.sanitizeSpecName(rawName);
+      if (!key) continue;
+      mergedMap[key] = { spec_name: cleanName, spec_value: rawValue };
+    }
+
+    // Merge dropdown/specificationValues, overriding existing entries when present
+    for (const displayName of Object.keys(this.specificationValues || {})) {
+      const val = String(this.specificationValues[displayName] || '').trim();
+      const key = this.normalizeKey(displayName);
+      if (!key) continue;
+      if (!val) {
+        // cleared dropdown — remove any existing entry
+        if (mergedMap[key]) delete mergedMap[key];
+        continue;
+      }
+      const cleanName = this.sanitizeSpecName(displayName);
+      mergedMap[key] = { spec_name: cleanName, spec_value: val };
+    }
+
+    const validSpecifications = Object.keys(mergedMap).map(k => ({ spec_name: mergedMap[k].spec_name, spec_value: mergedMap[k].spec_value }));
 
     const updateData = {
       product_id: this.editProduct.product_id,
@@ -247,6 +365,12 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     // âš ï¸ Authorization warning
     if (!this.canEditProduct()) {
     }
+
+    // Debug: log payload and stored tokens to diagnose auth/ownership issues
+    try {
+      console.log('DEBUG updateProduct payload:', updateData);
+      console.log('DEBUG stored tokens:', { authToken: localStorage.getItem('authToken'), admin_token: localStorage.getItem('admin_token') });
+    } catch (e) {}
 
     this.apiService.updateProduct(updateData).subscribe({
       next: (response: any) => {
@@ -648,6 +772,21 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     return String(value ?? '').replace(/\s+/g, ' ').trim();
   }
 
+  private sanitizeSpecName(name: unknown): string {
+    let s = String(name ?? '');
+    try {
+      s = s.normalize('NFKD').replace(/\u0300-\u036f/g, '');
+    } catch (e) {
+      // ignore if normalize not supported
+    }
+    // Replace underscores with spaces (backend does not allow underscores)
+    s = s.replace(/_/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    // Remove control chars and characters outside the allowed set
+    s = s.replace(/[^A-Za-z0-9\s\.,'()&\-\/\#:\+]/g, '');
+    return s;
+  }
+
   private isValidSimpleText(value: string): boolean {
     return /^[A-Za-z0-9\s.,'()&\-\/#:+]+$/.test(value);
   }
@@ -691,6 +830,152 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
     }
   }
 
+  // --- Bicycle brands / parts / specifications helpers used by template ---
+  ngOnInit() {
+    // load bicycle brands for dropdown
+    this.apiService.getBicycleBrands().subscribe({
+      next: (res: any) => {
+        if (res && Array.isArray(res.data)) {
+          this.bicycleBrands = res.data;
+        } else if (Array.isArray(res)) {
+          this.bicycleBrands = res;
+        }
+      },
+      error: () => {
+        this.bicycleBrands = [];
+      }
+    });
+  }
+
+  onBicycleBrandChange() {
+    const brandId = this.selectedBicycleBrandId;
+    this.bicycleParts = [];
+    this.selectedBicyclePartId = null;
+    this.partSpecifications = [];
+    this.specificationValues = {};
+
+    if (!brandId) return;
+
+    this.apiService.getBicyclePartsByBrand(brandId).subscribe({
+      next: (res: any) => {
+        if (res && Array.isArray(res.data)) this.bicycleParts = res.data;
+        else if (Array.isArray(res)) this.bicycleParts = res;
+      },
+      error: () => {
+        this.bicycleParts = [];
+      }
+    });
+  }
+
+  onBicyclePartChange() {
+    const partId = this.selectedBicyclePartId;
+    this.partSpecifications = [];
+    this.specificationValues = {};
+
+    if (!partId) return;
+
+    this.apiService.getPartSpecifications(partId).subscribe({
+      next: (res: any) => {
+        // support responses that wrap data or return array directly
+        const rows = res && res.data ? res.data : (Array.isArray(res) ? res : []);
+        this.partSpecifications = rows;
+        // initialize specificationValues with any existing values from product
+        this.suppressSpecSync = true;
+        for (const spec of this.partSpecifications) {
+          const name = spec.spec_name;
+          const existing = (this.editProduct.specifications || []).find((s: any) => s.spec_name === name);
+          this.specificationValues[name] = existing ? existing.spec_value : '';
+        }
+        this.suppressSpecSync = false;
+        // Keep editProduct.specifications intact so Bicycle Component Details
+        // can be populated from existing product specs. The template will
+        // hide part-derived specs from the Product Specifications list.
+      },
+      error: () => {
+        this.partSpecifications = [];
+      }
+    });
+  }
+
+  formatSpecName(name: string): string {
+    if (!name) return '';
+    return String(name).replace(/[_\-\/]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  optionListForSpec(spec: any): string[] {
+    if (!spec) return ['-- select --'];
+
+    let options: string[] = [];
+
+    // prefer spec.spec_options (backend) or spec.options
+    const raw = spec.spec_options ?? spec.options ?? null;
+
+    if (Array.isArray(raw)) {
+      options = raw.map((o: any) => String(o).trim()).filter((o: string) => o.length);
+    } else if (typeof raw === 'string' && raw.length) {
+      // Try JSON.parse (most API responses are JSON string arrays)
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          options = parsed.map((o: any) => String(o).trim()).filter((o: string) => o.length);
+        } else if (typeof parsed === 'string') {
+          options = parsed.split('|').map(s => s.trim()).filter(s => s.length);
+        }
+      } catch (e) {
+        // Fallback: split by pipe or comma
+        if (raw.indexOf('|') !== -1) {
+          options = raw.split('|').map(s => s.trim()).filter(s => s.length);
+        } else if (raw.indexOf(',') !== -1) {
+          options = raw.split(',').map(s => s.trim()).filter(s => s.length);
+        } else {
+          options = [raw.trim()].filter(s => s.length);
+        }
+      }
+    }
+
+    // Deduplicate while preserving order
+    const seen = new Set<string>();
+    options = options.filter(o => {
+      const key = o.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const saved = String(this.specificationValues[spec.spec_name] || '').trim();
+    if (!this.selectedBicyclePartId) {
+      if (saved) return [saved];
+      return ['-- select --'];
+    }
+
+    if (saved && saved.length && !options.includes(saved)) {
+      options.unshift(saved);
+    }
+
+    if (!options.length) return ['-- select --'];
+    return options;
+  }
+
+  onSpecificationValueChange(specName: string) {
+    if (this.suppressSpecSync) return;
+
+    const value = String(this.specificationValues[specName] || '').trim();
+    if (!this.editProduct.specifications) this.editProduct.specifications = [];
+    const idx = this.editProduct.specifications.findIndex((s: any) => s.spec_name === specName);
+
+    if (!value) {
+      // remove existing spec if value cleared
+      if (idx >= 0) this.editProduct.specifications.splice(idx, 1);
+      return;
+    }
+
+    if (idx >= 0) {
+      this.editProduct.specifications[idx].spec_value = value;
+    } else {
+      this.editProduct.specifications.push({ spec_name: specName, spec_value: value });
+    }
+  }
+
   // Check if custom brand input should be shown
   shouldShowCustomBrand(): boolean {
     return this.editProduct.brand_name === 'others';
@@ -705,6 +990,27 @@ export class ListingEditModalComponent implements OnInit, OnChanges {
       spec_name: '',
       spec_value: ''
     });
+  }
+
+  // Return indices of specifications that are custom (not part of selected bicycle part specs)
+  getCustomSpecificationIndices(): number[] {
+    if (!this.editProduct || !Array.isArray(this.editProduct.specifications)) return [];
+    const partKeys = new Set((this.partSpecifications || []).map((p: any) => this.normalizeKey(p.spec_name || p.spec_label || '')));
+    const indices: number[] = [];
+    for (let i = 0; i < this.editProduct.specifications.length; i++) {
+      const s = this.editProduct.specifications[i];
+      const key = this.normalizeKey(s?.spec_name || s?.spec_label || '');
+      if (!partKeys.has(key)) indices.push(i);
+    }
+    return indices;
+  }
+
+  // Remove specification by original index (from editProduct.specifications array)
+  removeSpecificationByIndex(originalIndex: number) {
+    if (!this.editProduct || !Array.isArray(this.editProduct.specifications)) return;
+    if (originalIndex >= 0 && originalIndex < this.editProduct.specifications.length) {
+      this.editProduct.specifications.splice(originalIndex, 1);
+    }
   }
 
   removeSpecification(index: number) {

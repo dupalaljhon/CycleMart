@@ -15,9 +15,11 @@ export const staffGuard: CanActivateFn = (_route, state) => {
   // Moderator (user login session)
   const isUserLoggedIn = authService.isAuthenticated() && !!localStorage.getItem('id');
   const userRole = (localStorage.getItem('user_role') || '').toLowerCase();
-  const adminId = localStorage.getItem('admin_id');
 
-  if (isUserLoggedIn && userRole === 'moderator' && adminId) {
+  // Allow moderators who are logged in even if `admin_id` isn't present (some moderator sessions
+  // use the normal user login flow and may not set admin_id). Downstream code should resolve
+  // admin-related details when necessary.
+  if (isUserLoggedIn && userRole === 'moderator') {
     return true;
   }
 
