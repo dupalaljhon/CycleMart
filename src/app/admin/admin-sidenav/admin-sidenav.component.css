@@ -133,6 +133,16 @@ button:focus {
   .sidebar.mobile-open {
     transform: translateX(0) !important;
   }
+
+  /* Keep mobile-open sidebar narrow (~256px), white background — remove green strip */
+  .sidebar.mobile-open {
+    width: 16rem !important; /* 256px */
+    left: 0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.12) !important;
+    border-right: 1px solid rgba(0,0,0,0.04) !important;
+    transform: translateX(0) !important;
+  }
   
   .sidebar.mobile-closed {
     transform: translateX(-100%) !important;
@@ -141,6 +151,12 @@ button:focus {
   .main-content {
     margin-left: 0;
     padding: 1rem;
+  }
+
+  /* Ensure the mobile overlay uses a true black translucent background
+     (avoid global .bg-black mapping to the green brand color) */
+  .mobile-overlay {
+    background: rgba(0, 0, 0, 0.5) !important;
   }
 }
 

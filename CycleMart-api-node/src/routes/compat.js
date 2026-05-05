@@ -1962,7 +1962,8 @@ async function createAdmin(data) {
 	const password = String(data?.password || '');
 	const fullName = String(data?.full_name || '').trim();
 	const role = String(data?.role || 'moderator').trim();
-	const createdByRole = String(data?.created_by_role || '').toLowerCase();
+	const normalizedRole = String(role || '').toLowerCase().replace(/_/g, ' ').trim();
+	const createdByRole = String(data?.created_by_role || '').toLowerCase().replace(/_/g, ' ').trim();
 
 	if (!username || !email || !password || !fullName) {
 		return sendPayload(null, 'error', 'All fields are required', 400);
@@ -1972,11 +1973,11 @@ async function createAdmin(data) {
 		return sendPayload(null, 'error', 'Insufficient permissions to create admin', 403);
 	}
 
-	if (createdByRole === 'moderator' && ['super admin', 'moderator'].includes(role)) {
+	if (createdByRole === 'moderator' && ['super admin', 'moderator'].includes(normalizedRole)) {
 		return sendPayload(null, 'error', 'Moderators can only create support staff', 403);
 	}
 
-	if (!['super admin', 'moderator', 'support'].includes(role)) {
+	if (!['super admin', 'moderator', 'support'].includes(normalizedRole)) {
 		return sendPayload(null, 'error', 'Invalid role specified', 400);
 	}
 
@@ -1984,9 +1985,41 @@ async function createAdmin(data) {
 		return sendPayload(null, 'error', 'Password must include uppercase, lowercase, number, special character, and be at least 8 characters.', 400);
 	}
 
-	const usernameRows = await query('SELECT admin_id FROM admins WHERE username = ? LIMIT 1', [username]);
-	if (usernameRows.length) {
-		return sendPayload(null, 'error', 'Username already exists', 409);
+	// If username already exists, attempt to auto-generate a unique username
+	let usernameCandidate = username;
+	const usernameExists = async (u) => {
+		const rows = await query('SELECT admin_id FROM admins WHERE username = ? LIMIT 1', [u]);
+		return rows.length > 0;
+	};
+
+	if (await usernameExists(usernameCandidate)) {
+		// Try up to 6 variants with numeric suffixes
+		let found = false;
+		for (let i = 1; i <= 6; i++) {
+			const attempt = `${username}${i}`;
+			if (!(await usernameExists(attempt))) {
+				usernameCandidate = attempt;
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			// Fallback to random suffix
+			for (let i = 0; i < 6; i++) {
+				const rnd = Math.floor(100 + Math.random() * 900);
+				const attempt = `${username}${rnd}`;
+				if (!(await usernameExists(attempt))) {
+					usernameCandidate = attempt;
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if (!found) {
+			return sendPayload(null, 'error', 'Username already exists', 409);
+		}
 	}
 
 	const emailRows = await query('SELECT admin_id FROM admins WHERE email = ? LIMIT 1', [email]);
@@ -1998,12 +2031,12 @@ async function createAdmin(data) {
 	const result = await query(
 		`INSERT INTO admins (username, email, password, full_name, role, status)
 		VALUES (?, ?, ?, ?, ?, 'active')`,
-		[username, email, hashedPassword, fullName, role]
+		[usernameCandidate, email, hashedPassword, fullName, role]
 	);
 
 	return sendPayload({
 		admin_id: Number(result.insertId || 0),
-		username,
+		username: usernameCandidate,
 		email,
 		full_name: fullName,
 		role,

@@ -29,11 +29,9 @@
     <!-- Header with Logo and Theme Toggle -->
     <div class="p-4 flex items-center justify-between border-b border-gray-300 bg-white">
       <div *ngIf="!isCollapsed || isMobile" class="flex items-center space-x-2">
-        <!-- CycleMart Logo -->
-        <div class="bg-[#2e7d32] p-2 rounded-lg shadow-lg">
-          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
-          </svg>
+        <!-- CycleMart Logo (image) -->
+        <div class="p-0 rounded-lg">
+          <img src="assets/images/cyclemart-logo2.png" alt="CycleMart" class="w-10 h-10 object-contain" />
         </div>
         <div>
           <h1 class="text-lg font-bold text-black">CycleMart</h1>
@@ -41,11 +39,9 @@
         </div>
       </div>
       
-      <!-- Compact logo for collapsed state -->
-      <div *ngIf="isCollapsed && !isMobile" class="bg-[#2e7d32] p-2 rounded-lg shadow-lg mx-auto">
-        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M5 20a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM5 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 6a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7-7l1.5 3h3l-1.5-3H12zm0-2h4.5c.4 0 .7.2.9.5L19 11h1v2h-2.5l-.5-1h-4l-.5 1H10v-2h2V8h-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5H12z"/>
-        </svg>
+      <!-- Compact logo for collapsed state (image) -->
+      <div *ngIf="isCollapsed && !isMobile" class="mx-auto">
+        <img src="assets/images/cyclemart-logo2.png" alt="CycleMart" class="w-6 h-6 object-contain" />
       </div>
       
       <!-- Collapse button (desktop only) -->

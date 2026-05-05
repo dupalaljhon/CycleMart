@@ -56,6 +56,10 @@ export class LoginComponent {
   emailError: string = '';
   showEmailRequirements: boolean = false;
   showPasswordRequirementsInfo: boolean = false;
+  // Logo handling: prefer existing asset image and fallback to SVG when image load fails
+  showLogo: boolean = true;
+  // Updated to use existing project asset: src/assets/images/cyclemart-logo2.png
+  logoPath: string = 'assets/images/cyclemart-logo2.png';
   
   // Password validation properties
   passwordErrors: string[] = [];
@@ -377,6 +381,10 @@ export class LoginComponent {
 
   togglePasswordRequirementsInfo() {
     this.showPasswordRequirementsInfo = !this.showPasswordRequirementsInfo;
+  }
+
+  onLogoError() {
+    this.showLogo = false;
   }
 
   // Toast/Alert helper methods

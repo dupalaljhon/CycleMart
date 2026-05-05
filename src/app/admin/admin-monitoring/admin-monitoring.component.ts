@@ -433,7 +433,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
           next: (response) => {
             this.isSubmitting = false;
             if (response.status === 'success') {
-              this.showMessage(`âœ… Administrator "${formData.username}" updated successfully`);
+              this.showMessage(`✅ Administrator "${formData.username}" updated successfully`);
               this.closeModal();
               this.loadAdmins(); // Refresh the list
             } else {
@@ -470,7 +470,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
                 this.generatedPassword = password;
                 this.showGeneratedPasswordModal = true;
               } else {
-                this.showMessage(`âœ… Administrator "${formData.username}" created successfully`);
+                this.showMessage(`✅ Administrator "${formData.username}" created successfully`);
                 this.closeModal();
                 this.loadAdmins(); // Refresh the list
               }
@@ -501,7 +501,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   closeGeneratedPasswordModal(): void {
     this.showGeneratedPasswordModal = false;
     this.generatedPassword = '';
-    this.showMessage(`âœ… Administrator created successfully`);
+    this.showMessage(`✅ Administrator "${this.adminForm.value.username}" created successfully`);
     this.closeModal();
     this.loadAdmins(); // Refresh the list
   }
@@ -509,7 +509,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
   copyPasswordToClipboard(): void {
     if (this.generatedPassword) {
       navigator.clipboard.writeText(this.generatedPassword).then(() => {
-        this.showMessage('ðŸ“‹ Password copied to clipboard!');
+        this.showMessage('✅ Password copied to clipboard!');
       }).catch(() => {
         this.showError('Failed to copy password');
       });
@@ -534,7 +534,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
     const newStatus = admin.status === 'active' ? 'blocked' : 'active';
     const action = newStatus === 'active' ? 'unblock' : 'block';
-    const actionIcon = newStatus === 'active' ? 'ðŸ”“' : 'ðŸ”’';
+    const actionIcon = newStatus === 'active' ? '✅' : '❌';
     
     const confirmMessage = `${actionIcon} ${action.charAt(0).toUpperCase() + action.slice(1)} Administrator Access\n\n` +
       `Administrator: ${admin.full_name} (${admin.username})\n` +
@@ -571,7 +571,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         },
         error: (error) => {
           this.isProcessing = false;
-          this.showError(`âŒ Error ${action}ing administrator access. Please try again.`);
+          this.showError(`❌ Error ${action}ing administrator access. Please try again.`);
         }
       });
     }
@@ -617,7 +617,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         next: (response) => {
           this.isProcessing = false;
           if (response.status === 'success') {
-            this.showMessage(`ðŸ—‘ï¸ Administrator "${admin.username}" deleted successfully`);
+            this.showMessage(`❌ Administrator "${admin.username}" deleted successfully`);
             this.loadAdmins(); // Refresh the list
           } else {
             this.showError(response.message || 'Failed to delete administrator');
@@ -625,7 +625,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         },
         error: (error) => {
           this.isProcessing = false;
-          this.showError('âŒ Error deleting administrator. Please try again.');
+          this.showError('❌ Error deleting administrator. Please try again.');
         }
       });
     }
@@ -642,7 +642,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
 
     const newStatus = admin.status === 'active' ? 'inactive' : 'active';
     const action = newStatus === 'active' ? 'activate' : 'deactivate';
-    const actionIcon = newStatus === 'active' ? 'âœ…' : 'â¸ï¸';
+    const actionIcon = newStatus === 'active' ? '✅' : '❌';
     
     const confirmMessage = `${actionIcon} ${action.charAt(0).toUpperCase() + action.slice(1)} Administrator\n\n` +
       `Administrator: ${admin.full_name} (${admin.username})\n` +
@@ -675,7 +675,7 @@ export class AdminMonitoringComponent implements OnInit, AfterViewInit {
         },
         error: (error) => {
           this.isProcessing = false;
-          this.showError(`âŒ Error ${action}ing administrator. Please try again.`);
+          this.showError(`❌ Error ${action}ing administrator. Please try again.`);
         }
       });
     }
