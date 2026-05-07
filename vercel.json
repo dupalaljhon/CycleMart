@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "dist/cycle-mart/browser",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
