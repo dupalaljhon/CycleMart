@@ -2368,7 +2368,7 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
     
     // Test server connection
-    fetch('http://localhost:3000/health')
+    fetch(`${environment.socketUrl}/health`)
       .then(response => response.json())
       .then(data => {
       })

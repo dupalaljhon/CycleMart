@@ -6,20 +6,39 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
+const defaultOrigins = [
+  'http://localhost:4200',
+  'http://localhost',
+  'http://localhost:3000'
+];
+
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : defaultOrigins;
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (corsOrigins.includes('*')) return true;
+  return corsOrigins.includes(origin);
+};
+
 // Configure CORS for Socket.IO
 // Allow both Angular dev origin (4200) and Apache-served origin (http://localhost)
 const io = socketIo(server, {
   cors: {
-    // origin: ["http://localhost:4200", "http://localhost", "http://localhost:3000"],
-    //  origin: ["http://api.cyclemart.shop/CycleMart-api/api", "http://localhost", "http://localhost:3000"],
-    origin: ["http://localhost:4200", "http://localhost", "http://localhost:3000"],
-    methods: ["GET", "POST"],
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS origin not allowed'), false);
+    },
+    methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json());
 
 // Store connected users

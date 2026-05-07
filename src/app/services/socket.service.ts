@@ -1,6 +1,7 @@
 ﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -10,9 +11,7 @@ export class SocketService {
   private isConnectedSubject = new BehaviorSubject<boolean>(false);
   public isConnected$ = this.isConnectedSubject.asObservable();
 
-  // Default socket server URL - you can change this to match your backend
-  // private readonly SERVER_URL = 'http://localhost:3001';
-  private readonly SERVER_URL = 'https://cyclemart-socket.onrender.com';
+  private readonly SERVER_URL = environment.socketUrl;
   private authenticated = false;
 
   constructor() {
