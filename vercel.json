@@ -1,6 +1,7 @@
 {
   "outputDirectory": "dist/cycle-mart/browser",
   "rewrites": [
+    { "source": "/api/uploads/(.*)", "destination": "http://159.65.15.15:3000/uploads/$1" },
     { "source": "/api/(.*)", "destination": "http://159.65.15.15:3000/api/$1" },
     { "source": "/uploads/(.*)", "destination": "http://159.65.15.15:3000/uploads/$1" },
     { "source": "/(.*)", "destination": "/index.html" }

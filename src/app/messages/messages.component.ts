@@ -2489,7 +2489,10 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   getAttachmentUrl(attachment: Attachment): string {
     if (attachment?.url) {
-      return attachment.url;
+      const url = String(attachment.url);
+      if (!/^(https?:\/\/)?(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)) {
+        return url;
+      }
     }
 
     if (attachment?.path) {
