@@ -1259,8 +1259,8 @@ public function addProduct($data) {
         $jsonSpecifications = json_encode($processedSpecs);
     }
 
-    $sql = "INSERT INTO products (product_name, brand_name, custom_brand, bicycle_brand_id, bicycle_part_id, product_images, product_videos, price, description, location, for_type, `condition`, category, quantity, status, sale_status, approval_status, uploader_id, specifications) 
-            VALUES (:product_name, :brand_name, :custom_brand, :bicycle_brand_id, :bicycle_part_id, :product_images, :product_videos, :price, :description, :location, :for_type, :condition, :category, :quantity, 'inactive', 'available', 'pending', :uploader_id, :specifications)";
+        $sql = "INSERT INTO products (product_name, brand_name, custom_brand, bicycle_brand_id, bicycle_part_id, product_images, product_videos, price, description, location, for_type, `condition`, category, quantity, status, sale_status, approval_status, uploader_id, specifications) 
+            VALUES (:product_name, :brand_name, :custom_brand, :bicycle_brand_id, :bicycle_part_id, :product_images, :product_videos, :price, :description, :location, :for_type, :condition, :category, :quantity, 'active', 'available', 'pending', :uploader_id, :specifications)";
 
     try {
         $stmt = $this->pdo->prepare($sql);

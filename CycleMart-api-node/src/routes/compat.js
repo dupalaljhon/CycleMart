@@ -4287,7 +4287,7 @@ router.post('/:endpoint/:action?', async (req, res) => {
 				const sql = `INSERT INTO products (product_name, brand_name, custom_brand, bicycle_brand_id, bicycle_part_id,
 					product_images, product_videos, price, description, location, for_type, \`condition\`, category, quantity,
 					status, sale_status, approval_status, uploader_id, specifications)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'inactive', 'available', 'pending', ?, ?)`;
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 'available', 'pending', ?, ?)`;
 
 				const result = await query(sql, [
 					productName,
