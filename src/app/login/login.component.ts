@@ -204,6 +204,23 @@ export class LoginComponent {
         },
         error: (error) => {
           this.isLoading = false;
+          const status = error?.status;
+          const serverMessage = error?.error?.message;
+
+          if (status === 409) {
+            this.showErrorMessage(
+              '⚠️ This email is already registered. If you did not receive a verification email, request a new one.',
+              '📧 Resend Verification',
+              () => this.router.navigate(['/resend-verification'])
+            );
+            return;
+          }
+
+          if (serverMessage) {
+            this.showErrorMessage(`🔒 ${serverMessage}`);
+            return;
+          }
+
           this.showErrorMessage('🔒 Registration failed. Please try again.');
         }
       });
