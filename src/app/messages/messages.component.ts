@@ -2496,7 +2496,11 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (attachment.path.startsWith('http://') || attachment.path.startsWith('https://')) {
         return attachment.path;
       }
-      return `${this.attachmentsBaseUrl}${attachment.path.replace(/^\/+/, '')}`;
+      const stripped = attachment.path
+        .replace(/^\/?api\/uploads[\/\\]/, '')
+        .replace(/^\/?uploads[\/\\]/, '')
+        .replace(/^\/+/, '');
+      return `${this.attachmentsBaseUrl}${stripped}`;
     }
 
     return '';
