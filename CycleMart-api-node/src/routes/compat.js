@@ -7,7 +7,7 @@ import path from 'path';
 import { query, withTransaction } from '../db.js';
 import { sendPayload, respond } from '../utils/payload.js';
 import { extractBearerToken, verifyToken } from '../utils/auth.js';
-import { buildVerificationEmail, sendEmail } from '../utils/email.js';
+import { buildVerificationEmail, buildCustomVerificationEmail, sendEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -152,6 +152,284 @@ function parseJson(value, fallback) {
 		return fallback;
 	}
 }
+
+function escapeHtml(value) {
+	return String(value || '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+function renderVerificationPage({ state, title, message, userEmail, verificationTime }) {
+	const safeTitle = escapeHtml(title);
+	const safeMessage = escapeHtml(message);
+	const safeEmail = escapeHtml(userEmail);
+	const safeTime = escapeHtml(verificationTime);
+	const loginUrl = `${getFrontendUrl()}/login`;
+	const resendUrl = `${getFrontendUrl()}/resend-verification`;
+	const isError = state === 'error' || state === 'expired';
+
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Verification - CycleMart</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #e8f3ea 0%, #d9eadc 100%); margin: 0; padding: 20px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: white; max-width: 500px; width: 100%; border-radius: 12px; box-shadow: 0 8px 32px rgba(46, 125, 50, 0.18); overflow: hidden; border: 1px solid #d6e7d8; }
+    .header { background: linear-gradient(135deg, #2e7d32 0%, #3f9a45 100%); color: white; padding: 30px 20px; text-align: center; }
+    .header.error { background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%); }
+    .content { padding: 40px 30px; text-align: center; }
+    .icon { font-size: 48px; margin-bottom: 20px; }
+    .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #1f2937; }
+    .message { font-size: 16px; color: #374151; line-height: 1.6; margin-bottom: 30px; }
+    .btn { display: inline-block; padding: 12px 30px; background: #2e7d32; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.3s ease; }
+    .btn:hover { background: #256b2a; }
+    .footer { background: #f3f7f4; padding: 20px; text-align: center; color: #4b5563; font-size: 14px; border-top: 1px solid #d6e7d8; }
+    .details { background: #f3f7f4; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #374151; border: 1px solid #d6e7d8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${isError ? `
+      <div class="header error">
+        <div class="icon">${state === 'expired' ? '&#8987;' : '&#10060;'}</div>
+        <h1>${safeTitle}</h1>
+      </div>
+      <div class="content">
+        <div class="title">${safeTitle}</div>
+        <div class="message">${safeMessage}</div>
+        ${state === 'expired'
+          ? `<a href="${resendUrl}" class="btn">Request New Verification Email</a>`
+          : `<a href="${loginUrl}" class="btn">Go to Login</a>`}
+      </div>
+    ` : `
+      <div class="header">
+        <div class="icon">&#9989;</div>
+        <h1>${safeTitle}</h1>
+      </div>
+      <div class="content">
+        <div class="title">Welcome to CycleMart</div>
+        <div class="message">${safeMessage}</div>
+        <div class="details">
+          <strong>Verified Email:</strong> ${safeEmail}<br />
+          <strong>Verification Time:</strong> ${safeTime}<br />
+          <strong>Status:</strong> ${state === 'already' ? 'Verified (Already Confirmed)' : 'Verified'}
+        </div>
+        <button class="btn" style="opacity:0.7; cursor:not-allowed; pointer-events:none; margin-bottom:12px;" disabled>Verified</button>
+        <br />
+        <a href="${loginUrl}" class="btn">Go to Login</a>
+      </div>
+    `}
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} CycleMart. All rights reserved.</p>
+      <p>If you have any questions, contact us at cyclemrt@gmail.com</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderDenyPage({ state, title, message, userEmail, token }) {
+	const safeTitle = escapeHtml(title);
+	const safeMessage = escapeHtml(message);
+	const safeEmail = escapeHtml(userEmail);
+	const tokenPreview = escapeHtml(String(token || '').slice(0, 10) + '...');
+	const loginUrl = `${getFrontendUrl()}/login`;
+	const reportUrl = 'mailto:cyclemrt@gmail.com?subject=Security%20Report%20-%20Denied%20Account';
+	const isError = state === 'error';
+
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Request Denied - CycleMart</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); margin: 0; padding: 20px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: white; max-width: 500px; width: 100%; border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%); color: white; padding: 30px 20px; text-align: center; }
+    .content { padding: 40px 30px; text-align: center; }
+    .icon { font-size: 48px; margin-bottom: 20px; }
+    .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #333; }
+    .message { font-size: 16px; color: #666; line-height: 1.6; margin-bottom: 30px; }
+    .btn { display: inline-block; padding: 12px 30px; background: #6BA3BE; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.3s ease; margin: 5px; }
+    .btn:hover { background: #5a92a5; }
+    .btn-danger { background: #dc3545; }
+    .btn-danger:hover { background: #c82333; }
+    .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 14px; }
+    .details { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #856404; }
+    .security-notice { background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${isError ? `
+      <div class="header">
+        <div class="icon">&#10060;</div>
+        <h1>Unable to Process Request</h1>
+      </div>
+      <div class="content">
+        <div class="title">${safeTitle}</div>
+        <div class="message">${safeMessage}</div>
+        <a href="mailto:cyclemrt@gmail.com" class="btn">Contact Support</a>
+      </div>
+    ` : `
+      <div class="header">
+        <div class="icon">&#128737;</div>
+        <h1>Account Request Denied</h1>
+      </div>
+      <div class="content">
+        <div class="title">Account Registration Cancelled</div>
+        <div class="message">You have successfully denied the account registration request. The pending account has been cancelled for security reasons.</div>
+        <div class="details">
+          <strong>Cancelled Email:</strong> ${safeEmail}<br />
+          <strong>Cancellation Time:</strong> ${escapeHtml(new Date().toISOString().slice(0, 19).replace('T', ' '))}<br />
+          <strong>Reference:</strong> ${tokenPreview}
+        </div>
+        <div class="security-notice">
+          <strong>Security Notice:</strong><br />
+          If you did not request this account, no further action is needed. The registration has been cancelled.
+        </div>
+        <div class="message">
+          <strong>What happens next?</strong><br />
+          - The account registration has been cancelled<br />
+          - No login credentials were created<br />
+          - The email address remains available for future registration
+        </div>
+        <div style="margin-top: 30px;">
+          <a href="${loginUrl}" class="btn">Go to Login Page</a>
+          <a href="${reportUrl}" class="btn btn-danger">Report Security Issue</a>
+        </div>
+      </div>
+    `}
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} CycleMart. All rights reserved.</p>
+      <p><strong>Security Hotline:</strong> cyclemrt@gmail.com</p>
+      <p>If this was a legitimate registration attempt, you can register again with a secure device.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+router.get('/verify', async (req, res) => {
+	const token = String(req.query.token || '').trim();
+	const email = String(req.query.email || '').trim();
+	let state = 'error';
+	let title = 'Verification Failed';
+	let message = 'Unable to verify account.';
+	let userEmail = '';
+	const verificationTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+	if (!token) {
+		message = 'Missing verification token.';
+		return res.status(400).send(renderVerificationPage({ state, title, message, userEmail, verificationTime }));
+	}
+
+	try {
+		const rows = await query('SELECT id, email, full_name, is_verified, token_expires_at FROM users WHERE verification_token = ? LIMIT 1', [token]);
+		const user = rows[0];
+
+		if (user) {
+			userEmail = user.email || '';
+			if (Number(user.is_verified) === 1) {
+				state = 'already';
+				title = 'Already Verified';
+				message = 'Your account is already verified. You can log in now.';
+			} else if (user.token_expires_at && new Date(user.token_expires_at) < new Date()) {
+				state = 'expired';
+				title = 'Verification Link Expired';
+				message = 'This verification link has expired. Please request a new verification email.';
+			} else {
+				await query('UPDATE users SET is_verified = 1, verification_token = NULL, token_expires_at = NULL WHERE id = ?', [user.id]);
+				state = 'success';
+				title = 'Email Verified Successfully!';
+				message = 'Your account has been activated. You can now log in and use CycleMart.';
+			}
+		} else if (email) {
+			const emailRows = await query('SELECT email, is_verified FROM users WHERE email = ? LIMIT 1', [email]);
+			const emailUser = emailRows[0];
+			if (emailUser && Number(emailUser.is_verified) === 1) {
+				userEmail = emailUser.email || '';
+				state = 'already';
+				title = 'Already Verified';
+				message = 'This account has already been verified. The verification button is now disabled.';
+			} else {
+				state = 'error';
+				title = 'Invalid Verification Link';
+				message = 'The verification link is invalid or has already been used.';
+			}
+		} else {
+			state = 'error';
+			title = 'Invalid Verification Link';
+			message = 'The verification link is invalid or has already been used.';
+		}
+	} catch (error) {
+		state = 'error';
+		title = 'System Error';
+		message = 'A system error occurred while verifying your account. Please try again later.';
+		console.error('verify endpoint error:', error);
+	}
+
+	const statusCode = state === 'error' || state === 'expired' ? 400 : 200;
+	return res.status(statusCode).send(renderVerificationPage({ state, title, message, userEmail, verificationTime }));
+});
+
+router.get('/deny', async (req, res) => {
+	const token = String(req.query.token || '').trim();
+	const email = String(req.query.email || '').trim();
+	let state = 'error';
+	let title = 'Unable to Process Request';
+	let message = 'Missing verification parameters.';
+	let userEmail = '';
+
+	if (!token || !email) {
+		return res.status(400).send(renderDenyPage({ state, title, message, userEmail, token }));
+	}
+
+	try {
+		const rows = await query('SELECT id, email, is_verified FROM users WHERE verification_token = ? LIMIT 1', [token]);
+		const user = rows[0];
+
+		if (!user) {
+			const emailRows = await query('SELECT email, is_verified FROM users WHERE email = ? LIMIT 1', [email]);
+			const emailUser = emailRows[0];
+			if (emailUser && Number(emailUser.is_verified) === 1) {
+				state = 'error';
+				title = 'Account Already Verified';
+				message = 'This account is already verified and cannot be cancelled.';
+				userEmail = emailUser.email || '';
+			} else {
+				state = 'error';
+				title = 'Invalid Denial Link';
+				message = 'The denial link is invalid or has already been used.';
+			}
+		} else if (Number(user.is_verified) === 1) {
+			state = 'error';
+			title = 'Account Already Verified';
+			message = 'This account is already verified and cannot be cancelled.';
+			userEmail = user.email || '';
+		} else {
+			userEmail = user.email || email;
+			await query('DELETE FROM users WHERE id = ? AND is_verified = 0', [user.id]);
+			state = 'success';
+			title = 'Account Request Denied';
+			message = 'Account registration cancelled.';
+		}
+	} catch (error) {
+		state = 'error';
+		title = 'System Error';
+		message = 'A system error occurred while processing this request.';
+		console.error('deny endpoint error:', error);
+	}
+
+	const statusCode = state === 'error' ? 400 : 200;
+	return res.status(statusCode).send(renderDenyPage({ state, title, message, userEmail, token }));
+});
 
 async function saveBase64File(base64, folder, prefix) {
 	const match = base64.match(/^data:([^;]+);base64,(.+)$/);
@@ -4034,8 +4312,14 @@ router.post('/:endpoint/:action?', async (req, res) => {
 					tokenExpiresAt
 				]);
 
-				const verificationUrl = `${getFrontendUrl()}/email-verification?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
-				const emailBody = buildVerificationEmail({ recipientName: fullName, verificationUrl });
+				const verifyUrl = `${getPublicBaseUrl()}/verify?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
+				const denyUrl = `${getPublicBaseUrl()}/deny?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
+				const emailBody = buildCustomVerificationEmail({
+					recipientName: fullName,
+					recipientEmail: email,
+					verifyUrl,
+					denyUrl
+				});
 				const emailResult = await sendEmail({
 					to: email,
 					name: fullName,
@@ -4157,8 +4441,14 @@ router.post('/:endpoint/:action?', async (req, res) => {
 				const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 				await query('UPDATE users SET verification_token = ?, token_expires_at = ? WHERE id = ?', [verificationToken, tokenExpiresAt, user.id]);
 
-				const verificationUrl = `${getFrontendUrl()}/email-verification?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
-				const emailBody = buildVerificationEmail({ recipientName: user.full_name, verificationUrl });
+				const verifyUrl = `${getPublicBaseUrl()}/verify?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
+				const denyUrl = `${getPublicBaseUrl()}/deny?token=${encodeURIComponent(verificationToken)}&email=${encodeURIComponent(email)}`;
+				const emailBody = buildCustomVerificationEmail({
+					recipientName: user.full_name,
+					recipientEmail: email,
+					verifyUrl,
+					denyUrl
+				});
 				const emailResult = await sendEmail({
 					to: email,
 					name: user.full_name,

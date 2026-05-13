@@ -91,3 +91,64 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
 
   return { html, text };
 }
+
+export function buildCustomVerificationEmail({ recipientName, recipientEmail, verifyUrl, denyUrl }) {
+  const safeName = recipientName || 'there';
+  const safeEmail = recipientEmail || '';
+  const safeVerifyUrl = verifyUrl || '#';
+  const safeDenyUrl = denyUrl || '#';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify your CycleMart account</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #2e7d32 0%, #3f9a45 100%); color: white; padding: 30px 20px; text-align: center; }
+    .content { padding: 40px 30px; text-align: center; }
+    .message { font-size: 18px; color: #555; margin-bottom: 30px; font-weight: 500; }
+    .button-container { margin: 30px 0; text-align: center; }
+    .btn { display: inline-block; padding: 15px 30px; margin: 10px 15px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; transition: all 0.3s ease; border: none; cursor: pointer; }
+    .btn-yes { background-color: #2e7d32; color: white; }
+    .btn-yes:hover { background-color: #256b2a; }
+    .btn-no { background-color: #f3f7f4; color: #111827; border: 1px solid #d1d5db; }
+    .btn-no:hover { background-color: #e5e7eb; }
+    .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #6c757d; border-top: 1px solid #e9ecef; }
+    .subtitle { font-size: 16px; opacity: 0.9; }
+    .warning { margin-top: 20px; font-size: 13px; color: #475569; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">CycleMart</div>
+      <div class="subtitle">Account Verification</div>
+    </div>
+    <div class="content">
+      <h2 style="color: #333; margin-bottom: 20px;">Hello ${safeName}</h2>
+      <p class="message">Please confirm this email address to activate your account.</p>
+
+      <div class="button-container">
+        <a href="${safeVerifyUrl}" class="btn btn-yes">Yes, it was me</a>
+        <a href="${safeDenyUrl}" class="btn btn-no">No, not me</a>
+      </div>
+
+      <p style="margin-top: 30px; font-size: 14px; color: #666;">
+        This verification link was sent to: <strong>${safeEmail}</strong>
+      </p>
+    </div>
+    <div class="footer">
+      <p class="warning">Choosing "No" will cancel the account request.</p>
+      <p>CycleMart - automated email, please do not reply.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Hello ${safeName},\n\nPlease confirm your account:\n- Yes, it was me: ${safeVerifyUrl}\n- No, not me: ${safeDenyUrl}\n\nThis verification was sent to: ${safeEmail}`;
+
+  return { html, text };
+}
