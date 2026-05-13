@@ -102,7 +102,7 @@ export class LoginComponent {
     
     // Validate password for registration mode
     if (!this.isLoginMode && !this.validatePassword(this.password)) {
-      this.showErrorMessage('âš ï¸ Please ensure your password meets all requirements:\n\n' + this.passwordErrors.join('\n'));
+      this.showErrorMessage('Please ensure your password meets all requirements:\n\n' + this.passwordErrors.join('\n'));
       return;
     }
     
@@ -295,19 +295,19 @@ export class LoginComponent {
     this.passwordErrors = [];
     
     if (password.length < 8) {
-      this.passwordErrors.push('â€¢ At least 8 characters long');
+      this.passwordErrors.push('At least 8 characters long');
     }
     
     if (!/[A-Z]/.test(password)) {
-      this.passwordErrors.push('â€¢ Contains uppercase letters (Aâ€“Z)');
+      this.passwordErrors.push('Contains uppercase letters (A-Z)');
     }
     
     if (!/[a-z]/.test(password)) {
-      this.passwordErrors.push('â€¢ Contains lowercase letters (aâ€“z)');
+      this.passwordErrors.push('Contains lowercase letters (a-z)');
     }
     
     if (!/[0-9]/.test(password)) {
-      this.passwordErrors.push('â€¢ Contains numbers (0â€“9)');
+      this.passwordErrors.push('Contains numbers (0-9)');
     }
     
     return this.passwordErrors.length === 0;
