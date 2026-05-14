@@ -120,6 +120,7 @@ export class LoginComponent {
             this.router.navigate(['/home']);
           } else if (response.status === 'error' && response.data?.requires_verification) {
             // User needs to verify email
+            console.warn('[Login] Email verification required:', response);
               this.showErrorMessage(
               '⚠️ ' + response.message + '\n\nClick below to resend verification email.',
               '📧 Resend Verification',
@@ -143,9 +144,11 @@ export class LoginComponent {
         },
         error: (error) => {
           this.isLoading = false;
+          console.error('[Login] Login error:', error);
           
           // Check if it's a verification error
           if (error.error?.data?.requires_verification) {
+            console.warn('[Login] Email verification required (error response):', error.error);
             this.showErrorMessage(
               '⚠️ ' + error.error.message + '\n\nClick below to resend verification email.',
               '📧 Resend Verification',
@@ -184,6 +187,7 @@ export class LoginComponent {
       }).subscribe({
         next: (response) => {
           this.isLoading = false;
+          console.log('[Login/Register] Registration response:', response);
           
           if (response.status === 'success') {
             if (response.data?.verification_email_sent) {
@@ -204,6 +208,7 @@ export class LoginComponent {
         },
         error: (error) => {
           this.isLoading = false;
+          console.error('[Login/Register] Registration error:', error);
           const status = error?.status;
           const serverMessage = error?.error?.message;
 
