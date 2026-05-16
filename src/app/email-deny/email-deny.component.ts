@@ -3,8 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-
-const API_BASE_URL = 'https://cyclemart.shop/api';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-email-deny',
@@ -50,20 +49,15 @@ export class EmailDenyComponent implements OnInit, OnDestroy {
     this.status = 'loading';
     this.message = '';
 
+    const url = `${environment.apiBaseUrl}/deny?token=${encodeURIComponent(this.token)}&email=${encodeURIComponent(this.email)}`;
+
     this.http
-      .post<{ status?: string; message?: string }>(`${API_BASE_URL}/deny`, {
-        token: this.token,
-        email: this.email
-      })
+      .post<{ status?: string; message?: string }>(url, {})
       .subscribe({
         next: response => {
           this.isLoading = false;
-          if (response?.status === 'success') {
-            this.status = 'success';
-            this.message = 'Account registration has been cancelled.';
-          } else {
-            this.setError('This link is invalid or already used.');
-          }
+          this.status = 'success';
+          this.message = 'Account registration has been cancelled.';
         },
         error: () => {
           this.setError('This link is invalid or already used.');
