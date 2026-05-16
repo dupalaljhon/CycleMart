@@ -1,0 +1,116 @@
+.verify-shell {
+  background: linear-gradient(135deg, #f6fbfa 0%, #e8f4f2 45%, #e2eeec 100%);
+}
+
+.verify-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 22px 38px -20px rgba(30, 41, 59, 0.35), 0 8px 20px -12px rgba(20, 184, 166, 0.28);
+}
+
+.verify-header {
+  background: linear-gradient(120deg, var(--color-primary-dark) 0%, var(--color-primary) 52%, #34d2c1 100%);
+  color: var(--text-inverse);
+}
+
+.verify-header-icon {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.verify-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.verify-spinner {
+  border: 4px solid #dbe4ea;
+  border-top: 4px solid var(--color-primary);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.status-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.status-icon.success {
+  background: #e9f8f5;
+  color: #0f766e;
+}
+
+.status-icon.error {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.verify-state-title {
+  color: var(--color-secondary);
+}
+
+.verify-state-title.error {
+  color: #991b1b;
+}
+
+.status-banner {
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+}
+
+.status-banner-success {
+  background: #e9f8f5;
+  border-color: #b7ebe5;
+  color: #0f766e;
+}
+
+.btn-verify-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+  border: 1px solid var(--color-primary);
+  transition: all 0.2s ease;
+}
+
+.btn-verify-primary:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.btn-verify-secondary {
+  background: #e2e8f0;
+  color: var(--color-secondary);
+  border: 1px solid #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.btn-verify-secondary:hover {
+  background: #cfd8e3;
+}
+
+.verify-footer {
+  background: #f7fafb;
+  border-top: 1px solid var(--border-primary);
+}
+
+.verify-link {
+  color: var(--color-primary-dark);
+}
+
+@media (max-width: 640px) {
+  .verify-card {
+    margin: 1rem;
+    border-radius: 1rem;
+  }
+}

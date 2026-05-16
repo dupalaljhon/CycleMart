@@ -1,39 +1,41 @@
-import * as Brevo from '@getbrevo/brevo';
+import { BrevoClient } from '@getbrevo/brevo';
 
-const apiInstance = new Brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(
-  Brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY
-);
+function getClient() {
+  return new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
+}
 
 export async function sendEmail({ to, subject, html, text, name }) {
   const fromEmail = process.env.SMTP_FROM_EMAIL;
-  const fromName = process.env.SMTP_FROM_NAME || 'CycleMart';
+  const fromName = process.env.SMTP_FROM_NAME || "CycleMart";
 
   if (!fromEmail) {
-    return { status: 'error', message: 'SMTP_FROM_EMAIL is not configured' };
+    return { status: "error", message: "SMTP_FROM_EMAIL is not configured" };
+  }
+
+  if (!process.env.BREVO_API_KEY) {
+    return { status: "error", message: "BREVO_API_KEY is not configured" };
   }
 
   try {
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
-    sendSmtpEmail.subject = subject;
-    sendSmtpEmail.htmlContent = html;
-    sendSmtpEmail.textContent = text;
-    sendSmtpEmail.sender = { name: fromName, email: fromEmail };
-    sendSmtpEmail.to = [{ email: to, name: name || to }];
-
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('✅ Email sent successfully to:', to);
-    return { status: 'success', message: 'Email sent successfully' };
+    const client = getClient();
+    await client.transactionalEmails.sendTransacEmail({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to, name: name || to }],
+      subject,
+      htmlContent: html,
+      textContent: text
+    });
+    console.log("Email sent successfully to:", to);
+    return { status: "success", message: "Email sent successfully" };
   } catch (error) {
-    console.error('❌ Brevo Email Error:', error.message);
-    return { status: 'error', message: error.message || 'Email send failed' };
+    console.error("Brevo Email Error:", error.message);
+    return { status: "error", message: error.message || "Email send failed" };
   }
 }
 
 export function buildVerificationEmail({ recipientName, verificationUrl }) {
-  const safeName = recipientName || 'there';
-  const safeUrl = verificationUrl || '#';
+  const safeName = recipientName || "there";
+  const safeUrl = verificationUrl || "#";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -67,15 +69,15 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
 </body>
 </html>`;
 
-  const text = `Hello ${safeName},\n\nVerify your account:\n${safeUrl}\n\nExpires in 24 hours.`;
+  const text = "Hello " + safeName + ",\n\nVerify your account:\n" + safeUrl + "\n\nExpires in 24 hours.";
   return { html, text };
 }
 
 export function buildCustomVerificationEmail({ recipientName, recipientEmail, verifyUrl, denyUrl }) {
-  const safeName = recipientName || 'there';
-  const safeEmail = recipientEmail || '';
-  const safeVerifyUrl = verifyUrl || '#';
-  const safeDenyUrl = denyUrl || '#';
+  const safeName = recipientName || "there";
+  const safeEmail = recipientEmail || "";
+  const safeVerifyUrl = verifyUrl || "#";
+  const safeDenyUrl = denyUrl || "#";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -118,6 +120,6 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
 </body>
 </html>`;
 
-  const text = `Hello ${safeName},\n\nConfirm your account:\n- Yes: ${safeVerifyUrl}\n- No: ${safeDenyUrl}\n\nSent to: ${safeEmail}`;
+  const text = "Hello " + safeName + ",\n\nConfirm your account:\n- Yes: " + safeVerifyUrl + "\n- No: " + safeDenyUrl + "\n\nSent to: " + safeEmail;
   return { html, text };
 }

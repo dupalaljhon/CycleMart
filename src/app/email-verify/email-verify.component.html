@@ -1,0 +1,68 @@
+<div class="min-h-screen verify-shell flex items-center justify-center p-4">
+  <div class="max-w-md w-full verify-card overflow-hidden">
+    <div class="verify-header p-6 text-center">
+      <div class="verify-header-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold">Email Verification</h1>
+      <p class="verify-subtitle mt-2">CycleMart Account Verification</p>
+    </div>
+
+    <div class="p-8">
+      <div *ngIf="status === 'loading'" class="text-center">
+        <div class="verify-spinner mx-auto mb-4"></div>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Verifying Your Email</h2>
+        <p class="text-gray-600">Please wait while we verify your email address...</p>
+      </div>
+
+      <div *ngIf="status === 'success'" class="text-center">
+        <div class="status-icon success">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold mb-2 verify-state-title">Verification Successful!</h2>
+        <p class="text-gray-600 mb-6">{{ message }}</p>
+        <div class="status-banner status-banner-success rounded-lg p-3 mb-6">
+          <p class="text-sm flex items-center justify-center">
+            <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 104 0m-4 0a2 2 0 100-4m6 4a2 2 0 100 4m0-4a2 2 0 110-4m0 4a2 2 0 104 0m-6-8a2 2 0 110-4m0 4a2 2 0 104 0m-6 8a2 2 0 100 4"></path>
+            </svg>
+            Redirecting to login page in 3 seconds...
+          </p>
+        </div>
+        <button
+          (click)="navigateToLogin()"
+          class="w-full btn-verify-primary py-3 px-6 rounded-lg font-semibold"
+        >
+          Continue to Login
+        </button>
+      </div>
+
+      <div *ngIf="status === 'error'" class="text-center">
+        <div class="status-icon error">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold verify-state-title error mb-2">Verification Failed</h2>
+        <p class="text-gray-600 mb-6">{{ message }}</p>
+        <button
+          (click)="navigateToLogin()"
+          class="w-full btn-verify-secondary py-3 px-6 rounded-lg font-semibold"
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+
+    <div class="verify-footer px-8 py-4 text-center">
+      <p class="text-sm text-gray-500">
+        Need help? Contact us at
+        <a href="mailto:cyclemrt&#64;gmail.com" class="verify-link hover:underline">cyclemrt&#64;gmail.com</a>
+      </p>
+    </div>
+  </div>
+</div>

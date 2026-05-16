@@ -19,6 +19,8 @@ import { ListingMonitoringComponent as AdminListingMonitoringComponent } from '.
 import { AdminMonitoringComponent } from './admin/admin-monitoring/admin-monitoring.component';
 import { SocketDemoComponent } from './socket-demo/socket-demo.component';
 import { EmailVerificationComponent } from './email-verification/email-verification.component';
+import { EmailVerifyComponent } from './email-verify/email-verify.component';
+import { EmailDenyComponent } from './email-deny/email-deny.component';
 import { ResendVerificationComponent } from './resend-verification/resend-verification.component';
 import { ReportsComponent } from './reports/reports.component';
 import { ReportMonitoringComponent as AdminReportMonitoringComponent } from './admin/report-monitoring/report-monitoring.component';
@@ -68,6 +70,8 @@ export const routes: Routes = [
     {path: 'moderator-applications', component: ModeratorApplicationsComponent, canActivate: [adminAuthGuard]},
     {path: 'socket-demo', component: SocketDemoComponent},
     {path: 'email-verification', component: EmailVerificationComponent},
+    {path: 'verify', component: EmailVerifyComponent},
+    {path: 'deny', component: EmailDenyComponent},
     {path: 'resend-verification', component: ResendVerificationComponent},
     {path: 'reports', component: ReportsComponent, canActivate: [AuthGuard, accountStatusGuard]},
     {path: 'report-monitoring', component: ModeratorReportMonitoringComponent, canActivate: [staffGuard]},

@@ -43,4 +43,6 @@ Thumbs.db
 
 .env
 
-/.env
+/.envuploads/
+*.backup
+.env
