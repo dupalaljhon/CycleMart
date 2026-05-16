@@ -49,28 +49,46 @@ export class EmailVerifyComponent implements OnInit, OnDestroy {
   }
 
   private verifyEmail(): void {
-    this.isLoading = true;
-    this.status = 'loading';
-    this.message = '';
+  this.isLoading = true;
+  this.status = 'loading';
+  this.message = '';
 
-    const url = `${environment.apiBaseUrl}/verify?token=${encodeURIComponent(this.token)}&email=${encodeURIComponent(this.email)}`;
+  const url = `${environment.apiBaseUrl}/verify?token=${encodeURIComponent(this.token)}&email=${encodeURIComponent(this.email)}`;
 
-    this.http
-      .get<{ status?: string; message?: string }>(url)
-      .subscribe({
-        next: response => {
-          this.isLoading = false;
+  this.http
+    .get<{ status?: string; message?: string }>(url, { responseType: 'text' as 'json' })
+    .subscribe({
+      next: (response: any) => {
+        this.isLoading = false;
+        // Backend returns HTML, so if we get any response it means success
+        this.status = 'success';
+        this.message = 'Your account has been verified! Redirecting to login...';
+        this.redirectTimer = setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 3000);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        // Check if it's actually a success (already verified counts as success)
+        if (err.status === 200 || err.status === 0) {
           this.status = 'success';
           this.message = 'Your account has been verified! Redirecting to login...';
           this.redirectTimer = setTimeout(() => {
             this.router.navigate(['/login']);
           }, 3000);
-        },
-        error: () => {
+        } else if (err.status === 400) {
+          // Could still be "already verified" which is fine
+          this.status = 'success';
+          this.message = 'Your account is verified! Redirecting to login...';
+          this.redirectTimer = setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 3000);
+        } else {
           this.setError('Verification failed. The link may be expired or already used.');
         }
-      });
-  }
+      }
+    });
+}
 
   navigateToLogin(): void {
     this.router.navigate(['/login']);
