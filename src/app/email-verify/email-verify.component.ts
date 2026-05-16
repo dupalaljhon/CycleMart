@@ -49,34 +49,29 @@ export class EmailVerifyComponent implements OnInit, OnDestroy {
     this.paramSub?.unsubscribe();
   }
 
-  private verifyEmail(): void {
-    this.isLoading = true;
-    this.status = 'loading';
-    this.message = '';
+private verifyEmail(): void {
+  this.isLoading = true;
+  this.status = 'loading';
+  this.message = '';
 
-    this.http
-      .post<{ status?: string; message?: string }>(`${API_BASE_URL}/verify`, {
-        token: this.token,
-        email: this.email
-      })
-      .subscribe({
-        next: response => {
-          if (response?.status === 'success') {
-            this.isLoading = false;
-            this.status = 'success';
-            this.message = 'Your account has been verified! Redirecting to login...';
-            this.redirectTimer = setTimeout(() => {
-              this.router.navigate(['/login']);
-            }, 3000);
-          } else {
-            this.setError('Verification failed. The link may be expired or already used.');
-          }
-        },
-        error: () => {
-          this.setError('Verification failed. The link may be expired or already used.');
-        }
-      });
-  }
+  this.http
+    .get<{ status?: string; message?: string }>(
+      `${API_BASE_URL}/verify?token=${encodeURIComponent(this.token)}&email=${encodeURIComponent(this.email)}`
+    )
+    .subscribe({
+      next: response => {
+        this.isLoading = false;
+        this.status = 'success';
+        this.message = 'Your account has been verified! Redirecting to login...';
+        this.redirectTimer = setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 3000);
+      },
+      error: (err) => {
+        this.setError('Verification failed. The link may be expired or already used.');
+      }
+    });
+}
 
   navigateToLogin(): void {
     this.router.navigate(['/login']);
