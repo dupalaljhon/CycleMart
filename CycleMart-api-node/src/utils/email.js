@@ -45,12 +45,12 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
   <style>
     body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #1f2937; background: #eef3f6; margin: 0; padding: 24px; }
     .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08); }
-    .header { background: #6fa6b8; color: #ffffff; padding: 26px 24px; text-align: center; }
+    .header { background: #2e7d32; color: #ffffff; padding: 26px 24px; text-align: center; }
     .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
     .content { padding: 28px 30px 10px; }
     .intro { margin: 12px 0 0; color: #4b5563; }
     .btn-wrap { text-align: center; margin: 26px 0; }
-    .btn { display: inline-block; padding: 12px 26px; background: #5b92a6; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; letter-spacing: 0.2px; }
+    .btn { display: inline-block; padding: 12px 26px; background: #2e7d32; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; letter-spacing: 0.2px; }
     .link-box { background: #f6f8fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin: 14px 0 4px; word-break: break-all; color: #1d4ed8; }
     .meta { color: #6b7280; font-size: 13px; margin: 10px 0 0; }
     .footer { text-align: center; padding: 16px 24px 24px; font-size: 12px; color: #6b7280; }
@@ -93,12 +93,12 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
   <style>
     body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #1f2937; background-color: #eef3f6; margin: 0; padding: 24px; }
     .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08); }
-    .header { background: #6fa6b8; color: #ffffff; padding: 26px 24px; text-align: center; }
+    .header { background: #2e7d32; color: #ffffff; padding: 26px 24px; text-align: center; }
     .title { font-size: 22px; font-weight: 700; margin: 0; }
     .subtitle { font-size: 14px; opacity: 0.95; margin-top: 4px; }
     .content { padding: 28px 30px 18px; text-align: center; }
     .btn { display: inline-block; padding: 12px 24px; margin: 10px 8px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; }
-    .btn-yes { background-color: #5b92a6; color: #ffffff; }
+    .btn-yes { background-color: #2e7d32; color: #ffffff; }
     .btn-no { background-color: #f6f8fa; color: #111827; border: 1px solid #e5e7eb; }
     .note { margin-top: 22px; font-size: 13px; color: #6b7280; }
     .footer { background-color: #f6f8fa; padding: 16px 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
