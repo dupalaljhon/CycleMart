@@ -114,12 +114,15 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
     </div>
     <div class="content">
       <h2>Hello SAFENAME</h2>
-      <p>Please confirm this email address to activate your account.</p>
+      <p>Thank you for registering with CycleMart, your ultimate destination for premium bike parts and cycling accessories.</p>
+      <p>To activate your account, please confirm your email address:</p>
       <div>
         <a href="SAFEVERIFYURL" class="btn btn-yes">Yes, it was me</a>
         <a href="SAFEDENYURL" class="btn btn-no">No, not me</a>
       </div>
       <p class="note">Sent to: <strong>SAFEEMAIL</strong></p>
+      <p style="font-size:13px;color:#6b7280;margin-top:16px;">Important: This verification link will expire in 24 hours for security reasons.</p>
+      <p style="font-size:13px;color:#6b7280;">If you did not create this account, click "No, not me" to cancel.</p>
     </div>
     <div class="footer">
       <p>Choosing "No" will cancel the account request.</p>
@@ -129,6 +132,6 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
 </body>
 </html>`.replace(/SAFENAME/g, safeName).replace(/SAFEVERIFYURL/g, safeVerifyUrl).replace(/SAFEDENYURL/g, safeDenyUrl).replace(/SAFEEMAIL/g, safeEmail);
 
-  const text = "Hello " + safeName + ",\n\nConfirm your account:\n- Yes: " + safeVerifyUrl + "\n- No: " + safeDenyUrl + "\n\nSent to: " + safeEmail;
+  const text = "Hello " + safeName + ",\n\nThank you for registering with CycleMart!\n\nConfirm your account:\n- Yes, it was me: " + safeVerifyUrl + "\n- No, not me: " + safeDenyUrl + "\n\nSent to: " + safeEmail;
   return { html, text };
 }
