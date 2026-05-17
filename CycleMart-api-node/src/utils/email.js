@@ -61,13 +61,15 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
     <div class="header"><h1>Welcome to CycleMart</h1></div>
     <div class="content">
       <h2>Hello ${safeName}!</h2>
-      <p class="intro">Thanks for registering. Please verify your email by clicking the button below.</p>
+      <p class="intro">Thank you for registering with CycleMart, your ultimate destination for premium bike parts and cycling accessories.</p>
+      <p>To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
       <div class="btn-wrap">
         <a href="${safeUrl}" class="btn">Verify My Account</a>
       </div>
       <p>If the button does not work, copy and paste this link into your browser:</p>
       <div class="link-box">${safeUrl}</div>
-      <p class="meta">Important: This verification link expires in 24 hours.</p>
+      <p class="meta">Important: This verification link will expire in 24 hours for security reasons.</p>
+      <p>If you didn't create this account, please ignore this email.</p>
       <p>Best regards,<br/>The CycleMart Team</p>
     </div>
     <div class="footer">CycleMart - automated email, please do not reply.</div>
