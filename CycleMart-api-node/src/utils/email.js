@@ -43,12 +43,17 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
   <meta charset="UTF-8" />
   <title>Verify Your CycleMart Account</title>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #2e7d32; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background: #f3f7f4; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #d6e7d8; border-top: 0; }
-    .btn { display: inline-block; padding: 12px 24px; background: #2e7d32; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }
-    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+    body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #1f2937; background: #eef3f6; margin: 0; padding: 24px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08); }
+    .header { background: #6fa6b8; color: #ffffff; padding: 26px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
+    .content { padding: 28px 30px 10px; }
+    .intro { margin: 12px 0 0; color: #4b5563; }
+    .btn-wrap { text-align: center; margin: 26px 0; }
+    .btn { display: inline-block; padding: 12px 26px; background: #5b92a6; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; letter-spacing: 0.2px; }
+    .link-box { background: #f6f8fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin: 14px 0 4px; word-break: break-all; color: #1d4ed8; }
+    .meta { color: #6b7280; font-size: 13px; margin: 10px 0 0; }
+    .footer { text-align: center; padding: 16px 24px 24px; font-size: 12px; color: #6b7280; }
   </style>
 </head>
 <body>
@@ -56,15 +61,16 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
     <div class="header"><h1>Welcome to CycleMart</h1></div>
     <div class="content">
       <h2>Hello ${safeName}!</h2>
-      <p>Thanks for registering. Please verify your email by clicking below.</p>
-      <div style="text-align: center; margin: 30px 0;">
+      <p class="intro">Thanks for registering. Please verify your email by clicking the button below.</p>
+      <div class="btn-wrap">
         <a href="${safeUrl}" class="btn">Verify My Account</a>
       </div>
-      <p>Or copy this link: <span style="word-break: break-all;">${safeUrl}</span></p>
-      <p>This link expires in 24 hours.</p>
+      <p>If the button does not work, copy and paste this link into your browser:</p>
+      <div class="link-box">${safeUrl}</div>
+      <p class="meta">Important: This verification link expires in 24 hours.</p>
       <p>Best regards,<br/>The CycleMart Team</p>
     </div>
-    <div class="footer"><p>CycleMart - automated email, please do not reply.</p></div>
+    <div class="footer">CycleMart - automated email, please do not reply.</div>
   </div>
 </body>
 </html>`;
@@ -85,21 +91,24 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
   <meta charset="UTF-8" />
   <title>Verify your CycleMart account</title>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 20px; }
-    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #2e7d32 0%, #3f9a45 100%); color: white; padding: 30px 20px; text-align: center; }
-    .content { padding: 40px 30px; text-align: center; }
-    .btn { display: inline-block; padding: 15px 30px; margin: 10px 15px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; }
-    .btn-yes { background-color: #2e7d32; color: white; }
-    .btn-no { background-color: #f3f7f4; color: #111827; border: 1px solid #d1d5db; }
-    .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #6c757d; border-top: 1px solid #e9ecef; }
+    body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #1f2937; background-color: #eef3f6; margin: 0; padding: 24px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08); }
+    .header { background: #6fa6b8; color: #ffffff; padding: 26px 24px; text-align: center; }
+    .title { font-size: 22px; font-weight: 700; margin: 0; }
+    .subtitle { font-size: 14px; opacity: 0.95; margin-top: 4px; }
+    .content { padding: 28px 30px 18px; text-align: center; }
+    .btn { display: inline-block; padding: 12px 24px; margin: 10px 8px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; }
+    .btn-yes { background-color: #5b92a6; color: #ffffff; }
+    .btn-no { background-color: #f6f8fa; color: #111827; border: 1px solid #e5e7eb; }
+    .note { margin-top: 22px; font-size: 13px; color: #6b7280; }
+    .footer { background-color: #f6f8fa; padding: 16px 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div style="font-size: 24px; font-weight: bold;">CycleMart</div>
-      <div>Account Verification</div>
+      <div class="title">CycleMart</div>
+      <div class="subtitle">Account Verification</div>
     </div>
     <div class="content">
       <h2>Hello ${safeName}</h2>
@@ -108,9 +117,7 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
         <a href="${safeVerifyUrl}" class="btn btn-yes">Yes, it was me</a>
         <a href="${safeDenyUrl}" class="btn btn-no">No, not me</a>
       </div>
-      <p style="margin-top: 30px; font-size: 14px; color: #666;">
-        Sent to: <strong>${safeEmail}</strong>
-      </p>
+      <p class="note">Sent to: <strong>${safeEmail}</strong></p>
     </div>
     <div class="footer">
       <p>Choosing "No" will cancel the account request.</p>
