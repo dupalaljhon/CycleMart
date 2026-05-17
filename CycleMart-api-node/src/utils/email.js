@@ -60,22 +60,22 @@ export function buildVerificationEmail({ recipientName, verificationUrl }) {
   <div class="container">
     <div class="header"><h1>Welcome to CycleMart</h1></div>
     <div class="content">
-      <h2>Hello ${safeName}!</h2>
+      <h2>Hello RECIPIENTNAME!</h2>
       <p class="intro">Thank you for registering with CycleMart, your ultimate destination for premium bike parts and cycling accessories.</p>
       <p>To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
       <div class="btn-wrap">
-        <a href="${safeUrl}" class="btn">Verify My Account</a>
+        <a href="SAFEURL" class="btn">Verify My Account</a>
       </div>
       <p>If the button does not work, copy and paste this link into your browser:</p>
-      <div class="link-box">${safeUrl}</div>
+      <div class="link-box">SAFEURL</div>
       <p class="meta">Important: This verification link will expire in 24 hours for security reasons.</p>
-      <p>If you didn't create this account, please ignore this email.</p>
+      <p>If you did not create this account, please ignore this email.</p>
       <p>Best regards,<br/>The CycleMart Team</p>
     </div>
     <div class="footer">CycleMart - automated email, please do not reply.</div>
   </div>
 </body>
-</html>`;
+</html>`.replace(/RECIPIENTNAME/g, safeName).replace(/SAFEURL/g, safeUrl);
 
   const text = "Hello " + safeName + ",\n\nVerify your account:\n" + safeUrl + "\n\nExpires in 24 hours.";
   return { html, text };
@@ -113,13 +113,13 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
       <div class="subtitle">Account Verification</div>
     </div>
     <div class="content">
-      <h2>Hello ${safeName}</h2>
+      <h2>Hello SAFENAME</h2>
       <p>Please confirm this email address to activate your account.</p>
       <div>
-        <a href="${safeVerifyUrl}" class="btn btn-yes">Yes, it was me</a>
-        <a href="${safeDenyUrl}" class="btn btn-no">No, not me</a>
+        <a href="SAFEVERIFYURL" class="btn btn-yes">Yes, it was me</a>
+        <a href="SAFEDENYURL" class="btn btn-no">No, not me</a>
       </div>
-      <p class="note">Sent to: <strong>${safeEmail}</strong></p>
+      <p class="note">Sent to: <strong>SAFEEMAIL</strong></p>
     </div>
     <div class="footer">
       <p>Choosing "No" will cancel the account request.</p>
@@ -127,7 +127,7 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
     </div>
   </div>
 </body>
-</html>`;
+</html>`.replace(/SAFENAME/g, safeName).replace(/SAFEVERIFYURL/g, safeVerifyUrl).replace(/SAFEDENYURL/g, safeDenyUrl).replace(/SAFEEMAIL/g, safeEmail);
 
   const text = "Hello " + safeName + ",\n\nConfirm your account:\n- Yes: " + safeVerifyUrl + "\n- No: " + safeDenyUrl + "\n\nSent to: " + safeEmail;
   return { html, text };
