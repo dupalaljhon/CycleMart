@@ -1,4 +1,11 @@
 /* Email Verification Component Styles */
+:host {
+  --color-primary: #2e7d32;
+  --color-primary-dark: #256628;
+  --color-secondary: #2e7d32;
+  --text-inverse: #ffffff;
+  --border-primary: #d1e5e0;
+}
 .verification-shell {
   background: linear-gradient(135deg, #f6fbfa 0%, #e8f4f2 45%, #e2eeec 100%);
 }
