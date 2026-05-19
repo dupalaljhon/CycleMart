@@ -99,9 +99,9 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
     .title { font-size: 22px; font-weight: 700; margin: 0; }
     .subtitle { font-size: 14px; opacity: 0.95; margin-top: 4px; }
     .content { padding: 28px 30px 18px; text-align: center; }
-    .btn { display: inline-block; padding: 12px 24px; margin: 10px 8px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; }
-    .btn-yes { background-color: #2e7d32; color: #000000; }
-    .btn-no { background-color: #f6f8fa; color: #000000; border: 1px solid #e5e7eb; }
+    .btn { display: inline-block; padding: 12px 24px; margin: 10px 8px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
+    .btn-yes { background-color: #2e7d32; color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
+    .btn-no { background-color: #f6f8fa; color: #000000 !important; -webkit-text-fill-color: #000000 !important; border: 1px solid #e5e7eb; }
     .note { margin-top: 22px; font-size: 13px; color: #6b7280; }
     .footer { background-color: #f6f8fa; padding: 16px 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
   </style>
@@ -117,8 +117,8 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
       <p>Thank you for registering with CycleMart, your ultimate destination for premium bike parts and cycling accessories.</p>
       <p>To activate your account, please confirm your email address:</p>
       <div>
-        <a href="SAFEVERIFYURL" class="btn btn-yes">Yes, it was me</a>
-        <a href="SAFEDENYURL" class="btn btn-no">No, not me</a>
+        <a href="SAFEVERIFYURL" class="btn btn-yes" style="color:#000000 !important;-webkit-text-fill-color:#000000 !important;"><span style="color:#000000 !important;">Yes, it was me</span></a>
+        <a href="SAFEDENYURL" class="btn btn-no" style="color:#000000 !important;-webkit-text-fill-color:#000000 !important;"><span style="color:#000000 !important;">No, not me</span></a>
       </div>
       <p class="note">Sent to: <strong>SAFEEMAIL</strong></p>
       <p style="font-size:13px;color:#6b7280;margin-top:16px;">Important: This verification link will expire in 24 hours for security reasons.</p>
