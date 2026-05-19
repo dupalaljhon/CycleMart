@@ -100,8 +100,8 @@ export function buildCustomVerificationEmail({ recipientName, recipientEmail, ve
     .subtitle { font-size: 14px; opacity: 0.95; margin-top: 4px; }
     .content { padding: 28px 30px 18px; text-align: center; }
     .btn { display: inline-block; padding: 12px 24px; margin: 10px 8px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; }
-    .btn-yes { background-color: #2e7d32; color: #ffffff; }
-    .btn-no { background-color: #f6f8fa; color: #111827; border: 1px solid #e5e7eb; }
+    .btn-yes { background-color: #2e7d32; color: #000000; }
+    .btn-no { background-color: #f6f8fa; color: #000000; border: 1px solid #e5e7eb; }
     .note { margin-top: 22px; font-size: 13px; color: #6b7280; }
     .footer { background-color: #f6f8fa; padding: 16px 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
   </style>
